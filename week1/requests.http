@@ -6,7 +6,7 @@ POST {{host}}/api/todos
 Content-Type: application/json
 
 {
-  "title": "Http 호출",
+  "title": "Http 404 bad request 확인",
   "description": "HTTP Client 사용법 익히기"
 }
 
@@ -14,7 +14,7 @@ Content-Type: application/json
 GET {{host}}/api/todos
 
 ### 3. Todo 단건 조회
-GET {{host}}/api/todos/2
+GET {{host}}/api/todos/8
 
 ### 4. Todo 수정
 PATCH {{host}}/api/todos/2

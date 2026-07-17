@@ -1,0 +1,181 @@
+백엔드 1주차 모르는것 & 필기할것 정리
+
+1. Http CRUD 응답 분석하기 
+### 변수 정의 (환경별로 다르게 쓰고 싶으면 http-client.env.json 사용 가능)
+@host = http://localhost:8080
+
+### 1. Todo 생성
+POST {{host}}/api/todos
+Content-Type: application/json
+
+{
+  "title": "Http 404 bad request 확인",
+  "description": "HTTP Client 사용법 익히기"
+}
+
+### 2. Todo 전체 조회
+GET {{host}}/api/todos
+
+### 3. Todo 단건 조회
+GET {{host}}/api/todos/8
+
+### 4. Todo 수정
+PATCH {{host}}/api/todos/2
+Content-Type: application/json
+
+{
+  "title": "수정된 제목",
+  "description": "수정된 설명"
+}
+
+### 5. Todo 완료 처리
+PATCH {{host}}/api/todos/2/complete
+
+### 6. Todo 삭제
+DELETE {{host}}/api/todos/2
+
+### 7. Hello 엔드포인트 (있다면)
+GET {{host}}/api/hello
+
+1. 404 bad requset - 요청한 객체가 DB 내에 없음
+2. 400 error 클라이언트 요청이 잘못됨. 이해 불가.
+
+실제로 서비스 측에서 request.http 측면에서 json 파일 형식을 훼손. title을 제거한 채로 실행하니 400, json 형식이 훼손되어 400 error가 떴음.
+
+
+### 3. Todo 단건 조회
+GET {{host}}/api/todos/8
+
+여기서 단건 조회 할때도 마찬가지였고. 전체 조회 했을때 존재하지 않는 아이디인 8을 조회하니 다음과 같이 떴다.
+
+ HTTP/1.1 404 
+Content-Type: application/json
+Transfer-Encoding: chunked
+Date: Fri, 17 Jul 2026 04:26:21 GMT
+
+{
+  "timestamp": "2026-07-17T13:26:21.474724",
+  "status": 404,
+  "error": "Not Found",
+  "message": "Todo를 찾을 수 없습니다. id=8",
+  "path": "/api/todos/8",
+  "errors": {}
+}
+
+서버 실행 / / CRUD 전부  / 에러 응답 2종. 완료.
+
+2 블록 - 1주차 코드 손으로 흐름쓰기.
+
+내가 아는 순서 흐름 : 
+
+1. Http 요청 들어옴 -> ## DTO가 다룰 데이터의 형태 , Domain이 데이터의 상태를 사전정의해줌 이 미리정의된 데이터 형식대로 데이터를 받는지 확인하고 
+2. Controller가 http 요청을 처리, 요청값 해석 (이게 Post,Get,Path,delete인지..)
+2- Service 호출 - 요청값을 처리해야하니까 3- Service 결과를 응답으로 변환 이정도만 담당한다.  그니깐, http를 담당하는 고객처리 창구와 같은 느낌. ( 병원으로 따지면 코디. 고객응대 (프론트엔드와의 통신)의 최전선을 담당한다. 이런느낌이겠지.) 
+
+3. Service 호출 : Service는 Controller의 명령을 받아 repository와의 실제 담당한다. 한마디로 Controller - Repository 사이에 껴서 실제 로직을 수행하는 중간 다리 역할.
+
+4. Repository : 실제 데이터 저장 공간
+
+
+정리된 정상 흐름 (교정본) - Todo 생성 기준
+
+[구조도]
+
+[Client]
+   │  POST /api/todos + JSON body
+   ▼
+┌─────────────────────────────────────────────┐
+│ 1. HTTP 요청 도착                              │
+│    POST /api/todos, Content-Type: json       │
+└───────────────────┬───────────────────────────┘
+                     ▼
+┌─────────────────────────────────────────────┐
+│ 2. DTO — 입구 검증                             │
+│    TodoCreateRequest 바인딩                    │
+│    @Valid → @NotBlank, @Size 검사              │
+│    ※ 이 시점엔 Domain(Todo) 아직 없음           │
+│    검증 실패 시 → 즉시 이탈 (400)                │
+└───────────────────┬───────────────────────────┘
+                     │ 검증 통과
+                     ▼
+┌─────────────────────────────────────────────┐
+│ 3. Controller — 요청 해석만                     │
+│    (POST인지 식별) → 로직 없음                  │
+│    todoService.create(request) 호출            │
+└───────────────────┬───────────────────────────┘
+                     ▼
+┌─────────────────────────────────────────────┐
+│ 4. Service — 조립 담당                          │
+│    ① new Todo(title, description)             │
+│       → Domain 객체 최초 생성                   │
+│    ② todoRepository.save(todo)                │
+│       → 저장을 Repository에 위임                │
+│    ③ TodoResponse.from(savedTodo)             │
+│       → Domain을 DTO로 변환                    │
+└───────────────────┬───────────────────────────┘
+                     ▼
+┌─────────────────────────────────────────────┐
+│ 5. Repository (인터페이스 + 구현체 분리)          │
+│    Service → TodoRepository (인터페이스)만 인지  │
+│    실제 저장 방식(Map)은                        │
+│    InMemoryTodoRepository(구현체)만 앎          │
+└───────────────────┬───────────────────────────┘
+                     ▼
+┌─────────────────────────────────────────────┐
+│ 6. 응답                                       │
+│    Controller가 Service의 TodoResponse를       │
+│    그대로 반환 → 201 CREATED                    │
+└───────────────────┬───────────────────────────┘
+                     ▼
+                 [Client]
+
+[본문]
+
+1. HTTP 요청 도착 (POST /api/todos + JSON body)
+2. DTO가 입구에서 검증 - Spring이 JSON을 TodoCreateRequest로 바인딩하면서 @Valid가 @NotBlank, @Size 검사. 이 시점엔 아직 Todo(Domain)는 존재하지 않음. 검증 실패하면 여기서 바로 이탈(400).
+3. Controller - 검증 통과한 요청만 받아서 요청 해석(POST인지 등)만 함. 로직 없이 todoService.create(request) 호출.
+4. Service - 여기서부터 조립 담당.
+   - new Todo(title, description) -> Domain 객체가 이 시점에 처음 생성됨
+   - todoRepository.save(todo) -> Repository에 저장 위임
+   - TodoResponse.from(savedTodo) -> Domain을 다시 DTO로 변환해서 내보낼 준비
+5. Repository (인터페이스 + 구현체 분리) - Service는 TodoRepository 인터페이스만 알고, 실제 저장 방식(Map에 넣기)은 InMemoryTodoRepository 구현체만 앎.
+6. 응답 - Controller가 Service가 만든 TodoResponse를 그대로 반환 -> 201 CREATED
+
+교정 포인트 3가지
+- Domain은 요청 검증에 관여하지 않는다. 검증은 DTO만 하고, Domain은 검증 통과 후 Service 안에서 생성된다.
+- Service는 Repository와의 통신만 하는 게 아니라, Domain 객체 생성 및 메서드 호출(update, complete)도 함께 조립한다.
+- Repository는 저장 공간 자체가 아니라 저장 공간(Map)에 접근하는 창구다. 인터페이스와 구현체가 분리되어 있다. (그니깐 백엔드 측에서 DB에 접근하는 창구(interface)라고 생각해야겠네 
+
+
+3. 1주차 스스로 답해야 할 질문
+
+Controller는 왜 필요한가?
+- HTTP 요청을 받아 해석하고(POST/GET/PATCH/DELETE), Service를 호출한 뒤 그 결과를 응답으로 변환하는 창구 역할을 하기 위해서. 로직은 직접 갖지 않는다.
+
+Service는 왜 필요한가?
+- Controller(HTTP 처리)와 Repository(저장 방식) 사이에서 유스케이스( 유스케이스(use case) = "사용자(또는 클라이언트)가 어떤 목적을 달성하기 위해 시스템이 수행하는
+                                                       하나의 작업 단위/시나리오") 흐름을 조립하기 위해서. 이게 없으면 Controller가 "찾고, 없으면 예외 던지고, 저장하고, 변환하는" 로직을 전부 떠안게 된다. Service가 이 조립 책임을 가져가야 Controller는 HTTP만, Repository는 저장만 신경 쓸 수 있다.
+
+Repository는 왜 필요한가?
+- 저장 공간(Map, DB 등)에 접근하는 창구(인터페이스)를 따로 두어, Service가 "무엇을 할 수 있는지"만 알고 "어떻게 저장하는지"는 몰라도 되게 하기 위해서. 인터페이스와 구현체를 분리해두면 저장 방식이 바뀌어도(Map -> JPA) Service 코드는 안 바뀐다.
+
+DTO는 왜 필요한가?
+- API가 주고받을 데이터의 모양을 도메인 모델과 분리해서 정의하기 위해서. 도메인(Todo)을 그대로 응답에 노출하지 않고 필요한 필드만 골라 내보낼 수 있고, 검증 규칙(@NotBlank, @Size)을 붙일 자리도 생긴다. 도메인이 바뀌어도 API 응답 계약은 안 깨지게 하는 역할.
+
+Domain 객체는 어떤 역할인가?
+- 데이터의 상태와, 그 상태가 바뀌는 규칙(update, complete)을 함께 표현하는 역할. 상태 변경 로직을 자기 자신 안에 캡슐화한다.
+
+Controller에서 Repository를 직접 부르면 왜 안 좋은가?
+- Service의 getTodo(id) 같은 "찾고 없으면 예외" 로직이 여러 메서드(findById/update/complete/delete)에서 재사용되는데, Controller가 Repository를 직접 부르면 이런 공통 로직이 Controller마다 중복돼야 한다. 저장 방식이 바뀌면 Service 한 곳만 고치면 될 것이, Controller 여러 곳을 다 고쳐야 하는 문제로 번진다.
+
+Todo 상태 변경을 Todo 내부 메서드로 처리하면 뭐가 좋은가?
+- update()/complete()는 필드 변경과 updatedAt 갱신이 항상 같이 일어나도록 강제한다. Service가 필드를 직접 바꾸면(setTitle 등) updatedAt 갱신을 깜빡할 위험이 있는데, 규칙을 Todo 내부에 캡슐화하면 "상태 변경 시 지켜야 할 규칙"이 한 곳에만 존재해서 나중에 규칙이 추가돼도 Todo 클래스만 고치면 된다.
+
+TodoNotFoundException은 어디서 발생해야 하는가?
+- Service 계층의 getTodo(id) 내부에서 발생한다. GET 단건 조회뿐 아니라 update, complete, delete까지 총 4곳에서 공통으로 재사용된다.
+
+GlobalExceptionHandler는 왜 필요한가?
+- 모든 Controller, 모든 HTTP 메서드에서 발생하는 예외를 한곳에서 공통 JSON 에러 포맷으로 변환하기 위해서. 이게 없으면 Controller 메서드마다 try-catch를 반복해야 한다.
+
+다음 주 JPA로 바꾸면 어떤 코드가 가장 많이 바뀌는가?
+- InMemoryTodoRepository 같은 Repository 구현체가 JpaRepository 기반으로 통째로 바뀐다. Todo 도메인도 @Entity 어노테이션이 붙는 등 일부 바뀔 수 있다. 반면 TodoController, TodoService, DTO들은 거의 안 바뀐다 - Service가 TodoRepository 인터페이스에만 의존하기 때문이다.
