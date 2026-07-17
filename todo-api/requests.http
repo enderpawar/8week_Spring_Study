@@ -1,0 +1,35 @@
+### 변수 정의 (환경별로 다르게 쓰고 싶으면 http-client.env.json 사용 가능)
+@host = http://localhost:8080
+
+### 1. Todo 생성
+POST {{host}}/api/todos
+Content-Type: application/json
+
+{
+  "title": "Http 호출",
+  "description": "HTTP Client 사용법 익히기"
+}
+
+### 2. Todo 전체 조회
+GET {{host}}/api/todos
+
+### 3. Todo 단건 조회
+GET {{host}}/api/todos/2
+
+### 4. Todo 수정
+PATCH {{host}}/api/todos/2
+Content-Type: application/json
+
+{
+  "title": "수정된 제목",
+  "description": "수정된 설명"
+}
+
+### 5. Todo 완료 처리
+PATCH {{host}}/api/todos/2/complete
+
+### 6. Todo 삭제
+DELETE {{host}}/api/todos/2
+
+### 7. Hello 엔드포인트 (있다면)
+GET {{host}}/api/hello
