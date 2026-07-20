@@ -1,0 +1,30 @@
+@host = http://localhost:8080
+
+### 스터디룸 생성
+POST {{host}}/api/study-rooms
+Content-Type: application/json
+
+{
+  "name": "Spring 스터디룸",
+  "location": "부산광역시 부산진구",
+  "capacity": 6,
+  "description": "화이트보드와 콘센트가 있는 공간"
+}
+
+### 전체 조회
+GET {{host}}/api/study-rooms
+
+### 단건 조회
+GET {{host}}/api/study-rooms/1
+
+### 일부 필드 수정
+PATCH {{host}}/api/study-rooms/1
+Content-Type: application/json
+
+{
+  "name": "수정된 Spring 스터디룸",
+  "capacity": 8
+}
+
+### 삭제
+DELETE {{host}}/api/study-rooms/1

@@ -1,0 +1,4 @@
+#!/bin/sh
+# Reuse the Gradle wrapper checked in for week1 while building the week2 project.
+SCRIPT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+exec "$SCRIPT_DIR/../week1/gradlew" -p "$SCRIPT_DIR" "$@"

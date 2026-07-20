@@ -1,0 +1,4 @@
+interface:
+  display_name: "Velog Post"
+  short_description: "주차별 학습 노트를 Velog 기술 글로 변환"
+  default_prompt: "Use $velog-post to turn my weekly study review into a polished Velog Markdown post."

@@ -46,10 +46,10 @@ public class TodoController {
 
 	// GET /api/todos/{id}
 	// URL의 {id} 값을 @PathVariable로 꺼내 특정 Todo 하나를 조회합니다.
-	@GetMapping("/{id}")
-	public TodoResponse findById(@PathVariable Long id) {
-		return todoService.findById(id);
-	}
+//	@GetMapping("/{id}")
+//	public TodoResponse findById(@PathVariable Long id) {
+//		return todoService.findById(id);
+//	}
 
 	// PATCH /api/todos/{id}
 	// URL의 id로 수정할 Todo를 찾고, 요청 body의 title/description으로 내용을 바꿉니다.
