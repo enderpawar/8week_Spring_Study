@@ -2,6 +2,8 @@
 
 1주차의 Controller → Service → Repository 구조를 유지하면서, 메모리의 `Map` 대신 MySQL과 Spring Data JPA에 데이터를 저장합니다.
 
+처음 접하는 JPA 용어와 전체 동작 흐름은 [LEARNING_GUIDE.md](LEARNING_GUIDE.md)를 먼저 읽는 것을 권장합니다.
+
 ## 구현 내용
 
 - StudyRoom 생성·전체 조회·단건 조회·부분 수정·삭제
