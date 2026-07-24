@@ -48,13 +48,13 @@
 
 ## 4. 5주 로드맵 (하루 = Full 1 + 지원 Light/관찰)
 
-### 사전 (7/25 D1에 포함) — 레거시 감사
-`app/`에 `WebSecurityConfigurerAdapter`, `javax.*`(→`jakarta.*`), JUnit4, 필드 주입이 남았는지 스캔·정리.
+### 사전 (7/25 D1에 포함) — 새 시작점 확인
+`app/`은 **빈 최소 스켈레톤**이다(Spring Boot 3.5.3 · Java 17 · web+validation, 롬복 없음). `cd app && ./gradlew test`가 green인지 확인한다. 완성된 이전 버전(인증·JWT·CRUD·Spring Core 실험)은 `archive/app_v1_reference/`에 동결돼 있다 — 답을 베끼지 말고 정말 막힐 때만 한 부분씩 참고한다.
 
 ### Week A (7/25~7/31) — 웹 계층: 요청의 생애
 | 일 | Full(1) | 지원 Light/관찰 | 난이도 |
 |---|---|---|---|
-| 7/25 D1 | 요청→응답 왕복(Controller 하나) | 레거시 감사·환경 점검 / HTTP·상태코드 | ★★★ |
+| 7/25 D1 | 요청→응답 왕복(Controller 하나) | 스켈레톤 빌드·실행 확인 / HTTP·상태코드 | ★★★ |
 | 7/26 D2 | record DTO vs Domain 분리 | `@RequestBody`·`@PathVariable` 매핑 | ★★★ |
 | 7/27 D3 | 전역 오류처리 `@RestControllerAdvice` | Bean Validation `@Valid`(→400) | ★★★ |
 | 7/28 D4 | Service/Repository 책임 분리 | 인터페이스 Repository | ★★★ |
@@ -150,8 +150,8 @@ study_docs/
 
 ## 8. 내일(7/25) 시작 체크리스트
 
-1. `app/` 빌드·실행 확인(`./gradlew test` 통과, 앱 기동).
-2. 레거시 감사 스캔(§4 사전).
+1. `cd app && ./gradlew test` green 확인(빈 스켈레톤이 뜬다).
+2. `archive/app_v1_reference/` 위치 파악(막힐 때만 참고).
 3. `study_docs/vocab/weekA.md`, `quiz/weekA.md`, `explain-log.md`, `복습큐.md` 생성.
 4. Week A D1: 요청→응답 왕복을 Full 루프로.
 5. 저녁: 오늘 예측·실행·차이설명 1개를 `explain-log.md`에.

@@ -1,7 +1,3 @@
-// 기본기 로드맵용 최소 스켈레톤.
-// Week A는 웹 계층만 다루므로 web + validation 만 둔다.
-// 데이터 계층(JPA·H2·Flyway)은 Week B에서, 시큐리티·JWT는 Week D에서 직접 추가한다.
-// 롬복은 일부러 넣지 않는다 — 생성자 주입/DTO를 직접 눈으로 보고 쓰기 위해서다.
 plugins {
 	java
 	id("org.springframework.boot") version "3.5.3"
@@ -19,10 +15,20 @@ java {
 repositories { mavenCentral() }
 
 dependencies {
-	implementation("org.springframework.boot:spring-boot-starter-web")
+	implementation("org.springframework.boot:spring-boot-starter-data-jpa")
+	implementation("org.springframework.boot:spring-boot-starter-security")
 	implementation("org.springframework.boot:spring-boot-starter-validation")
+	implementation("org.springframework.boot:spring-boot-starter-web")
+	implementation("io.jsonwebtoken:jjwt-api:0.12.6")
+	runtimeOnly("io.jsonwebtoken:jjwt-impl:0.12.6")
+	runtimeOnly("io.jsonwebtoken:jjwt-jackson:0.12.6")
+	runtimeOnly("com.mysql:mysql-connector-j")
+	compileOnly("org.projectlombok:lombok")
+	annotationProcessor("org.projectlombok:lombok")
 
 	testImplementation("org.springframework.boot:spring-boot-starter-test")
+	testImplementation("org.springframework.security:spring-security-test")
+	testRuntimeOnly("com.h2database:h2")
 	testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
 

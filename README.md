@@ -7,7 +7,8 @@
 
 | 경로 | 내용 |
 |---|---|
-| `app/` | 실습 대상 프로젝트 (빌드·테스트·실습이 이뤄지는 곳) |
+| `app/` | 실습 대상 — **빈 최소 스켈레톤**. 로드맵을 따라 주차별로 직접 쌓아 올린다 |
+| `archive/app_v1_reference/` | 완성된 이전 버전(인증·JWT·CRUD·Spring Core 실험). 읽기 전용 참고자료 |
 | `archive/week1`, `archive/week2` | 동결된 week1·2 코드 (읽기 전용) |
 | `week_review/` | week1·2 회고·정리 작업 공간 (velog 글, 용어 정리, 코드 해부 가이드) |
 | `study_docs/` | 현재 로드맵·원리 노트·면접 노트 |

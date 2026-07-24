@@ -1,15 +1,5 @@
 spring:
-  datasource:
-    url: ${DB_URL:jdbc:mysql://localhost:3306/study_room?serverTimezone=Asia/Seoul&characterEncoding=UTF-8}
-    username: ${DB_USERNAME:root}
-    password: ${DB_PASSWORD:}
-    driver-class-name: com.mysql.cj.jdbc.Driver
-  jpa:
-    hibernate:
-      ddl-auto: update
-    open-in-view: false
+  application:
+    name: study-room-api
 
-jwt:
-  # 학습용 기본값입니다. 운영에서는 반드시 충분히 긴 JWT_SECRET 환경변수를 사용하세요.
-  secret: ${JWT_SECRET:week3-study-room-jwt-secret-key-change-me}
-  expiration-seconds: 3600
+# Week B에서 datasource(H2 → MySQL)와 JPA 설정을 여기에 추가한다.
