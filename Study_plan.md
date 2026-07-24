@@ -24,10 +24,13 @@ AI는 먼저 이 문서 전체와 해당 주차 섹션, 기존 코드, `study_do
 
 | 구간 | 현재 상태 | 다시 명령했을 때 할 일 |
 |---|---|---|
-| Week 1 | InMemory Todo API 구현됨 | 기존 코드를 보존하고 통합 `LEARNING_GUIDE.md`와 누락 테스트 보강 |
-| Week 2 | JPA/MySQL StudyRoom CRUD 구현됨 | 기존 코드를 보존하고 JPA 학습자료·테스트 보강 |
-| Week 3 | Access JWT 기본형과 통합 테스트 5개 구현됨 | 기존 테스트를 유지하고 Refresh Token·만료·로그아웃 보강 |
-| Bridge 이후 | 미구현 | 이전 주차 결과를 누적해 구현 |
+| Week 0 | 미실행 | 저장소 구조 전환(5.5), Spring Core 실험, CI Skeleton |
+| Week 1 | InMemory Todo API 구현됨 | 코드는 `archive/`로 동결. 문서와 누락 테스트만 보강 |
+| Week 2 | JPA/MySQL StudyRoom CRUD 구현됨 | 코드는 `archive/`로 동결. 문서만 보강 |
+| Week 3 | Access JWT 기본형과 통합 테스트 5개 구현됨 | 기존 테스트를 유지하고 Refresh Token·만료·로그아웃만 보강 후 `app/`으로 이전 |
+| Bridge 이후 | 미구현 | `app/` 한 프로젝트에 누적해 구현 |
+
+Week 1~3은 각각 독립 Gradle 프로젝트로 복사되어 있다. 이 방식은 Week 3에서 끝난다. Week 4부터는 5.5의 단일 프로젝트 구조를 사용한다.
 
 파일이 존재한다는 이유만으로 완료 처리하지 않는다. 완료 기준은 실행 결과, 테스트, 학습자료, 설명 가능 여부로 판단한다.
 
@@ -96,18 +99,28 @@ Week 1과 Week 2는 완료된 기준선으로 보고, 아래 일정은 원리 �
 
 | 기간 | 실행 구간 | 핵심 결과 | 일수 |
 |---|---|---|---:|
-| 7/22~7/24 | Week 0 | Spring Core 원리 + Git/PR + 기본 CI | 3 |
-| 7/25~7/29 | Week 3 | 인증 + Refresh 기본형 + 테스트 | 5 |
-| 7/30~8/2 | Bridge | JPA 원리 + Flyway + Testcontainers + CI 통합 | 4 |
-| 8/3~8/6 | Week 4 | 예약 도메인 + 시간 모델링 + Transaction 실험 | 4 |
-| 8/7~8/11 | Week 5 | 동시성 재현·해결·멀티스레드 검증 | 5 |
-| 8/12~8/16 | Week 6 | 리뷰 + 검색/페이징 + N+1 개선 | 5 |
-| 8/17~8/20 | Week 7 | 테스트 전략 + ErrorCode + Swagger + 로그 | 4 |
-| 8/21~8/23 | Week 8 | EXPLAIN + 인덱스 개선 | 3 |
-| 8/24~8/27 | Week 9 | Docker + 실배포 + README | 4 |
-| 8/28~9/1 | Buffer | 밀린 작업, 복습, 장애 해결, 면접 설명 연습 | 5 |
+| 7/22~7/24 | Week 0 | Spring Core 원리 + 저장소 구조 확정 + Git/PR + 기본 CI | 3 |
+| 7/25~7/27 | Week 3 | Refresh Token·로그아웃·만료 테스트 보강 | 3 |
+| 7/28~8/1 | Bridge | JPA 원리(실험 기반) + Flyway + Testcontainers + CI 통합 | 5 |
+| 8/2~8/5 | Week 4 | 예약 도메인 + 시간 모델링 + Transaction 실험 | 4 |
+| 8/6~8/10 | Week 5 | 동시성 재현·해결·멀티스레드 검증 | 5 |
+| 8/11 | Buffer A | Week 5 지연 흡수 전용 | 1 |
+| 8/12~8/16 | Week 6 | 리뷰 + 검색/페이징 + N+1 개선 + Seed Data | 5 |
+| 8/17 | Buffer B | Week 6 지연 흡수 전용 | 1 |
+| 8/18~8/21 | Week 7 | 테스트 전략 + ErrorCode + Swagger + 로그 | 4 |
+| 8/22~8/24 | Week 8 | EXPLAIN + 인덱스 개선 | 3 |
+| 8/25~8/29 | Week 9 | Docker + 실배포 + 루트 README | 5 |
+| 8/30~9/1 | Buffer C | 복습, 면접 설명 연습, Velog 마무리 | 3 |
 
-합계는 42일이다. Buffer는 미리 기능을 배정하지 않는다. Week 5나 Week 6이 밀리면 Buffer를 사용하고, 그래도 부족하면 선택 고도화인 Week 10~12를 개강 이후로 미룬다.
+합계는 42일이다.
+
+### Buffer 사용 규칙
+
+Buffer는 세 곳에 나눠 배치한다. 마지막에 몰아 두면 앞 구간이 밀릴 때 "나중에 하면 된다"로 넘어가고, 결국 Week 9 배포가 Buffer를 통째로 잡아먹는다.
+
+- **Buffer A(8/11), B(8/17)**: 바로 앞 구간이 밀렸을 때만 사용한다. 앞 구간이 제때 끝났으면 그날은 복습과 면접 노트 정리에 쓴다. 다음 구간을 당겨서 시작하지 않는다.
+- **Buffer C(8/30~9/1)**: 기능 구현에 사용하지 않는다. 여기까지 기능이 밀렸다면 Week 10~12가 아니라 Week 6 리뷰 기능부터 축소한다.
+- Week 9(배포)에 5일을 배정한 이유는 첫 배포가 거의 항상 하루를 소모하기 때문이다. 배포를 Buffer C로 미루지 않는다.
 
 ### 시간 부족 시 자르는 순서
 
@@ -146,6 +159,8 @@ Week 1과 Week 2는 완료된 기준선으로 보고, 아래 일정은 원리 �
 ## 3.3 기존 주차를 다시 실행할 때
 
 - 디렉터리를 삭제하거나 프로젝트를 새로 만들지 않는다.
+- **Week 4 이후에는 `weekN/` 디렉터리를 새로 만들지 않는다.** 코드는 `app/` 한 곳에 누적하고 문서만 `docs/weekN/`에 둔다. 자세한 규칙은 5.5를 따른다.
+- `archive/` 아래 코드는 수정하지 않는다.
 - 이미 통과하는 테스트를 삭제해 테스트 수를 줄이지 않는다.
 - 기존 API 계약을 바꿔야 한다면 이유와 Migration 방법을 먼저 설명한다.
 - 누락 기능, 실패 테스트, 문서 불일치만 보강한다.
@@ -241,12 +256,12 @@ weekN/
 |---|---|---|
 | Week 0 | `study_docs/spring-core-notes.md` | IoC/DI, Singleton, Proxy, OCP/DIP 답변 |
 | Bridge | `study_docs/jpa-core-notes.md` | 영속성 컨텍스트, LAZY Proxy, Transaction 실험 |
-| Week 4 | `week4/DESIGN_DECISIONS.md` | 시간 타입, 경계 규칙, 연관관계 선택 |
-| Week 5 | `week5/CONCURRENCY_REPORT.md` | 재현 방법, 선택지 비교, 100건 결과 |
-| Week 6 | `week6/N_PLUS_ONE_REPORT.md` | 데이터 수, 쿼리 수 Before/After |
-| Week 7 | `week7/TEST_STRATEGY.md` | 단위·Slice·통합 테스트 구분과 목적 |
-| Week 8 | `week8/INDEX_REPORT.md` | EXPLAIN, rows, 실행 시간, 인덱스 Trade-off |
-| Week 9 | `week9/DEPLOYMENT_RUNBOOK.md` | 배포·Health Check·로그·비용·복구 방법 |
+| Week 4 | `docs/week4/DESIGN_DECISIONS.md` | 시간 타입, 경계 규칙, 연관관계 선택 |
+| Week 5 | `docs/week5/CONCURRENCY_REPORT.md` | 재현 방법, 선택지 비교, 100건 결과 |
+| Week 6 | `docs/week6/N_PLUS_ONE_REPORT.md` | 데이터 수, 쿼리 수 Before/After, Seed Data 생성 방법 |
+| Week 7 | `docs/week7/TEST_STRATEGY.md` | 단위·Slice·통합 테스트 구분과 목적 |
+| Week 8 | `docs/week8/INDEX_REPORT.md` | EXPLAIN, rows, 실행 시간, 인덱스 Trade-off |
+| Week 9 | `docs/week9/DEPLOYMENT_RUNBOOK.md` | 배포·Health Check·로그·비용·복구 방법 |
 
 ## 5.3 학습 가이드 품질 기준
 
@@ -282,6 +297,62 @@ Mermaid 구조도에는 최소한 다음이 있어야 한다.
 ```
 
 AI는 답변 초안을 제안할 수 있지만 학습자의 실제 경험인 것처럼 대신 작성하지 않는다.
+
+## 5.5 저장소 구조 전략
+
+### 지금까지의 방식과 그 한계
+
+Week 1~3은 매주 이전 주차 디렉터리를 통째로 복사해 새 Gradle 프로젝트를 만드는 방식이었다. Week 3까지는 문제가 없었지만 Week 4부터는 다음이 전부 깨진다.
+
+- **Flyway**: 매주 복사하면 Migration 이력이 주차마다 초기화된다. 누적된 스키마 변경 기록이라는 Flyway의 존재 이유가 사라진다.
+- **CI**: GitHub Actions가 어느 프로젝트를 빌드해야 하는지 정의할 수 없다. 전부 빌드하면 느리고, 하나만 빌드하면 나머지는 죽은 코드다.
+- **배포**: 배포 대상이 `week9/`라는 이름의 디렉터리가 된다.
+- **채용 제출**: 담당자가 저장소를 열면 비슷한 프로젝트 9개를 보게 되고 최종본을 구분할 수 없다.
+
+### Week 4부터 적용할 구조
+
+Week 0에서 아래 구조로 전환하고, 이후에는 디렉터리를 복사하지 않는다.
+
+```text
+저장소 루트/
+├─ README.md              ← 채용 담당자용 포트폴리오 진입점 (Week 9에서 완성)
+├─ Study_plan.md
+├─ AGENTS.md
+├─ .gitignore             ← 루트 공통
+├─ app/                   ← Week 4부터 이 프로젝트 하나만 발전시킨다
+│  ├─ src/main, src/test
+│  ├─ src/main/resources/db/migration/   ← Flyway
+│  ├─ Dockerfile, docker-compose.yml
+│  └─ build.gradle.kts
+├─ docs/                  ← 주차별 증거 문서
+│  ├─ week4/DESIGN_DECISIONS.md
+│  ├─ week5/CONCURRENCY_REPORT.md
+│  ├─ week6/N_PLUS_ONE_REPORT.md
+│  ├─ week7/TEST_STRATEGY.md
+│  ├─ week8/INDEX_REPORT.md
+│  └─ week9/DEPLOYMENT_RUNBOOK.md
+├─ archive/               ← 학습 기록으로 동결. 더 이상 수정하지 않는다
+│  ├─ week1/  (InMemory Todo API)
+│  ├─ week2/  (JPA CRUD)
+│  └─ week3/  (인증)
+└─ study_docs/
+```
+
+### 전환 규칙
+
+- `app/`의 출발점은 Week 3 결과물이다. Week 3 완료 직후 `week3/`를 `app/`으로 옮기고, `archive/week3/`에는 그 시점의 사본을 남긴다.
+- `archive/`의 코드는 읽기 전용이다. 버그를 발견해도 고치지 않고 `app/`에서만 고친다.
+- Week 4~9의 `LEARNING_GUIDE.md`는 `docs/weekN/LEARNING_GUIDE.md`에 둔다. 코드는 `app/` 한 곳에만 있다.
+- CI, Flyway, Docker, 배포의 대상은 언제나 `app/` 하나다.
+- 5.1의 `weekN/` 디렉터리 규칙은 Week 1~3(archive)에만 적용된다.
+
+### 저장소 위생
+
+Week 0에서 함께 정리한다. 채용 담당자에게 그대로 보이는 부분이다.
+
+- 루트 `.gitignore` 생성: `build/`, `.gradle/`, `.idea/`, `*.zip`, `.env`, `*.log`
+- 이미 커밋된 `todo-api.zip`, `.idea/` 제거 (`git rm -r --cached`)
+- 빌드 산출물과 IDE 설정이 추적되지 않는지 `git ls-files`로 확인
 
 ---
 
@@ -357,14 +428,40 @@ Spring이 객체를 만들고 연결하며 Proxy로 부가기능을 적용하는
 - AOP, Proxy, Self-invocation
 - Branch, Commit, Pull Request, CI
 
+## 학습 방식 — 강의를 보지 않는다
+
+이 트랙은 강의 시청을 학습 수단으로 사용하지 않는다. 보유 중인 김영한 PDF는 **막혔을 때만 찾아보는 사전**이고, 처음부터 읽는 교재가 아니다. 완독은 완료 기준이 아니다.
+
+Spring Core는 개념 설명을 듣는 대신 **동작을 재현하는 코드를 직접 실행해서** 익힌다. Bridge의 JPA 학습도 같은 방식이다. 면접 답변으로도 "강의에서 그렇게 설명했습니다"보다 "직접 재현해봤고 코드는 여기 있습니다"가 낫다.
+
+### 막혔을 때만 찾아볼 위치
+
+| 막힌 주제 | 찾아볼 곳 |
+|---|---|
+| IoC/DI, 컨테이너, Bean, Singleton, Component Scan, 의존관계 주입 | `spring-basic.zip` 해당 장 |
+| AOP와 Proxy | `spring-start-v20260130/7. AOP.pdf` |
+| 그 외 | Spring Framework Reference — Core / Testing |
+
 ## 학습·구현 항목
 
-1. 보유 중인 Spring Core 자료에서 IoC/DI, Bean, Singleton, Component Scan, AOP를 학습한다.
-2. Week 1의 `TodoRepository`와 `InMemoryTodoRepository`로 OCP/DIP를 설명한다.
-3. Singleton Bean에 요청별 변경 상태를 두면 안 되는 예제를 만든다.
-4. AOP Proxy와 Servlet Filter Chain이 ‘가로챈다’는 점은 비슷하지만 서로 다른 기술임을 정리한다.
-5. Feature Branch와 PR Template을 만든다.
-6. GitHub Actions에서 기본 Gradle Test가 실행되는 CI Skeleton을 만든다.
+### 실험 (각 항목마다 실행 가능한 코드를 남긴다)
+
+| # | 확인할 동작 | 코드로 증명할 것 |
+|---|---|---|
+| 1 | DI의 효과 | Week 1의 `TodoRepository` 구현체를 교체할 때 `TodoService`가 바뀌지 않음을 보인다. OCP/DIP를 이 코드로 설명한다 |
+| 2 | Singleton Scope | 같은 타입 Bean을 두 곳에서 주입받아 `==`가 참임을 확인한다 |
+| 3 | Singleton 상태 공유 위험 | Bean에 변경 가능한 필드를 두고 멀티스레드로 접근해 값이 깨지는 것을 재현한다 |
+| 4 | Proxy의 존재 | `@Transactional` Bean의 `getClass().getName()`에 CGLIB 표식이 붙는 것을 확인한다 |
+| 5 | Component Scan 범위 | 스캔 대상 밖 패키지에 `@Component`를 두고 Bean 등록 실패를 재현한다 |
+| 6 | Filter와 AOP의 차이 | Filter와 AOP Advice에 로그를 심어 실행 순서를 출력하고, 둘이 다른 기술임을 설명한다 |
+
+Self-invocation에서 Transaction이 풀리는 재현은 Bridge 8번에서 다룬다. 여기서는 Proxy가 존재한다는 사실까지만 확인한다.
+
+### 저장소 정비
+
+7. **5.5의 저장소 구조로 전환한다.** `archive/` 이동, 루트 `.gitignore` 생성, `todo-api.zip`과 `.idea/` 추적 해제.
+8. Feature Branch와 PR Template을 만든다.
+9. GitHub Actions에서 기본 Gradle Test가 실행되는 CI Skeleton을 만든다. 빌드 대상은 `app/` 하나다.
 
 ## 필수 산출물
 
@@ -382,6 +479,8 @@ Spring이 객체를 만들고 연결하며 Proxy로 부가기능을 적용하는
 - [ ] DI와 객체 직접 생성을 비교해 설명할 수 있다.
 - [ ] Singleton 상태 공유 문제를 재현했다.
 - [ ] Proxy를 거친 호출과 내부 호출의 차이를 그림으로 설명했다.
+- [ ] 5.5 구조로 전환됐고 `archive/`의 Week 1~2가 동결됐다.
+- [ ] `git ls-files`에 빌드 산출물·IDE 설정·zip이 없다.
 - [ ] Feature Branch에서 PR을 만들었다.
 - [ ] PR에서 Gradle Test가 자동 실행된다.
 - [ ] 본인의 답변이 `spring-core-notes.md`에 남아 있다.
@@ -514,6 +613,12 @@ DELETE /api/study-rooms/{id}
 
 비밀번호를 안전하게 저장하고, Access Token으로 사용자를 인증하며, Refresh Token의 발급·재발급·무효화 흐름을 구현한다.
 
+## 이번 구간의 실제 범위 (3일)
+
+Week 3은 이미 절반 이상 구현돼 있다. 회원가입·로그인·Access JWT·내 정보 조회·통합 테스트 5개가 완료 상태이므로, 이 구간에서 새로 만드는 것은 Refresh Token 저장·재발급·Rotation·로그아웃·`Clock` 기반 만료 테스트뿐이다. 처음부터 다시 만들지 않는다.
+
+구간 종료 시 `week3/`를 `app/`으로 옮기고 `archive/week3/`에 사본을 남긴다(5.5 참고). 이후 모든 주차는 `app/` 하나에서 진행한다.
+
 ## 기존 기준선
 
 현재 저장소에는 회원가입, 로그인, Access JWT, 내 정보 조회와 다음 통합 테스트 5개가 있다.
@@ -605,18 +710,45 @@ GET  /api/members/me
 
 예약과 동시성 구현 전에 Schema 변경, 실제 MySQL 테스트, JPA Proxy와 Transaction을 검증할 기반을 만든다.
 
-## 4일 실행 순서
+## JPA 학습 방식 — 강의 없이 진행한다
 
-### 1일차 — JPA 원리
+JPA 전용 강의는 구매하지 않는다. Week 0과 동일하게 **동작을 증명하는 테스트를 직접 작성하는 방식**으로 진행한다.
 
-- 영속성 컨텍스트와 Entity 생명주기
-- 변경 감지와 Flush
-- LAZY Proxy 초기화
-- Transaction 경계
-- OSIV를 끈 이유
-- Proxy 외부 호출과 Self-invocation 차이
+### 막혔을 때만 찾아볼 위치
 
-### 2일차 — Flyway
+| 막힌 주제 | 찾아볼 곳 |
+|---|---|
+| 이미 정리한 영속성 컨텍스트·변경 감지 | `week2/LEARNING_GUIDE.md` (본인이 작성한 것) |
+| 영속성 컨텍스트, Flush, Proxy, Fetching | Hibernate ORM User Guide |
+| Repository, 파생 Query, `@EntityGraph` | Spring Data JPA Reference |
+| Transaction 경계와 전파 | Spring Framework Reference — Data Access |
+| JPA 기본 사용법 | `spring-start-v20260130/6. 스프링 DB 접근 기술.pdf` |
+
+공식 문서는 처음부터 읽지 않는다. 아래 실험에서 막히는 지점만 찾아 읽고, 읽은 위치를 `jpa-core-notes.md`에 링크로 남긴다. 문서를 다 읽는 것은 완료 기준이 아니다.
+
+## 5일 실행 순서
+
+### 1~2일차 — JPA 원리 (실험으로 학습)
+
+각 항목마다 **그 동작을 증명하는 테스트를 하나씩** 작성한다. 테스트 이름이 곧 학습 내용이 되게 쓴다.
+
+| # | 확인할 동작 | 테스트로 증명할 것 |
+|---|---|---|
+| 1 | 1차 캐시 | 같은 트랜잭션에서 같은 ID를 두 번 조회하면 SELECT가 1번만 나간다 |
+| 2 | 변경 감지 | `save()` 없이 필드만 바꿔도 커밋 시 UPDATE가 나간다 |
+| 3 | Flush 시점 | 커밋 전에 JPQL을 실행하면 그 전에 Flush가 먼저 일어난다 |
+| 4 | 동일성 보장 | 같은 트랜잭션의 두 조회 결과가 `==`로 같다 |
+| 5 | LAZY Proxy | 연관 Entity가 실제 클래스가 아닌 Proxy이고, 필드 접근 시점에 SELECT가 나간다 |
+| 6 | 준영속 상태 | 트랜잭션 밖에서 LAZY 필드에 접근하면 `LazyInitializationException`이 난다 |
+| 7 | OSIV | OSIV를 끈 상태에서 6번이 재현되는 것을 확인하고, 끈 이유를 적는다 |
+| 8 | Self-invocation | 같은 객체 내부 호출에서는 `@Transactional`이 적용되지 않는다 |
+
+- 5·6번이 Week 6 N+1의 전제이고, 8번이 Week 4 Transaction 심화의 전제다. 여기서 건너뛰면 뒤에서 반드시 막힌다.
+- 트랜잭션 활성 여부는 `TransactionSynchronizationManager.isActualTransactionActive()`로 단정한다. 로그를 눈으로 보고 판단하지 않는다.
+- 쿼리 수는 Hibernate Statistics로 센다. Week 6에서 같은 도구를 그대로 쓴다.
+- 8개 테스트는 `app/src/test/.../experiments/` 아래에 모아 두고 Production 코드를 일부러 훼손하지 않는다.
+
+### 3일차 — Flyway
 
 - 초기 Schema를 `V1__init.sql`로 표현
 - 이후 변경을 새로운 Version Migration으로 추가
@@ -624,34 +756,37 @@ GET  /api/members/me
 - 애플리케이션 설정을 최종적으로 `ddl-auto: validate`로 전환
 - 기존 개발 DB 데이터가 있다면 삭제 전에 반드시 사용자에게 확인
 
-### 3일차 — Testcontainers MySQL
+### 4일차 — Testcontainers MySQL
 
 - H2 테스트는 빠른 Feedback 용도로 유지 가능
 - MySQL 고유 동작은 MySQL Container에서 검증
 - `@ServiceConnection` 또는 명시적 Test 설정
 - Container 생명주기와 Context Cache 이해
 
-### 4일차 — CI 통합
+### 5일차 — CI 통합
 
 - PR에서 Gradle Test
 - Testcontainers MySQL Test
 - Flyway Migration 검증
 - 실패 시 Merge하지 않는 규칙
 
-## 필수 실험
+## 추가 실험
 
-1. Transaction 안과 밖에서 LAZY Association 접근 비교
-2. 외부 Bean 호출과 같은 객체 내부 호출의 Transaction 활성 여부 비교
-3. H2와 MySQL에서 Constraint 또는 SQL 차이 하나 기록
+위 8개 외에 다음을 기록한다.
+
+- H2와 MySQL에서 Constraint 또는 SQL 동작 차이 하나
 
 실험 코드는 Production Service를 일부러 이상하게 만들지 말고 별도 Test 또는 `experiments` 패키지에 둔다.
 
 ## 완료 기준
 
+- [ ] JPA 실험 8개가 모두 통과하는 테스트로 남아 있다.
+- [ ] 각 실험이 무엇을 증명하는지 `study_docs/jpa-core-notes.md`에 본인 문장으로 적혀 있다.
+- [ ] LAZY Proxy 초기화 시점과 `LazyInitializationException` 발생 조건을 설명한다.
+- [ ] Self-invocation 실험 결과가 `jpa-core-notes.md`에 있다.
 - [ ] `ddl-auto: validate`로 애플리케이션이 시작된다.
 - [ ] 새 DB가 Flyway만으로 생성된다.
 - [ ] MySQL Testcontainers 테스트가 로컬과 CI에서 통과한다.
-- [ ] Self-invocation 실험 결과가 `study_docs/jpa-core-notes.md`에 있다.
 - [ ] Transaction이 새 Thread로 자동 전파되지 않음을 설명한다.
 - [ ] Week 4가 이 기반을 그대로 사용한다.
 
@@ -772,7 +907,9 @@ StudyRoom Row Lock
 → Commit 후 Lock 해제
 ```
 
-Lock Timeout과 Deadlock 가능성을 설명하고, 예약 충돌은 409로 변환한다.
+Lock Timeout을 설정하고, 예약 충돌은 409로 변환한다.
+
+Deadlock에 대해서는 "가능성을 설명"하지 않는다. 위 기본안처럼 항상 존재하는 단일 `StudyRoom` Row 하나만 잠그면 Lock 획득 순서가 엇갈릴 수 없으므로 Deadlock이 구조적으로 발생하지 않는다. 대신 **"이 설계에서 Deadlock이 생기지 않는 이유는 무엇이고, 어떤 설계로 바꾸면 생기는가"**를 설명한다. 없는 위험을 설명하려 하면 근거 없는 일반론이 된다.
 
 ## 필수 테스트
 
@@ -823,6 +960,15 @@ Lock Timeout과 Deadlock 가능성을 설명하고, 예약 충돌은 409로 변�
 6. N+1 재현과 해결
 
 찜 기능은 개강 전 범위에서 제외한다.
+
+## Seed Data — Week 8을 위해 여기서 미리 만든다
+
+검색 API 테스트에도 필요하고, Week 8의 EXPLAIN은 데이터가 적으면 아무 의미가 없다. Week 8에 가서 만들면 그 구간 3일 중 반나절이 날아간다.
+
+- 재현 가능한 생성 방법을 만든다: Flyway `R__seed.sql`, 별도 생성 Test, 또는 스크립트 중 하나
+- 규모는 검색 조건의 Selectivity를 관찰할 수 있는 수준으로 정한다. 수십 건으로는 Full Scan과 Index Scan의 차이가 드러나지 않는다
+- 운영 Profile에서는 실행되지 않도록 분리한다
+- 생성 방법과 건수를 기록해 Week 8에서 같은 데이터로 Before/After를 비교할 수 있게 한다
 
 ## 요구 API
 
@@ -967,7 +1113,7 @@ Week 6 검색 API를 실제 데이터로 측정하고, Query Pattern에 맞는 �
 
 ## 준비
 
-- 작은 데이터 수십 건이 아니라 의미 있는 Test Data를 준비한다.
+- Week 6에서 만든 Seed Data를 사용한다. 여기서 새로 만들지 않는다. 없다면 Week 6으로 돌아가 먼저 만든다.
 - 같은 Hardware·DB·데이터·Query로 Before/After를 비교한다.
 - 실행 Query와 Parameter를 기록한다.
 
@@ -1051,6 +1197,15 @@ Week 6 검색 API를 실제 데이터로 측정하고, Query Pattern에 맞는 �
 - 정상 설정으로 복구
 - 애플리케이션 재시작 후 데이터 유지 확인
 
+## 루트 README — 채용 담당자의 첫 화면
+
+이 구조로 작성할 파일은 **저장소 루트의 `README.md`**다. 담당자가 GitHub 링크를 열었을 때 처음 보는 화면이 학습 계획서(`Study_plan.md`)가 되어서는 안 된다.
+
+- 루트 `README.md`: 포트폴리오 진입점. 3분 안에 무엇을 만들었고 무엇을 증명했는지 판단할 수 있어야 한다.
+- `docs/weekN/`: 측정 보고서. 루트 README에서 Link한다.
+- `archive/`: 학습 과정 기록. 루트 README 하단에 한 줄로만 언급한다.
+- Live URL, 주요 수치(동시 100건 결과, 쿼리 수 Before/After, EXPLAIN Before/After)는 스크롤 없이 보이는 위치에 둔다.
+
 ## README 최종 구조
 
 ```text
@@ -1078,6 +1233,8 @@ Week 6 검색 API를 실제 데이터로 측정하고, Query Pattern에 맞는 �
 - [ ] 회원가입→로그인→예약 흐름을 외부에서 시연할 수 있다.
 - [ ] Secret이 Repository History와 Image에 없다.
 - [ ] `DEPLOYMENT_RUNBOOK.md`로 재배포와 정리가 가능하다.
+- [ ] 루트 `README.md`가 포트폴리오 진입점으로 완성됐다.
+- [ ] 저장소를 처음 여는 사람이 최종 결과물이 `app/`임을 헷갈리지 않는다.
 - [ ] README의 모든 수치가 보고서·테스트와 연결된다.
 
 ---

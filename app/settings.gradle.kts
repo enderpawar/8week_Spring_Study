@@ -1,1 +1,1 @@
-rootProject.name = "study-room-api-week3"
+rootProject.name = "study-room-api"

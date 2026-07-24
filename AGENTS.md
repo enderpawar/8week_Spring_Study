@@ -14,9 +14,21 @@ When the user asks `week N 구현해`, `N주차 구현해`, or another Week-spec
 
 `bridge 구현해` follows the Bridge section of `Study_plan.md`. `week 0 구현해` follows the Week 0 section.
 
+## Repository layout
+
+From Week 4 onward there is exactly one codebase.
+
+- `app/` — the only project that is built, migrated, containerized, and deployed. Accumulate features here.
+- `docs/weekN/` — that week's evidence report and learning guide.
+- `archive/week1..3/` — frozen learning history. Read-only; never edit.
+- Root `README.md` — the portfolio entry point for hiring managers, not the study plan.
+
+Never create a new `weekN/` project directory for Week 4 or later, and never copy `app/` to start a new week. See section 5.5 of `Study_plan.md`.
+
 ## Learning constraints
 
 - Keep work inside the requested Week's scope.
+- **The learner does not watch video lectures.** Never plan work around watching a course. Teach Spring/JPA internals by writing small runnable experiments and tests that prove one behavior each. The owned PDFs are a lookup reference for when something is unclear, not required reading, and "finish the material" is never a completion criterion.
 - Explain unfamiliar terms in Korean and connect them to actual files and methods.
 - Use Mermaid diagrams for architecture, decisions, and request sequences.
 - Never fabricate measurements, test results, deployment status, retrospectives, or learner answers.
