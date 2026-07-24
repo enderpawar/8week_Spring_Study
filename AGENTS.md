@@ -1,35 +1,39 @@
 # Study Repository Instructions
 
-## Week command routing
+## Source of truth
 
-When the user asks `week N 구현해`, `N주차 구현해`, or another Week-specific implementation request:
+The active plan is **`study_docs/FUNDAMENTALS_ROADMAP.md`** — a 4-week, evidence-based backend *fundamentals* track for a CS junior new to Spring. Read it before guiding any study session.
 
-1. Read `Study_plan.md` completely.
-2. Read the matching Week section and the shared rules in sections 3–6.
-3. Read `study_docs/LEARNING_GUIDE_TEMPLATE.md` completely.
-4. Inspect the existing Week directory before editing; preserve user changes and passing tests.
-5. Follow the diagnose → implement → lecture material → evidence and verification workflow defined in `Study_plan.md`.
-6. Update or create that Week's `README.md`, `LEARNING_GUIDE.md`, `requests.http`, tests, and required evidence report.
-7. Do not declare the Week complete unless its checklist is actually satisfied.
-
-`bridge 구현해` follows the Bridge section of `Study_plan.md`. `week 0 구현해` follows the Week 0 section.
+The previous portfolio-oriented plan (`Study_plan.md`, `LEARNING_ROADMAP.md`, `LEARNING_GUIDE_TEMPLATE.md`) is archived under `past_docs/` and is superseded. Do not drive new work from it; consult it only for historical context.
 
 ## Repository layout
 
-From Week 4 onward there is exactly one codebase.
+- `app/` — the practice project: built, tested, and used for hands-on units.
+- `archive/week1`, `archive/week2` — frozen week1·2 code. Read-only; never edit.
+- `week_review/` — workspace for reviewing/summarizing weeks 1–2 (velog posts, term notes, code-dissection guide).
+- `study_docs/` — active roadmap, principle notes (`spring-core-notes.md`), interview notes.
+- `past_docs/` — superseded planning docs, kept for reference.
 
-- `app/` — the only project that is built, migrated, containerized, and deployed. Accumulate features here.
-- `docs/weekN/` — that week's evidence report and learning guide.
-- `archive/week1..3/` — frozen learning history. Read-only; never edit.
-- Root `README.md` — the portfolio entry point for hiring managers, not the study plan.
+## Learning method (evidence-based)
 
-Never create a new `weekN/` project directory for Week 4 or later, and never copy `app/` to start a new week. See section 5.5 of `Study_plan.md`.
+Follow the format defined in `FUNDAMENTALS_ROADMAP.md`:
 
-## Learning constraints
-
-- Keep work inside the requested Week's scope.
-- **The learner does not watch video lectures.** Never plan work around watching a course. Teach Spring/JPA internals by writing small runnable experiments and tests that prove one behavior each. The owned PDFs are a lookup reference for when something is unclear, not required reading, and "finish the material" is never a completion criterion.
+- **Scaffold fading**: worked example → completion (fill-in) → independent. Do NOT ask a novice to reproduce a behavior from scratch first.
+- **Retrieval + spacing**: after each unit, retrieve without notes; re-quiz at +2/+7/+14 days; correct wrong answers before repeating them.
+- **Predict → run → explain the gap** for mechanism concepts (SQL, transactions, proxy), instead of a single explanatory paragraph.
+- **Connect to CS knowledge**: tie every concept to what the learner already knows (transactions↔ACID, index↔B-tree, hash↔BCrypt).
+- The learner cannot afford paid courses, so the agent **provides the concept explanation and worked examples** — this replaces lectures. Never require watching a video course, and never make the learner memorize shell commands unless CLI operation is the current objective.
 - Explain unfamiliar terms in Korean and connect them to actual files and methods.
-- Use Mermaid diagrams for architecture, decisions, and request sequences.
 - Never fabricate measurements, test results, deployment status, retrospectives, or learner answers.
 - Do not overwrite content marked `[직접 작성]`.
+
+## Guided learning mode
+
+When the learner says `week N 시작`, `week N 공부 시작`, or otherwise asks to study interactively:
+
+- The agent runs routine PowerShell commands, builds, tests, file searches, and result checks on the learner's behalf.
+- Do not make the learner copy or memorize shell commands unless command-line operation itself is the current learning objective.
+- Report only the meaningful outcome of each command and explain how it connects to the concept being studied.
+- Keep the learner focused on reading code, predicting behavior, answering short questions, and writing `[직접 작성]` explanations.
+- Teach one small concept or experiment at a time. Wait for the learner's answer before advancing when the answer is part of the exercise.
+- If a command needs an external prerequisite or an action only the learner can perform, explain exactly why and give the minimum required instruction.

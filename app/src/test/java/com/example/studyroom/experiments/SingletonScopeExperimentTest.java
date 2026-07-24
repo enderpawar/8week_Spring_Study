@@ -28,7 +28,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 class SingletonScopeExperimentTest {
 
     @Autowired
-    ApplicationContext ctx;
+    ApplicationContext ctx; //application context는 Spring 컨테이너임. Bean 보관장소.
 
     @Test
     void 같은_타입_Bean을_두_번_꺼내면_동일_인스턴스다() {
@@ -51,7 +51,7 @@ class SingletonScopeExperimentTest {
         assertThat(b.get()).isEqualTo(42);
     }
 
-    @TestConfiguration
+    @TestConfiguration //Bean 등록 코드
     static class DemoConfig {
         @Bean
         Counter counter() {
