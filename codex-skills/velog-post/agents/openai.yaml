@@ -1,4 +1,4 @@
 interface:
   display_name: "Velog Post"
-  short_description: "ÁÖÂ÷º° ÇĞ½À ³ëÆ®¸¦ Velog ±â¼ú ±Û·Î º¯È¯"
-  default_prompt: "Use $velog-post to turn my weekly study review into a polished Velog Markdown post."
+  short_description: "ì¼ë³„ ìŠ¤í„°ë”” ì‚°ì¶œë¬¼ì„ Velog ë¸”ë¡œê·¸ ê¸€ë¡œ ë³€í™˜"
+  default_prompt: "Use $velog-post to turn today's study day folder into a polished Velog Markdown post."

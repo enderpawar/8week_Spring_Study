@@ -1,11 +1,11 @@
 ---
 name: velog-post
-description: Convert a weekly self-study review file (`week_review/weekN_review.txt`) into a polished, copy-paste-ready Velog-style Markdown tech blog post. Use when the user invokes `$velog-post` with a week such as `week1`, asks for `/velog_post weekN`, or asks to turn weekly Spring study notes into a Velog post or Korean technical blog article.
+description: Convert a day's study artifacts (`study_docs/days/DayNN_MMDD/`) into a polished, copy-paste-ready Velog-style Markdown tech blog post. Use when the user invokes `$velog-post` with a day such as `day1`, `Day02`, asks for `/velog_post dayN`, or asks to turn a day's Spring study session into a Velog post or Korean technical blog article.
 ---
 
-# Velog post — 주차별 스터디 노트 변환
+# Velog post — 일별 스터디 기록 변환
 
-사용자가 직접 작성한 `week_review/weekN_review.txt`를 Velog에 바로 붙여 넣을 수 있는 Markdown 기술 블로그 글로 재구성한다.
+`study_docs/days/DayNN_MMDD/`에 쌓인 그날의 학습 산출물(`vocab.md`, `quiz.md`, `explain-log.md`)과 그날 변경된 코드를 근거로, Velog에 바로 붙여 넣을 수 있는 Markdown 기술 블로그 글로 재구성한다.
 
 ## 페르소나와 문체
 
@@ -16,78 +16,85 @@ description: Convert a weekly self-study review file (`week_review/weekN_review.
 - 또래 개발자가 읽는 개인 기술 블로그처럼 자연스러운 `~다`, `~했다`, `~였다` 문체를 사용한다.
 - 교수, 논문, 사내 문서 같은 딱딱한 격식체나 `~습니다`체 남발을 피한다.
 - 포트폴리오로서 신뢰를 잃지 않도록 기술적 정확성과 논리성을 우선한다.
-- 완성된 지식만 나열하지 말고 `처음의 오해 → 질문과 실습 → 교정된 이해`라는 성장 과정을 보여준다.
+- 완성된 지식만 나열하지 말고 `처음의 오해/오타 → 질문과 실습 → 교정된 이해`라는 성장 과정을 보여준다.
 
 ## 필수 제약: 결과물에 한자 사용 금지
 
 완성된 Markdown에는 한자를 단 한 글자도 남기지 않는다.
 
 - 한글 단어에 한자를 병기하지 않는다.
-- 제목, 본문, 괄호, 각주, 태그 어디에도 한자를 쓰지 않는다.
+- 제목, 본문, 괄호, 각주 어디에도 한자를 쓰지 않는다.
 - 영어 기술 용어와 영문 코드 및 HTTP 예시는 유지한다.
-- 최종 저장 직전에 전체 결과를 `[㐀-䶿一-鿿豈-﫿]` 범위로 검사하고, 발견한 글자를 한글 표현으로 바꾼다.
+- 최종 저장 직전에 전체 결과를 `[㐀-䶿一-鿿豈-﫿]` 범위로 검사하고, 발견한 글자를 한글 표현으로 바꾼다.
 - 검사를 통과하기 전에는 저장하거나 출력하지 않는다.
 
-## 1. 주차 인자 해석
+## 1. Day 인자 해석
 
-다음 입력에서 주차 번호 `N`을 추출한다.
+다음 입력에서 Day 번호 `N`을 추출한다.
 
-- `week1`, `Week1`, `week 1`
-- `1주차`, `1`
-- `/velog_post week1`, `$velog-post week1`
+- `day1`, `Day01`, `day 2`
+- `1일차`, `2일차`, `1`, `2`
+- `/velog_post day1`, `$velog-post day2`
 
-주차가 없거나 모호하면 현재 작업 디렉터리에서 `week_review/week*_review.txt`를 먼저 찾는다. 후보가 하나면 그 파일을 사용하고, 여러 개면 목록을 보여주며 하나만 짧게 물어본다. 후보가 없으면 원본 경로를 물어본다. 명확한 인자가 있으면 확인 질문 없이 진행한다.
+Day 번호가 없거나 모호하면 `study_docs/days/`에서 가장 최근(가장 큰 번호) `DayNN_MMDD` 폴더를 후보로 삼는다. 후보가 여러 날짜에 걸쳐 애매하면 목록을 보여주고 하나만 짧게 물어본다. 명확한 인자가 있으면 확인 질문 없이 진행한다.
 
-## 2. 원본 파일 찾기
+## 2. 원본 자료 찾기
 
-1. 현재 작업 디렉터리의 `week_review/week{N}_review.txt`를 확인한다.
-2. 없으면 `rg --files -uu` 또는 동등한 읽기 전용 검색으로 하위 디렉터리의 `**/week_review/week{N}_review.txt`를 찾는다.
-3. 그래도 없으면 사용자에게 경로를 요청한다. 내용을 추측하거나 빈 원본으로 진행하지 않는다.
-4. 찾은 파일을 처음부터 끝까지 읽는다.
+1. `study_docs/days/DayNN_MMDD/` 폴더를 찾는다 (`NN`은 2자리, `MMDD`는 실제 날짜 접미사 — 정확한 폴더명은 디렉터리 목록에서 확인한다).
+2. 그 안의 `vocab.md`, `quiz.md`, `explain-log.md`를 전부 읽는다.
+3. 그날 커밋된 코드(`git log`로 해당 날짜 커밋 확인, 필요하면 `git show`/`git diff`)를 참고해서 실제 코드 스니펫과 에러 메시지를 정확하게 인용한다. 기억이나 추측으로 코드를 재구성하지 않는다.
+4. 폴더나 파일을 못 찾으면 사용자에게 Day 번호나 경로를 되묻는다. 빈 원본으로 진행하거나 내용을 지어내지 않는다.
 
-## 3. 원본 구조 파악
+## 3. 제목 규칙 (중요)
 
-원본의 형식이 매주 달라도 다음 소재가 있는지 구분한다.
+**브이로그식 서술형 제목을 쓰지 않는다.** "~한 하루", "~해보며 겪은 이야기", "~을 나눠보며 겪은 오타 소동" 같은 문장형 제목 금지.
 
-1. 실습과 응답 분석: HTTP 요청과 응답, 실제 오류와 원인 분석
-2. 초안 흐름 메모: 사용자가 처음 손으로 정리한 미완성 이해
-3. 정리된 정상 흐름: 구조도와 교정된 최종 설명
-4. 교정 포인트: 처음 이해와 실제 동작의 차이
-5. 스스로 묻고 답한 질문: 사용자의 질문, 답변, 비유, 논리
+형식은 다음과 같다.
 
-정리된 정상 흐름을 본문의 중심으로 삼는다. 초안은 그대로 본문 뼈대로 쓰지 말고, 학습 과정을 보여줄 때 `처음에는 이렇게 이해했다` 정도로만 활용한다.
+```
+[백엔드 기본기 DayNN] <핵심 주제 명사구>
+```
+
+- 주제 명사구는 `study_docs/FUNDAMENTALS_ROADMAP.md`의 해당 Day Full 루프 항목명을 우선 그대로 쓴다 (예: "record DTO vs Domain 분리", "전역 오류처리 @RestControllerAdvice").
+- 로드맵 항목명이 그날 실제로 다룬 내용과 안 맞으면, 그날 다룬 핵심 개념 키워드를 `/`나 공백으로 나열한 명사구로 대체한다 (예: "DTO/Domain", "예외처리/@Valid").
+- 예시:
+  - 좋음: `[백엔드 기본기 Day2] record DTO vs Domain 분리`
+  - 나쁨: `[백엔드 기본기 Day2] record DTO와 Domain을 나눠보며 겪은 오타 소동`
 
 ## 4. 재구성 원칙
 
-- **사실 보존:** 원본에 없는 경험, 결과, 감정, 다음 계획을 새로 만들지 않는다.
-- **기술적 교정:** 틀린 내용을 그대로 싣지 않는다. 원본에 교정본이 있으면 이를 채택하고, 없으면 사용자 어투를 유지하며 정확한 설명으로 자연스럽게 바로잡는다.
-- **개인 표현 보존:** 사용자가 만든 비유와 고유한 표현을 살리되 읽기 좋게 다듬는다.
-- **질문과 답변 보존:** 오탈자와 비문만 다듬고 사용자의 실제 논리와 사고 흐름을 최대한 유지한다.
-- **코드 블록 보존:** 구조도, JSON, HTTP, Java 코드는 각각 `text`, `json`, `http`, `java` 언어 태그를 붙여 코드 블록으로 옮긴다. 의미 있는 내용을 임의로 축약하지 않는다.
-- **선택적 섹션:** 원본에 없는 실습, 오류, 다음 주 예고 등을 억지로 추가하지 않는다.
+- **사실 보존:** 원본(vocab/quiz/explain-log/코드/커밋)에 없는 경험, 결과, 감정, 다음 계획을 새로 만들지 않는다.
+- **기술적 교정:** 틀린 내용을 그대로 싣지 않는다. `explain-log.md`의 "차이 설명"이나 `quiz.md`의 정답을 채택해 정확한 설명으로 정리한다.
+- **성장 과정 보존:** 오답·오타·컴파일 에러를 숨기지 말고 "처음엔 이렇게 생각/작성했다 → 이런 이유로 틀렸다 → 교정됐다" 흐름으로 보여준다.
+- **코드 블록 보존:** 코드, JSON, HTTP, 터미널 출력은 각각 `java`, `json`, `http`, `text` 언어 태그를 붙여 코드 블록으로 옮긴다. 의미 있는 내용을 임의로 축약하지 않는다.
+- **선택적 섹션:** 원본에 없는 실습, 오류, 다음 날 예고 등을 억지로 추가하지 않는다.
 
-## 5. 출력 구조
+## 5. 태그 금지
 
-아래 구조로 하나의 Markdown 문서를 작성한다. 실제 소제목은 원본 주제에 맞게 자연스럽게 바꾸고, 원본에 없는 섹션은 생략한다.
+결과물 끝에 해시태그 줄(`#Spring #Backend #TIL ...` 등)을 **절대 넣지 않는다**. 정리 문단 뒤에는 바로 소스코드 링크로 이어간다.
+
+## 6. 출력 구조
+
+아래 구조로 하나의 Markdown 문서를 작성한다. 실제 소제목은 그날 주제에 맞게 자연스럽게 바꾸고, 원본에 없는 섹션은 생략한다.
 
 ```markdown
-# [백엔드 스터디 {N}주차] <핵심 주제를 담은 제목>
+# [백엔드 기본기 DayNN] <핵심 주제 명사구>
 
-> 이번 주에 다룬 내용과 글에서 정리할 내용을 소개하는 2~3문장
+> 그날 다룬 내용과 글에서 정리할 내용을 소개하는 2~3문장
 
-## 1. <실습에서 확인한 내용>
+## 1. <완성예제/개념에서 확인한 내용>
 
-실제로 겪은 오류와 원인을 요청 및 응답 코드 블록과 함께 정리한다.
+개념과 완성예제 코드를 정리한다.
 
-## 2. <정상 흐름 정리>
+## 2. <실습·독립변형에서 겪은 것>
 
-교정된 흐름과 구조도를 설명하고, 처음 헷갈린 지점과 달라진 이해를 짧게 보여준다.
+실제로 겪은 오타·에러·오해와 그 원인을 코드·터미널 출력 블록과 함께 정리한다.
 
 ## 3. 스스로 묻고 답한 질문들
 
-### Q. <질문 1>
+### Q. <quiz.md의 질문 1>
 
-<사용자의 논리를 유지해 다듬은 답변>
+<정답/해설을 다듬은 답변>
 
 ### Q. <질문 2>
 
@@ -95,36 +102,32 @@ description: Convert a weekly self-study review file (`week_review/weekN_review.
 
 ## 정리하며
 
-이번 주에 배운 내용을 한 줄로 정리하고, 원본에 있을 때만 다음 주 내용을 덧붙인다.
+그날 배운 내용을 한 줄로 정리한다.
 
 ---
 
-#Spring #Backend #TIL #백엔드스터디
-
-오늘 공부한 소스코드: [8week_Spring_Study/week{N}](https://github.com/enderpawar/8week_Spring_Study/tree/master/week{N})
+오늘 공부한 소스코드: [8week_Spring_Study/app](https://github.com/enderpawar/8week_Spring_Study/tree/master/app)
 ```
 
-태그는 본문에 실제 등장한 기술을 기준으로 `Spring`, `JPA`, `DTO`, `Repository` 등으로 조정한다.
-
-## 6. GitHub 링크 규칙
+## 7. GitHub 링크 규칙
 
 문서의 마지막 줄에는 반드시 다음 링크를 넣는다.
 
 ```markdown
-오늘 공부한 소스코드: [8week_Spring_Study/week{N}](https://github.com/enderpawar/8week_Spring_Study/tree/master/week{N})
+오늘 공부한 소스코드: [8week_Spring_Study/app](https://github.com/enderpawar/8week_Spring_Study/tree/master/app)
 ```
 
-- 태그 줄 바로 아래에 둔다.
-- 링크 뒤에는 다른 본문, 주석, 안내를 추가하지 않는다.
-- `{N}`을 실제 주차 번호로 바꾼다.
+- 정리 문단(`## 정리하며`) 바로 아래, `---` 구분선 다음 줄에 둔다.
+- 링크 뒤에는 다른 본문, 주석, 안내, 태그를 추가하지 않는다.
 
-## 7. 검수, 저장, 응답
+## 8. 검수, 저장, 응답
 
 다음 순서로 마무리한다.
 
-1. 원본 사실과 작성된 글을 대조해 새로 지어낸 내용이 없는지 확인한다.
-2. 기술 설명, 코드 블록, 주차 번호, 제목, 태그를 확인한다.
-3. 결과물 전체를 검사해 한자를 모두 제거한다.
-4. 원본 디렉터리 아래 `week_review/velog/week{N}_post.md`에 저장한다. `week_review/velog`가 없으면 만든다.
-5. 채팅에도 완성된 Markdown 전체를 출력한다. 본문 속 세 개짜리 코드 펜스와 충돌하지 않도록 최상위 펜스에는 백틱 네 개와 `markdown`을 사용한다.
-6. 완성된 Markdown 뒤에 저장 경로를 한 줄로 알린다. 그 밖의 불필요한 설명은 덧붙이지 않는다.
+1. 원본 사실(vocab/quiz/explain-log/코드/커밋)과 작성된 글을 대조해 새로 지어낸 내용이 없는지 확인한다.
+2. 제목이 서술형이 아니라 명사구인지, 태그 줄이 없는지 확인한다.
+3. 기술 설명, 코드 블록, Day 번호, GitHub 링크를 확인한다.
+4. 결과물 전체를 검사해 한자를 모두 제거한다.
+5. `study_docs/days/DayNN_MMDD/velog_post.md`에 저장한다.
+6. 채팅에도 완성된 Markdown 전체를 출력한다. 본문 속 세 개짜리 코드 펜스와 충돌하지 않도록 최상위 펜스에는 백틱 네 개와 `markdown`을 사용한다.
+7. 완성된 Markdown 뒤에 저장 경로를 한 줄로 알린다. 그 밖의 불필요한 설명은 덧붙이지 않는다.
