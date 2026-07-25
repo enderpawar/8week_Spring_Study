@@ -129,15 +129,23 @@
 
 ## 6. 산출물 (매일 갱신 = 증거)
 
+**요일별 폴더 구조** — 7/25(Day01)~8/28(Day35), 5주×7일 순차 번호 + 날짜 접미사.
+
 ```
 study_docs/
-├─ vocab/weekA.md … weekE.md   ← 단어장(한줄뜻·CS연결·코드모습·연관단어)
-├─ quiz/weekA.md  … weekE.md   ← 문제집 + 정답해설(접힘)
-├─ explain-log.md              ← 예측·실행·차이설명 누적 → 면접문장 원천
-├─ interview-notes.md          ← 면접 문장(기존 파일 유지)
+├─ days/
+│  ├─ Day01_0725/vocab.md, quiz.md, explain-log.md   ← Week A D1
+│  ├─ Day02_0726/vocab.md, quiz.md, explain-log.md   ← Week A D2
+│  ├─ …
+│  └─ Day35_0828/vocab.md, quiz.md, explain-log.md   ← Week E D7
+├─ interview-notes.md          ← 면접 문장(기존 파일 유지, 누적)
 ├─ spring-core-notes.md        ← Week A~C 인출·되설명 워크시트(기존 파일 재사용)
-└─ 복습큐.md                    ← 간격반복 대기열(개념·다음도래일)
+└─ 복습큐.md                    ← 간격반복 대기열(개념·다음도래일) — 유일하게 날짜로 안 쪼갠다.
+                                   여러 날에 걸친 도래일을 한눈에 봐야 하는 파일이라 누적 유지.
 ```
+
+각 Day 폴더의 `vocab.md`/`quiz.md`/`explain-log.md`는 그날 Full/Light 루프 내용만 담는다.
+Day 번호 ↔ Week·요일 매핑: Day(N) = Week A~E 중 `⌈N/7⌉`번째 주, 그 주의 D`((N-1)%7)+1`.
 
 ## 7. 규칙
 
@@ -147,6 +155,7 @@ study_docs/
 - 기존 프로젝트가 Boot 3면 학습 중 Boot 4로 업그레이드하지 않는다.
 - `archive/`는 읽기 전용. 실습은 `app/`.
 - 상용 강의와 "동일 순서"라고 말하지 않는다 — "기반→추상화 원칙을 선택 압축"이 정확한 표현.
+- **Day 플랜이 끝나면 무조건 그날 안에 git commit + push.** 그날 산출물(코드·vocab·quiz·explain-log·복습큐 갱신)이 유실 없이 원격에 남아야 다음날/복습주기에 그대로 이어볼 수 있다.
 
 ## 8. 내일(7/25) 시작 체크리스트
 
