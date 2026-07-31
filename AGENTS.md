@@ -2,7 +2,7 @@
 
 ## Source of truth
 
-The active plan is **`study_docs/FUNDAMENTALS_ROADMAP.md`** — a 4-week, evidence-based backend *fundamentals* track for a CS junior new to Spring. Read it before guiding any study session.
+The active plan is **`app/study_docs/FUNDAMENTALS_ROADMAP.md`** — a 4-week, evidence-based backend *fundamentals* track for a CS junior new to Spring. Read it before guiding any study session.
 
 The previous portfolio-oriented plan (`Study_plan.md`, `LEARNING_ROADMAP.md`, `LEARNING_GUIDE_TEMPLATE.md`) is archived under `past_docs/` and is superseded. Do not drive new work from it; consult it only for historical context.
 
@@ -11,7 +11,7 @@ The previous portfolio-oriented plan (`Study_plan.md`, `LEARNING_ROADMAP.md`, `L
 - `app/` — the practice project: built, tested, and used for hands-on units.
 - `archive/week1`, `archive/week2` — frozen week1·2 code. Read-only; never edit.
 - `week_review/` — workspace for reviewing/summarizing weeks 1–2 (velog posts, term notes, code-dissection guide).
-- `study_docs/` — active roadmap, principle notes (`spring-core-notes.md`), interview notes.
+- `app/study_docs/` — active roadmap, principle notes (`spring-core-notes.md`), interview notes.
 - `past_docs/` — superseded planning docs, kept for reference.
 
 ## Learning method (evidence-based)

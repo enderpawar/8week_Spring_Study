@@ -1,11 +1,11 @@
 ---
 name: velog-post
-description: Convert a day's study artifacts (`study_docs/days/DayNN_MMDD/`) into a polished, copy-paste-ready Velog-style Markdown tech blog post. Use when the user invokes `$velog-post` with a day such as `day1`, `Day02`, asks for `/velog_post dayN`, or asks to turn a day's Spring study session into a Velog post or Korean technical blog article.
+description: Convert a day's study artifacts (`app/study_docs/days/DayNN_MMDD/`) into a polished, copy-paste-ready Velog-style Markdown tech blog post. Use when the user invokes `$velog-post` with a day such as `day1`, `Day02`, asks for `/velog_post dayN`, or asks to turn a day's Spring study session into a Velog post or Korean technical blog article.
 ---
 
 # Velog post — 일별 스터디 기록 변환
 
-`study_docs/days/DayNN_MMDD/`에 쌓인 그날의 학습 산출물(`vocab.md`, `quiz.md`, `explain-log.md`)과 그날 변경된 코드를 근거로, Velog에 바로 붙여 넣을 수 있는 Markdown 기술 블로그 글로 재구성한다.
+`app/study_docs/days/DayNN_MMDD/`에 쌓인 그날의 학습 산출물(`vocab.md`, `quiz.md`, `explain-log.md`)과 그날 변경된 코드를 근거로, Velog에 바로 붙여 넣을 수 있는 Markdown 기술 블로그 글로 재구성한다.
 
 ## 페르소나와 문체
 
@@ -36,11 +36,11 @@ description: Convert a day's study artifacts (`study_docs/days/DayNN_MMDD/`) int
 - `1일차`, `2일차`, `1`, `2`
 - `/velog_post day1`, `$velog-post day2`
 
-Day 번호가 없거나 모호하면 `study_docs/days/`에서 가장 최근(가장 큰 번호) `DayNN_MMDD` 폴더를 후보로 삼는다. 후보가 여러 날짜에 걸쳐 애매하면 목록을 보여주고 하나만 짧게 물어본다. 명확한 인자가 있으면 확인 질문 없이 진행한다.
+Day 번호가 없거나 모호하면 `app/study_docs/days/`에서 가장 최근(가장 큰 번호) `DayNN_MMDD` 폴더를 후보로 삼는다. 후보가 여러 날짜에 걸쳐 애매하면 목록을 보여주고 하나만 짧게 물어본다. 명확한 인자가 있으면 확인 질문 없이 진행한다.
 
 ## 2. 원본 자료 찾기
 
-1. `study_docs/days/DayNN_MMDD/` 폴더를 찾는다 (`NN`은 2자리, `MMDD`는 실제 날짜 접미사 — 정확한 폴더명은 디렉터리 목록에서 확인한다).
+1. `app/study_docs/days/DayNN_MMDD/` 폴더를 찾는다 (`NN`은 2자리, `MMDD`는 실제 날짜 접미사 — 정확한 폴더명은 디렉터리 목록에서 확인한다).
 2. 그 안의 `vocab.md`, `quiz.md`, `explain-log.md`를 전부 읽는다.
 3. 그날 커밋된 코드(`git log`로 해당 날짜 커밋 확인, 필요하면 `git show`/`git diff`)를 참고해서 실제 코드 스니펫과 에러 메시지를 정확하게 인용한다. 기억이나 추측으로 코드를 재구성하지 않는다.
 4. 폴더나 파일을 못 찾으면 사용자에게 Day 번호나 경로를 되묻는다. 빈 원본으로 진행하거나 내용을 지어내지 않는다.
@@ -55,7 +55,7 @@ Day 번호가 없거나 모호하면 `study_docs/days/`에서 가장 최근(가�
 [백엔드 기본기 DayNN] <핵심 주제 명사구>
 ```
 
-- 주제 명사구는 `study_docs/FUNDAMENTALS_ROADMAP.md`의 해당 Day Full 루프 항목명을 우선 그대로 쓴다 (예: "record DTO vs Domain 분리", "전역 오류처리 @RestControllerAdvice").
+- 주제 명사구는 `app/study_docs/FUNDAMENTALS_ROADMAP.md`의 해당 Day Full 루프 항목명을 우선 그대로 쓴다 (예: "record DTO vs Domain 분리", "전역 오류처리 @RestControllerAdvice").
 - 로드맵 항목명이 그날 실제로 다룬 내용과 안 맞으면, 그날 다룬 핵심 개념 키워드를 `/`나 공백으로 나열한 명사구로 대체한다 (예: "DTO/Domain", "예외처리/@Valid").
 - 예시:
   - 좋음: `[백엔드 기본기 Day2] record DTO vs Domain 분리`
@@ -128,6 +128,6 @@ Day 번호가 없거나 모호하면 `study_docs/days/`에서 가장 최근(가�
 2. 제목이 서술형이 아니라 명사구인지, 태그 줄이 없는지 확인한다.
 3. 기술 설명, 코드 블록, Day 번호, GitHub 링크를 확인한다.
 4. 결과물 전체를 검사해 한자를 모두 제거한다.
-5. `study_docs/days/DayNN_MMDD/velog_post.md`에 저장한다.
+5. `app/study_docs/days/DayNN_MMDD/velog_post.md`에 저장한다.
 6. 채팅에도 완성된 Markdown 전체를 출력한다. 본문 속 세 개짜리 코드 펜스와 충돌하지 않도록 최상위 펜스에는 백틱 네 개와 `markdown`을 사용한다.
 7. 완성된 Markdown 뒤에 저장 경로를 한 줄로 알린다. 그 밖의 불필요한 설명은 덧붙이지 않는다.
