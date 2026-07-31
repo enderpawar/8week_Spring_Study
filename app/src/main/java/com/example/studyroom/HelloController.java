@@ -11,14 +11,15 @@ public class HelloController{
     public String hello(){ // String은 무조건 문자열로 써야한다.
         return "Hello,StudyRoom!";
     }
+
     @GetMapping("/health") //서버 상태 확인하는 것 같은데.
     public ResponseEntity<String> health(){
         return ResponseEntity
-                .status(HttpStatus.OK)
+                .status(HttpStatus.OK) // 이 상태코드를 내가 골랐다는 것이 드러남. 200을 고르게 됨.
                 .body("OK");
     }
-    @GetMapping("/bye") //서버 상태 확인하는 것 같은데.
-    public ResponseEntity<String> bye(){
+    @GetMapping("/bye") //
+    public ResponseEntity<String> bye(){ // 상태 기본값을 다르게 명시할때는 ResponseEntity를 통해 만들어야한다.
         return ResponseEntity
                 .status(201)
                 .body("Created");
