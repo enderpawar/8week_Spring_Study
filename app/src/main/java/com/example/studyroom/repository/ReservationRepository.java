@@ -7,5 +7,6 @@ import java.util.List;
 public interface ReservationRepository {
     Reservation save(Reservation reservation); //이렇게
     List<Reservation> findAll();
+    Reservation findById(Long id);
 }
 

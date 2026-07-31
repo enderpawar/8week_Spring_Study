@@ -9,10 +9,13 @@ import java.util.List;
 @Repository //Spring이 관리하는 Bean, "이 클래스는 저장소 역할의 Bean이다."
 public class InMemoryReservationRepository implements ReservationRepository {
     private final List<Reservation> store = new ArrayList<>();
-
+    private long nextId = 1;
 
     @Override // 메서드를 여기서 override로 재정의해주는거지. 즉 How를 정의해준다!
     public Reservation save(Reservation reservation) {
+        if (reservation.getId() == null){
+            reservation.assignId(nextId++);
+        }
         store.add(reservation);
         return reservation;
     }
@@ -21,5 +24,14 @@ public class InMemoryReservationRepository implements ReservationRepository {
     @Override
     public List<Reservation> findAll() {
         return store;
+    }
+    @Override
+    public Reservation findById(Long id) {
+        for(Reservation r : store){
+            if(r.getId().equals(id)){
+                return r;
+            }
+        }
+        return null;
     }
 }

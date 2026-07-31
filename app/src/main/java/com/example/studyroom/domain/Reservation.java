@@ -6,6 +6,7 @@ public class Reservation{
     private final String roomName;
     private final String requesterName;
     private boolean confirmed;
+    private Long id; // DB에 저장될 때, 자동으로 생성되는 PK값을 담기 위한 필드. final 아님. 저장되기 전에는 아직 값이 없음
 
     public Reservation(String roomName,String requesterName){
         this.roomName = roomName;
@@ -17,7 +18,7 @@ public class Reservation{
         this.confirmed = true;
     }
 
-    public void canceled() { this.confirmed = false; }
+    public void cancel() { this.confirmed = false; }
 
     public String getRoomName(){
         return roomName;
@@ -29,6 +30,14 @@ public class Reservation{
 
     public boolean isConfirmed(){
         return confirmed;
+    }
+
+    public void assignId(Long id) {
+        this.id = id;
+    }
+
+    public Long getId(){
+        return id;
     }
 }
 
