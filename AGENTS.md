@@ -2,7 +2,7 @@
 
 ## Source of truth
 
-The active plan is **`app/study_docs/FUNDAMENTALS_ROADMAP.md`** — a 4-week, evidence-based backend *fundamentals* track for a CS junior new to Spring. Read it before guiding any study session.
+The active plan is **`app/study_docs/FUNDAMENTALS_ROADMAP.md`** — a 5-week, evidence-based backend *fundamentals* track for a CS junior new to Spring. Read it before guiding any study session. Check its session-resume progress checklist before using calendar dates, and resume from the first unchecked required Day.
 
 The previous portfolio-oriented plan (`Study_plan.md`, `LEARNING_ROADMAP.md`, `LEARNING_GUIDE_TEMPLATE.md`) is archived under `past_docs/` and is superseded. Do not drive new work from it; consult it only for historical context.
 

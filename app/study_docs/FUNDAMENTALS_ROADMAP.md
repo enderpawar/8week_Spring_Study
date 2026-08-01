@@ -4,7 +4,7 @@
 > 대상: 컴퓨터공학과 3학년, 백엔드/Spring 최초. CS 이론(자료구조·OS·네트워크·DB) 보유.
 > 목표: **5주 전 범위를 훑어 1회독 멘탈모델을 만든다.** 유창한 독립구현은 이 단계 목표가 아니며 **공모전 프로젝트**에서 채운다. 단 인증·테스트·디버깅은 졸업 루브릭 필수라 밀려도 스킵하지 않는다.
 > 성격: 상용 백엔드 강의(예: 인프런 스프링 로드맵, 약 116시간)가 쓰는 **"기반 → 추상화" 원칙을 선택적으로 압축 적용**한 능동 학습 트랙이다. 상용과 *동일 순서·동일 범위*가 아니라 핵심만 골라 빠르게 도는 버전이다.
-> 이 문서는 Claude 초안 → codex(gpt-5.6) 2회 교차검증을 반영한 확정본이다. 이전 포트폴리오 계획(`past_docs/`)을 대체한다.
+> 이 문서는 Claude 초안 → codex(gpt-5.6) 2회 교차검증을 반영한 확정본이다. 이 갱신 저장소에서 사용하는 유일한 학습 계획이다.
 
 ---
 
@@ -48,8 +48,66 @@
 
 ## 4. 5주 로드맵 (하루 = Full 1 + 지원 Light/관찰)
 
+### 세션 재개용 진행 체크리스트
+
+> **모든 새 학습 세션은 날짜표보다 이 체크리스트를 먼저 확인한다.** 달력상 다음 주차가 되었더라도 미완료 필수 유닛을 건너뛰지 않고, 마지막 `[x]`의 다음 항목부터 재개한다.
+>
+> `[x]`는 코드·테스트와 해당 Day 산출물(`vocab.md`, `quiz.md`, `explain-log.md`, 필요 시 `progress.md`)로 완료가 확인된 경우에만 표시한다. 시작했거나 설명만 들은 항목은 완료로 표시하지 않는다. 세션 종료 시 체크 상태와 **다음 시작점**을 함께 갱신한다.
+
+**현재 확인 시점: 2026-08-01 — 다음 시작점은 Week A D5(IoC·DI·생성자 주입).**
+
+#### Week A — 웹 계층
+
+- [x] D1 요청→응답 왕복 — [Day01 기록](days/Day01_0725/)
+- [x] D2 record DTO vs Domain 분리 — [Day02 기록](days/Day02_0726/)
+- [x] D3 전역 오류처리 + Bean Validation — [Day03 기록](days/Day03_0728/)
+- [x] D4 Service/Repository 책임 분리 — [Day04 진행 기록](days/Day04_0728/progress.md)
+- [ ] **D5 IoC·DI·생성자 주입 ← 다음 학습**
+- [ ] D6 누적시험 A + 오답 재시험
+- [ ] D7 버퍼 / 독립과제
+
+#### Week B — 데이터 접근 기초
+
+- [ ] D1 Flyway `V1__init`로 스키마 정의
+- [ ] D2 JDBC 완성예제와 JPA 도입 이유
+- [ ] D3 Entity 매핑 + 기본 CRUD
+- [ ] D4 영속성 컨텍스트·1차 캐시·동일성
+- [ ] D5 변경 감지·flush 시점
+- [ ] D6 누적시험 A+B
+- [ ] D7 버퍼 / `ddl-auto: validate`
+
+#### Week C — 트랜잭션·프록시·성능
+
+- [ ] D1 트랜잭션 경계 / 커밋·롤백
+- [ ] D2 Spring AOP 프록시 / self-invocation 관찰
+- [ ] D3 트랜잭션 전파
+- [ ] D4 연관관계 + Hibernate LAZY 프록시
+- [ ] D5 N+1 확인 + fetch join
+- [ ] D6 누적시험 A+B+C
+- [ ] D7 버퍼
+
+#### Week D — 인증 + 테스트
+
+- [ ] D1 BCrypt 비밀번호 저장
+- [ ] D2 JWT 발급·검증
+- [ ] D3 Security Filter Chain·SecurityContext
+- [ ] D4 인증 실패 케이스 테스트
+- [ ] D5 테스트 분류 + H2 통합 테스트
+- [ ] D6 누적시험 A~D
+- [ ] D7 버퍼
+
+#### Week E — 운영·디버깅·통합
+
+- [ ] D1 로깅 + 설정관리
+- [ ] D2 디버깅 실습
+- [ ] D3 Docker / Compose
+- [ ] D4 GitHub Actions CI
+- [ ] D5 누적 독립과제
+- [ ] D6 최종 인출 시험
+- [ ] D7 버퍼 / 졸업판정
+
 ### 사전 (7/25 D1에 포함) — 새 시작점 확인
-`app/`은 **빈 최소 스켈레톤**이다(Spring Boot 3.5.3 · Java 17 · web+validation, 롬복 없음). `cd app && ./gradlew test`가 green인지 확인한다. 완성된 이전 버전(인증·JWT·CRUD·Spring Core 실험)은 `archive/app_v1_reference/`에 동결돼 있다 — 답을 베끼지 말고 정말 막힐 때만 한 부분씩 참고한다.
+이 저장소는 **빈 최소 스켈레톤**에서 시작했다(Spring Boot 3.5.3 · Java 17 · web+validation, 롬복 없음). 저장소 루트에서 `./gradlew test`가 green인지 확인했다. 과거 완성 코드는 이 갱신 저장소에 포함하지 않는다. 현재 코드와 Day 기록을 근거로 직접 학습한다.
 
 ### Week A (7/25~7/31) — 웹 계층: 요청의 생애
 | 일 | Full(1) | 지원 Light/관찰 | 난이도 |
@@ -134,8 +192,8 @@
 ```
 study_docs/
 ├─ days/
-│  ├─ Day01_0725/vocab.md, quiz.md, explain-log.md   ← Week A D1
-│  ├─ Day02_0726/vocab.md, quiz.md, explain-log.md   ← Week A D2
+│  ├─ Day01_0725/vocab.md, quiz.md, explain-log.md, velog_post.md   ← Week A D1
+│  ├─ Day02_0726/vocab.md, quiz.md, explain-log.md, velog_post.md   ← Week A D2
 │  ├─ …
 │  └─ Day35_0828/vocab.md, quiz.md, explain-log.md   ← Week E D7
 ├─ interview-notes.md          ← 면접 문장(기존 파일 유지, 누적)
@@ -145,6 +203,8 @@ study_docs/
 ```
 
 각 Day 폴더의 `vocab.md`/`quiz.md`/`explain-log.md`는 그날 Full/Light 루프 내용만 담는다.
+
+`velog_post.md`는 [Spring 기본기 기술 블로그 템플릿](VELOg_POST_TEMPLATE.md)을 따른다. 첫 화면에는 **문제·적용·검증·한계**를 요약하고, 본문 초반에는 그날 학습한 **이론의 필요성·정확한 용어·동작 흐름·CS 연결·실제 코드 위치**를 설명한다. 이후 설계 선택·핵심 코드·예측과 실제 차이·검증 근거·의미 있는 오답·현재 한계·인출 질문을 이어 쓴다. 이론 설명이나 검증 근거 없이 구현 일지만 있는 글은 그날 산출물이 완료된 것으로 보지 않는다.
 Day 번호 ↔ Week·요일 매핑: Day(N) = Week A~E 중 `⌈N/7⌉`번째 주, 그 주의 D`((N-1)%7)+1`.
 
 ## 7. 규칙
@@ -153,14 +213,15 @@ Day 번호 ↔ Week·요일 매핑: Day(N) = Week A~E 중 `⌈N/7⌉`번째 주,
 - AI에게 코드를 대신 짜게 하지 않는다. 개념설명·완성예제·문제출제·인출채점·코드리뷰만. 피드백은 AI 의견이 아니라 실제 코드·테스트·공식문서 근거.
 - `record`는 DTO에만. Entity/가변 Domain에 쓰지 않는다.
 - 기존 프로젝트가 Boot 3면 학습 중 Boot 4로 업그레이드하지 않는다.
-- `archive/`는 읽기 전용. 실습은 `app/`.
+- 이 저장소 밖의 과거 코드나 계획에 의존하지 않는다. 실습·테스트·학습 기록은 모두 현재 저장소 안에서 완결한다.
 - 상용 강의와 "동일 순서"라고 말하지 않는다 — "기반→추상화 원칙을 선택 압축"이 정확한 표현.
 - **Day 플랜이 끝나면 무조건 그날 안에 git commit + push.** 그날 산출물(코드·vocab·quiz·explain-log·복습큐 갱신)이 유실 없이 원격에 남아야 다음날/복습주기에 그대로 이어볼 수 있다.
+- **Velog 글은 이론부터 쓴다.** 세션 초반에 설명한 이론을 글 앞부분에 독립적으로 복습 가능한 수준으로 정리한 뒤 구현·실수·회고를 쓴다. 실제 학습자 답변과 실행 결과만 사용하고 `[직접 작성]`은 덮어쓰지 않는다.
 
-## 8. 내일(7/25) 시작 체크리스트
+## 8. 새 세션 시작 체크리스트
 
-1. `cd app && ./gradlew test` green 확인(빈 스켈레톤이 뜬다).
-2. `archive/app_v1_reference/` 위치 파악(막힐 때만 참고).
-3. `study_docs/vocab/weekA.md`, `quiz/weekA.md`, `explain-log.md`, `복습큐.md` 생성.
-4. Week A D1: 요청→응답 왕복을 Full 루프로.
-5. 저녁: 오늘 예측·실행·차이설명 1개를 `explain-log.md`에.
+1. 이 문서의 **세션 재개용 진행 체크리스트**에서 마지막 `[x]`와 첫 미완료 필수 Day를 확인한다.
+2. `study_docs/복습큐.md`에서 오늘 도래한 항목과 +1일 오답 재시험을 확인한다.
+3. 해당 `study_docs/days/DayNN_MMDD/`와 현재 코드·테스트를 대조한다.
+4. 저장소 루트에서 `./gradlew test`로 시작 상태를 확인한다.
+5. Day 완료 후 산출물·복습큐·진행 체크리스트·다음 시작점을 함께 갱신한다.

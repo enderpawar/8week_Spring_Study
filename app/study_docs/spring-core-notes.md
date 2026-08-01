@@ -1,6 +1,6 @@
 # Spring Core 원리 노트 (Week 0)
 
-> (참고: 아래 언급된 옛 실험 코드는 `archive/app_v1_reference/`에 동결돼 있다. 새 로드맵에서는 Week A~C 학습 중 직접 재현하며 이 워크시트를 채운다.)
+> Week A~C 학습 중 현재 저장소에서 직접 재현한 뒤 이 워크시트를 채운다.
 > 실험으로 재현한 뒤, **결과를 본인 문장으로** 여기에 남긴다.
 > AI가 대신 채우지 않는다. 각 답에는 근거가 되는 테스트/코드 위치를 함께 적는다.
 > 면접에서 쓸 만한 문장은 `interview-notes.md`로 옮긴다.
@@ -30,10 +30,10 @@
 - 내 답변: [직접 작성]  ← Bridge 실험 8(Self-invocation)에서 재현 후 채운다
 - 코드 근거: (Bridge `experiments`의 Self-invocation 테스트)
 
-## Q5. `archive/week1`의 `TodoRepository`는 OCP/DIP와 어떤 관계인가?
+## Q5. 현재 `ReservationRepository`와 `InMemoryReservationRepository`는 OCP/DIP와 어떤 관계인가?
 
 - 내 답변: [직접 작성]
-- 코드 근거: `archive/week1`의 Repository 인터페이스 + InMemory 구현, 실험 1
+- 코드 근거: `src/main/java/com/example/studyroom/repository/ReservationRepository.java` + `InMemoryReservationRepository.java`
 - 확인한 것: [직접 작성]
 
 ## Q6. Security Filter Chain과 Spring AOP Proxy는 어떻게 다른가?
