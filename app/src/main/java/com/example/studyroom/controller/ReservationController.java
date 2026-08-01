@@ -15,10 +15,9 @@ import jakarta.validation.Valid;
 public class ReservationController{
     private final ReservationService reservationService;
 
-
-public ReservationController(ReservationService reservationService){
-    this.reservationService = reservationService;
-}
+    public ReservationController(ReservationService reservationService){
+        this.reservationService = reservationService;
+    }
 
     //@RequestBody = 클라이언트가 보낸 JSON body를 자바 객체 (record)로 자동 변환
     @PostMapping("/reservations")

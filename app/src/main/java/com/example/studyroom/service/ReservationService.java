@@ -8,11 +8,11 @@ import org.springframework.stereotype.Service;
 public class ReservationService{
 
     private final ReservationRepository reservationRepository;
-    //생성자 주입 : Spring이 자동으로 InMemoryReservationRepository를 찾아 넣어준다.
-    //원리는 5일 차에서 배우기..
+
     public ReservationService(ReservationRepository reservationRepository){
         this.reservationRepository = reservationRepository;
     }
+
     public Reservation reserve(String roomName, String requesterName){
         Reservation reservation = new Reservation(roomName,requesterName);
         reservation.confirm(); // 예약 상태를 변경하고

@@ -54,7 +54,7 @@
 >
 > `[x]`는 코드·테스트와 해당 Day 산출물(`vocab.md`, `quiz.md`, `explain-log.md`, 필요 시 `progress.md`)로 완료가 확인된 경우에만 표시한다. 시작했거나 설명만 들은 항목은 완료로 표시하지 않는다. 세션 종료 시 체크 상태와 **다음 시작점**을 함께 갱신한다.
 
-**현재 확인 시점: 2026-08-01 — 다음 시작점은 Week A D5(IoC·DI·생성자 주입).**
+**현재 확인 시점: 2026-08-01 — 다음 시작점은 Week A D6(누적시험 A + 오답 재시험).**
 
 #### Week A — 웹 계층
 
@@ -62,8 +62,8 @@
 - [x] D2 record DTO vs Domain 분리 — [Day02 기록](days/Day02_0726/)
 - [x] D3 전역 오류처리 + Bean Validation — [Day03 기록](days/Day03_0728/)
 - [x] D4 Service/Repository 책임 분리 — [Day04 진행 기록](days/Day04_0728/progress.md)
-- [ ] **D5 IoC·DI·생성자 주입 ← 다음 학습**
-- [ ] D6 누적시험 A + 오답 재시험
+- [x] D5 IoC·DI·생성자 주입 — [Day05 진행 기록](days/Day05_0729/progress.md)
+- [ ] **D6 누적시험 A + 오답 재시험 ← 다음 학습**
 - [ ] D7 버퍼 / 독립과제
 
 #### Week B — 데이터 접근 기초
