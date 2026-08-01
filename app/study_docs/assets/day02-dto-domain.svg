@@ -1,53 +1,60 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 820 540" width="820" height="540" font-family="system-ui, -apple-system, 'Segoe UI', 'Malgun Gothic', 'Apple SD Gothic Neo', sans-serif">
-  <rect x="0" y="0" width="820" height="540" fill="#ffffff"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 860 500" width="860" height="500" font-family="system-ui, -apple-system, 'Segoe UI', 'Malgun Gothic', 'Apple SD Gothic Neo', sans-serif">
+  <rect x="0" y="0" width="860" height="500" fill="#ffffff"/>
   <defs>
-    <marker id="a2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
-      <path d="M 0 0 L 10 5 L 0 10 z" fill="#64748b"/>
+    <marker id="dep" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10" fill="none" stroke="#334155" stroke-width="1.2"/>
     </marker>
   </defs>
 
-  <text x="40" y="34" font-size="19" font-weight="700" fill="#0f172a">DTO와 Domain을 나눈 자리</text>
-  <text x="40" y="54" font-size="13" fill="#64748b">둘 다 같은 두 문자열을 담는다. 다른 건 담는 이유다.</text>
+  <!-- Controller -->
+  <rect x="290" y="24" width="290" height="62" fill="#ffffff" stroke="#334155" stroke-width="1.3"/>
+  <text x="435" y="46" font-size="13" font-weight="600" fill="#0f172a" text-anchor="middle">ReservationController</text>
+  <line x1="290" y1="56" x2="580" y2="56" stroke="#334155" stroke-width="1.1"/>
+  <text x="302" y="75" font-size="11.5" fill="#0f172a" font-family="ui-monospace, Consolas, monospace">+ reserve(ReservationRequest) : String</text>
 
-  <!-- JSON -->
-  <rect x="40" y="78" width="400" height="62" rx="8" fill="#f1f5f9" stroke="#94a3b8" stroke-width="1.5"/>
-  <text x="60" y="102" font-size="15" font-weight="600" fill="#0f172a">요청 JSON 본문</text>
-  <text x="60" y="123" font-size="12" fill="#475569" font-family="ui-monospace, Consolas, monospace">{"roomName":"301호","requesterName":"김민준"}</text>
-  <line x1="240" y1="140" x2="240" y2="168" stroke="#64748b" stroke-width="1.8" marker-end="url(#a2)"/>
+  <!-- dependency arrows -->
+  <line x1="360" y1="86" x2="250" y2="156" stroke="#334155" stroke-width="1.2" stroke-dasharray="6 4" marker-end="url(#dep)"/>
+  <text x="252" y="124" font-size="11" fill="#475569">«use»</text>
+  <line x1="510" y1="86" x2="600" y2="156" stroke="#334155" stroke-width="1.2" stroke-dasharray="6 4" marker-end="url(#dep)"/>
+  <text x="566" y="124" font-size="11" fill="#475569">«create»</text>
 
-  <!-- boundary -->
-  <line x1="30" y1="176" x2="790" y2="176" stroke="#cbd5e1" stroke-width="1.5" stroke-dasharray="6 5"/>
-  <text x="452" y="172" font-size="12" fill="#94a3b8">HTTP 경계 — @RequestBody가 여기서 변환한다</text>
+  <!-- ReservationRequest -->
+  <rect x="30" y="160" width="330" height="166" fill="#ffffff" stroke="#334155" stroke-width="1.3"/>
+  <text x="195" y="182" font-size="11.5" fill="#475569" text-anchor="middle">«record»</text>
+  <text x="195" y="202" font-size="13" font-weight="600" fill="#0f172a" text-anchor="middle">ReservationRequest</text>
+  <line x1="30" y1="212" x2="360" y2="212" stroke="#334155" stroke-width="1.1"/>
+  <text x="42" y="232" font-size="11.5" fill="#0f172a" font-family="ui-monospace, Consolas, monospace">+ roomName : String {readOnly}</text>
+  <text x="42" y="252" font-size="11.5" fill="#0f172a" font-family="ui-monospace, Consolas, monospace">+ requesterName : String {readOnly}</text>
+  <line x1="30" y1="264" x2="360" y2="264" stroke="#334155" stroke-width="1.1"/>
+  <text x="42" y="284" font-size="11.5" fill="#0f172a" font-family="ui-monospace, Consolas, monospace">+ roomName() : String</text>
+  <text x="42" y="304" font-size="11.5" fill="#0f172a" font-family="ui-monospace, Consolas, monospace">+ requesterName() : String</text>
 
-  <!-- DTO -->
-  <rect x="40" y="196" width="400" height="126" rx="8" fill="#e0e7ff" stroke="#6366f1" stroke-width="1.5"/>
-  <text x="60" y="220" font-size="15" font-weight="600" fill="#0f172a">ReservationRequest — record</text>
-  <text x="60" y="243" font-size="13" fill="#475569" font-family="ui-monospace, Consolas, monospace">roomName · requesterName</text>
-  <text x="60" y="266" font-size="13" fill="#475569">컴포넌트는 다른 값으로 재할당할 수 없다</text>
-  <text x="60" y="289" font-size="13" fill="#475569">접근자는 <tspan font-family="ui-monospace, Consolas, monospace" fill="#4338ca">roomName()</tspan></text>
-  <text x="60" y="310" font-size="13" fill="#dc2626" font-family="ui-monospace, Consolas, monospace">getRoomName() 은 없다</text>
+  <!-- Reservation -->
+  <rect x="470" y="160" width="360" height="226" fill="#ffffff" stroke="#334155" stroke-width="1.3"/>
+  <text x="650" y="184" font-size="13" font-weight="600" fill="#0f172a" text-anchor="middle">Reservation</text>
+  <line x1="470" y1="194" x2="830" y2="194" stroke="#334155" stroke-width="1.1"/>
+  <text x="482" y="214" font-size="11.5" fill="#0f172a" font-family="ui-monospace, Consolas, monospace">- roomName : String {readOnly}</text>
+  <text x="482" y="234" font-size="11.5" fill="#0f172a" font-family="ui-monospace, Consolas, monospace">- requesterName : String {readOnly}</text>
+  <text x="482" y="254" font-size="11.5" fill="#b91c1c" font-family="ui-monospace, Consolas, monospace">- confirmed : boolean</text>
+  <line x1="470" y1="266" x2="830" y2="266" stroke="#334155" stroke-width="1.1"/>
+  <text x="482" y="286" font-size="11.5" fill="#0f172a" font-family="ui-monospace, Consolas, monospace">+ confirm() : void</text>
+  <text x="482" y="306" font-size="11.5" fill="#0f172a" font-family="ui-monospace, Consolas, monospace">+ canceled() : void</text>
+  <text x="482" y="326" font-size="11.5" fill="#0f172a" font-family="ui-monospace, Consolas, monospace">+ getRoomName() : String</text>
+  <text x="482" y="346" font-size="11.5" fill="#0f172a" font-family="ui-monospace, Consolas, monospace">+ isConfirmed() : boolean</text>
+  <text x="482" y="370" font-size="11" fill="#475569">{readOnly} = final</text>
 
-  <text x="470" y="222" font-size="13" font-weight="600" fill="#0f172a">역할: 나르기</text>
-  <text x="470" y="243" font-size="12" fill="#64748b">외부가 보내는 데이터의 모양</text>
-  <text x="470" y="262" font-size="12" fill="#64748b">API 입력 형식이 바뀌면</text>
-  <text x="470" y="280" font-size="12" fill="#64748b">여기가 바뀐다</text>
+  <!-- note on Reservation -->
+  <line x1="650" y1="386" x2="650" y2="410" stroke="#94a3b8" stroke-width="1" stroke-dasharray="5 4"/>
+  <path d="M 470 410 L 816 410 L 830 424 L 830 480 L 470 480 Z" fill="#f8fafc" stroke="#94a3b8" stroke-width="1.1"/>
+  <path d="M 816 410 L 816 424 L 830 424" fill="none" stroke="#94a3b8" stroke-width="1.1"/>
+  <text x="482" y="432" font-size="11.5" fill="#0f172a">가변인 건 confirmed 하나뿐이고, 그마저 private이다.</text>
+  <text x="482" y="452" font-size="11.5" fill="#0f172a">외부는 필드를 직접 못 바꾸고 confirm()·canceled()로만 바꾼다.</text>
+  <text x="482" y="472" font-size="11.5" fill="#475569">이게 record와 class를 나눈 실제 이유다.</text>
 
-  <line x1="240" y1="322" x2="240" y2="350" stroke="#64748b" stroke-width="1.8" marker-end="url(#a2)"/>
-  <text x="252" y="342" font-size="12" fill="#64748b" font-family="ui-monospace, Consolas, monospace">new Reservation(request.roomName(), ...)</text>
-
-  <!-- Domain -->
-  <rect x="40" y="358" width="400" height="146" rx="8" fill="#dcfce7" stroke="#22c55e" stroke-width="1.5"/>
-  <text x="60" y="382" font-size="15" font-weight="600" fill="#0f172a">Reservation — class</text>
-  <text x="60" y="405" font-size="13" fill="#475569" font-family="ui-monospace, Consolas, monospace">final roomName · final requesterName</text>
-  <text x="60" y="428" font-size="13" fill="#475569" font-family="ui-monospace, Consolas, monospace">confirmed<tspan fill="#0f172a" font-family="system-ui, 'Malgun Gothic', sans-serif">  ← 이것만 가변</tspan></text>
-  <text x="60" y="453" font-size="13" fill="#475569">외부에서 필드를 직접 못 바꾼다</text>
-  <text x="60" y="474" font-size="13" fill="#166534" font-family="ui-monospace, Consolas, monospace">confirm() / canceled()</text>
-  <text x="60" y="493" font-size="12" fill="#64748b">상태 변경은 이 메서드를 통해서만</text>
-
-  <text x="470" y="384" font-size="13" font-weight="600" fill="#0f172a">역할: 상태 + 규칙</text>
-  <text x="470" y="405" font-size="12" fill="#64748b">애플리케이션이 다루는 상태와</text>
-  <text x="470" y="423" font-size="12" fill="#64748b">그 상태를 바꾸는 규칙</text>
-  <text x="470" y="447" font-size="12" fill="#64748b">예약 규칙이 바뀌면</text>
-  <text x="470" y="465" font-size="12" fill="#64748b">여기가 바뀐다</text>
-  <text x="470" y="493" font-size="12" fill="#94a3b8">"가변"이 전부 가변은 아니다</text>
+  <!-- note on Request -->
+  <line x1="195" y1="326" x2="195" y2="350" stroke="#94a3b8" stroke-width="1" stroke-dasharray="5 4"/>
+  <path d="M 30 350 L 346 350 L 360 364 L 360 412 L 30 412 Z" fill="#f8fafc" stroke="#94a3b8" stroke-width="1.1"/>
+  <path d="M 346 350 L 346 364 L 360 364" fill="none" stroke="#94a3b8" stroke-width="1.1"/>
+  <text x="42" y="372" font-size="11.5" fill="#0f172a">접근자 이름이 컴포넌트명 그대로다.</text>
+  <text x="42" y="392" font-size="11.5" fill="#b91c1c" font-family="ui-monospace, Consolas, monospace">getRoomName() 은 생성되지 않는다</text>
 </svg>

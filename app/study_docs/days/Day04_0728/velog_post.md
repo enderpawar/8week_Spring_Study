@@ -48,7 +48,7 @@ DB로 치면 기본키(PK)가 하는 일과 같은 자리다. JPA에서는 `@Gen
 
 마지막으로 취소할 대상을 클라이언트가 지목하려면 id를 보낼 통로가 필요했다. 그래서 URL 경로에 실어 `@PathVariable`로 받고, `reserve()` 응답에는 `예약 번호1-...`처럼 부여된 id를 노출해서 다음 요청에 쓸 수 있게 했다.
 
-![식별자가 없을 때와 있을 때 — 이름으로 취소하면 값이 같아도 다른 인스턴스가 생겨 기존 예약은 그대로이고 저장소에 하나가 더 늘어난다. id로 찾으면 저장돼 있던 바로 그 객체의 상태가 바뀐다. 다만 save()는 ID 유무와 무관하게 store.add()를 실행하므로 같은 참조가 리스트에 두 번 들어갈 수 있는데, 원소 수를 세는 테스트도 findAll() 엔드포인트도 없어 실제 중복 여부는 미검증이다.](../../assets/day04-identity-store.png)
+![객체 다이어그램 두 장. 위는 이름으로 취소했을 때로, store의 [0]과 [1]이 각각 r1과 r2라는 서로 다른 Reservation 인스턴스를 가리킨다. 둘 다 roomName이 "301호"로 값은 같지만 r1은 confirmed=true, r2는 false다. 취소한 건 r2뿐이라 기존 예약 r1은 그대로다. 아래는 id로 취소한 뒤로, 인스턴스는 id=1인 r1 하나인데 store의 [0]과 [1] 두 링크가 모두 그 하나를 가리킨다. save()가 ID 유무와 무관하게 store.add()를 실행하기 때문인데, 원소 수를 세는 테스트도 findAll() 엔드포인트도 없어 실제로 그런지는 확인하지 않았다.](../../assets/day04-identity-store.png)
 
 > **더 볼 것**
 > - [Mapping Requests — Spring Framework Reference](https://docs.spring.io/spring-framework/reference/web/webmvc/mvc-controller/ann-requestmapping.html): URI 템플릿 변수와 `@PathVariable`의 관계

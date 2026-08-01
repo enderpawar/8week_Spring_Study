@@ -21,7 +21,7 @@
 
 그럼 요청 하나가 응답이 되기까지 누가 뭘 하는가.
 
-![@RestController 요청 처리 흐름 — DispatcherServlet에서 시작해 HandlerMapping이 핸들러를 찾고, @ResponseBody가 반환값을 응답 본문으로 변환한 뒤 상태 미지정이면 200이 붙는다. 핸들러를 못 찾으면 그 자리에서 404가 된다.](../../assets/day01-request-flow.png)
+![시퀀스 다이어그램. 클라이언트가 GET /hello를 DispatcherServlet에 보내면 DispatcherServlet이 HandlerMapping에 핸들러를 조회한다. alt 프레임의 첫 분기(매칭되는 핸들러 있음)에서는 hello()가 호출되고 반환된 문자열이 200 OK와 함께 클라이언트로 돌아간다. 아무도 상태를 지정하지 않아 기본값이 붙는다. 두 번째 분기(없음)에서는 HandlerMapping이 핸들러 없음을 알리고 404가 반환되는데, HelloController 생명선까지는 가지도 못한다.](../../assets/day01-request-flow.png)
 
 이 흐름이 오늘 헷갈렸던 것들을 한 줄씩 설명해준다.
 

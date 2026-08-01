@@ -35,7 +35,7 @@ Day1은 `HelloController` 하나로 GET 요청이 응답이 되는 길을 따라
 
 마지막으로 클래스 밖의 것 하나. 코드를 쓰다 "왜 파일 맨 위에 `package`를 굳이 써주지?"라는 의문이 생겼는데, 이건 자바 파일의 **도로명 주소**였다. 같은 이름의 클래스가 다른 라이브러리에도 있을 수 있으니 `com.example.studyroom.domain.Reservation`처럼 전체 주소를 부여해 충돌을 막고, 컴파일러는 이 선언으로 파일이 `src/main/java/com/example/studyroom/domain/`에 있다고 인식한다. 다른 패키지에서 `import`로 가져다 쓸 수 있는 것도 이 주소가 있기 때문이다.
 
-![DTO와 Domain을 나눈 자리 — 요청 JSON이 HTTP 경계에서 record ReservationRequest로 변환되고, 그 값으로 class Reservation이 만들어진다. record는 재할당 불가에 접근자가 roomName()이고, Reservation은 roomName·requesterName이 final이며 confirmed만 confirm()·canceled()를 통해 바뀐다. 앞은 나르는 역할이라 API 입력 형식이 바뀔 때, 뒤는 상태와 규칙이라 예약 규칙이 바뀔 때 손댄다.](../../assets/day02-dto-domain.png)
+![클래스 다이어그램. ReservationController가 ReservationRequest를 «use»하고 Reservation을 «create»한다. «record» ReservationRequest는 roomName·requesterName이 둘 다 public에 {readOnly}이고 접근자가 roomName()·requesterName()이라 getRoomName()은 생성되지 않는다. Reservation은 roomName·requesterName이 private {readOnly}이고 confirmed만 가변인데 그마저 private이라, 외부는 confirm()·canceled()로만 상태를 바꿀 수 있다.](../../assets/day02-dto-domain.png)
 
 > **더 볼 것**
 > - [Records — Java Language Reference (Java 17)](https://docs.oracle.com/en/java/javase/17/language/records.html): 접근자 이름 규칙과 자동 생성 멤버의 근거
