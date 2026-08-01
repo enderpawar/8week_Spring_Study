@@ -35,6 +35,8 @@ Day1은 `HelloController` 하나로 GET 요청이 응답이 되는 길을 따라
 
 마지막으로 클래스 밖의 것 하나. 코드를 쓰다 "왜 파일 맨 위에 `package`를 굳이 써주지?"라는 의문이 생겼는데, 이건 자바 파일의 **도로명 주소**였다. 같은 이름의 클래스가 다른 라이브러리에도 있을 수 있으니 `com.example.studyroom.domain.Reservation`처럼 전체 주소를 부여해 충돌을 막고, 컴파일러는 이 선언으로 파일이 `src/main/java/com/example/studyroom/domain/`에 있다고 인식한다. 다른 패키지에서 `import`로 가져다 쓸 수 있는 것도 이 주소가 있기 때문이다.
 
+![DTO와 Domain을 나눈 자리 — 요청 JSON이 HTTP 경계에서 record ReservationRequest로 변환되고, 그 값으로 class Reservation이 만들어진다. record는 재할당 불가에 접근자가 roomName()이고, Reservation은 roomName·requesterName이 final이며 confirmed만 confirm()·canceled()를 통해 바뀐다. 앞은 나르는 역할이라 API 입력 형식이 바뀔 때, 뒤는 상태와 규칙이라 예약 규칙이 바뀔 때 손댄다.](../../assets/day02-dto-domain.png)
+
 > **더 볼 것**
 > - [Records — Java Language Reference (Java 17)](https://docs.oracle.com/en/java/javase/17/language/records.html): 접근자 이름 규칙과 자동 생성 멤버의 근거
 > - [@RequestBody — Spring Framework Reference](https://docs.spring.io/spring-framework/reference/web/webmvc/mvc-controller/ann-methods/requestbody.html): 요청 본문이 객체로 변환되는 단계
@@ -149,7 +151,7 @@ DTO에서 값을 꺼내려고 자연스럽게 `request.getRoomName()`이라고 �
 
 두 번째로 남는 건 컴파일 성공의 의미가 좁아졌다는 것이다. 어제는 컴파일 에러 네 개를 고치는 게 목표였는데, 오늘은 오타 세 개를 그대로 안고도 빌드가 통과했다. 통과했다는 건 이름이 서로 맞았다는 뜻이지 의도한 대로 동작한다는 뜻이 아니었다.
 
-남은 것도 있다. 첫째, 오늘 만든 두 엔드포인트를 고정하는 자동 테스트가 없다. 지금은 오타나 경로 변경이 생겨도 빌드는 통과하고 수동 호출 때만 드러나므로, **예약된 부채**로 두고 테스트를 제대로 배우는 시점에 갚는다. 둘째, `cancel` 요청이 취소하는 대상은 방금 `new`로 만든 객체다. 저장된 예약을 찾아 취소하는 게 아니라서 취소가 어디에도 남지 않는데, 이건 저장소 계층을 배워야 제대로 풀리는 문제라 역시 **예약된 부채**다.
+남은 것도 있다. 첫째, 오늘 만든 두 엔드포인트를 고정하는 자동 테스트가 없다. 지금은 오타나 경로 변경이 생겨도 빌드는 통과하고 수동 호출 때만 드러나므로, **나중에 고칠 것**로 두고 테스트를 제대로 배우는 시점에 갚는다. 둘째, `cancel` 요청이 취소하는 대상은 방금 `new`로 만든 객체다. 저장된 예약을 찾아 취소하는 게 아니라서 취소가 어디에도 남지 않는데, 이건 저장소 계층을 배워야 제대로 풀리는 문제라 역시 **나중에 고칠 것**다.
 
 남겨두는 질문 — record에 검증 규칙(예: 빈 방 이름 거부)을 넣어야 한다면 그건 DTO의 일인가 Domain의 일인가?
 

@@ -21,7 +21,7 @@
 
 그럼 요청 하나가 응답이 되기까지 누가 뭘 하는가.
 
-![@RestController 요청 처리 흐름 — DispatcherServlet에서 시작해 HandlerMapping이 핸들러를 찾고, @ResponseBody가 반환값을 응답 본문으로 변환한 뒤 상태 미지정이면 200이 붙는다. 핸들러를 못 찾으면 그 자리에서 404가 된다.](../../assets/day01-request-flow.svg)
+![@RestController 요청 처리 흐름 — DispatcherServlet에서 시작해 HandlerMapping이 핸들러를 찾고, @ResponseBody가 반환값을 응답 본문으로 변환한 뒤 상태 미지정이면 200이 붙는다. 핸들러를 못 찾으면 그 자리에서 404가 된다.](../../assets/day01-request-flow.png)
 
 이 흐름이 오늘 헷갈렸던 것들을 한 줄씩 설명해준다.
 

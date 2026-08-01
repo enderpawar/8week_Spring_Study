@@ -6,8 +6,6 @@ Day3까지 `ReservationController`가 요청을 받는 일부터 예약 객체�
 
 ## 1. 개념 설명
 
-오늘 정리한 용어부터.
-
 | 용어 | 한줄뜻 | 코드 모습 |
 |---|---|---|
 | Service 계층 | 비즈니스 로직(상태 변경 규칙)을 수행하며 Controller와 Repository 사이를 조율한다 | `reservationService.cancel(id)` |
@@ -49,6 +47,8 @@ DB로 치면 기본키(PK)가 하는 일과 같은 자리다. JPA에서는 `@Gen
 식별자를 넣는 순간 **"id가 같은가"를 판정하는 문제**가 따라온다. 여기서 참조 동일성과 값 동일성이 갈린다. `Long`은 원시타입 `long`이 아니라 객체라서, `==`는 값이 같은지가 아니라 같은 메모리 주소를 가리키는지를 본다. 재미있게도 `InMemoryReservationRepository` 한 파일 안에 두 비교가 나란히 있다 — `getId() == null`(참조 비교가 맞는 자리)과 `getId().equals(id)`(값 비교가 맞는 자리).
 
 마지막으로 취소할 대상을 클라이언트가 지목하려면 id를 보낼 통로가 필요했다. 그래서 URL 경로에 실어 `@PathVariable`로 받고, `reserve()` 응답에는 `예약 번호1-...`처럼 부여된 id를 노출해서 다음 요청에 쓸 수 있게 했다.
+
+![식별자가 없을 때와 있을 때 — 이름으로 취소하면 값이 같아도 다른 인스턴스가 생겨 기존 예약은 그대로이고 저장소에 하나가 더 늘어난다. id로 찾으면 저장돼 있던 바로 그 객체의 상태가 바뀐다. 다만 save()는 ID 유무와 무관하게 store.add()를 실행하므로 같은 참조가 리스트에 두 번 들어갈 수 있는데, 원소 수를 세는 테스트도 findAll() 엔드포인트도 없어 실제 중복 여부는 미검증이다.](../../assets/day04-identity-store.png)
 
 > **더 볼 것**
 > - [Mapping Requests — Spring Framework Reference](https://docs.spring.io/spring-framework/reference/web/webmvc/mvc-controller/ann-requestmapping.html): URI 템플릿 변수와 `@PathVariable`의 관계
@@ -158,7 +158,7 @@ Controller에 셋을 다 몰아넣으면 안 되는 이유도 여기서 나온�
 
 두 번째로 남은 건 초록불의 범위다. 컴파일러는 "모든 경로가 리턴하는가"까지는 잡아줬지만 "못 찾았을 때 무엇을 리턴해야 하는가"는 묻지 않았고, 테스트는 `@PathVariable`과 URL이 어긋난 걸 통과시켰다. 빌드 성공은 문법과 지금 등록된 테스트가 묻는 것에만 답한 결과였고, API가 계약대로 동작한다는 답까지는 아니었다.
 
-아직 남은 것 두 가지는 둘 다 오늘 코드에 있는 결함이다. 첫째, `InMemoryReservationRepository.save()`가 id 유무와 관계없이 `store.add()`를 호출해서, `cancel()`이 찾아온 기존 객체를 다시 저장할 때 같은 참조가 중복으로 들어갈 수 있다. 위에 적었듯 지금은 원소 수를 확인할 수단이 없어 재현도 못 한 상태다. 둘째, `findById()`가 없는 id에 `null`을 반환하는데 `ReservationService.cancel()`이 확인 없이 `reservation.cancel()`을 호출한다. 존재하지 않는 id로 취소를 부르면 그 자리에서 터진다. 둘 다 저장 계약과 "없음"의 표현을 정하는 문제라 **즉시 차단(Week A D7)** 으로 분류했다.
+아직 남은 것 두 가지는 둘 다 오늘 코드에 있는 결함이다. 첫째, `InMemoryReservationRepository.save()`가 id 유무와 관계없이 `store.add()`를 호출해서, `cancel()`이 찾아온 기존 객체를 다시 저장할 때 같은 참조가 중복으로 들어갈 수 있다. 위에 적었듯 지금은 원소 수를 확인할 수단이 없어 재현도 못 한 상태다. 둘째, `findById()`가 없는 id에 `null`을 반환하는데 `ReservationService.cancel()`이 확인 없이 `reservation.cancel()`을 호출한다. 존재하지 않는 id로 취소를 부르면 그 자리에서 터진다. 둘 다 저장 계약과 "없음"의 표현을 정하는 문제라 **바로 고칠 것(Week A D7)** 으로 분류했다.
 
 면접에서 물어보면 답이 궁금한 질문 하나 — 메모리 저장소에서는 찾아온 객체를 고치기만 해도 `store` 안의 값이 바뀌는데, JPA로 바꾸면 `save()`를 다시 부르는 이 코드는 무엇이 달라지는가.
 

@@ -40,6 +40,8 @@ Component Scan 이 @Repository·@Service·@RestController 붙은 클래스를 Be
 
 **Singleton은 조립이 끝난 다음의 이야기다.** 기본 scope에서는 컨테이너 하나가 Bean 하나만 만들어 계속 돌려주므로, 여러 요청 스레드가 같은 Service 객체를 함께 쓴다. 그래서 무상태가 취향이 아니라 조건이 된다 — 요청마다 달라지는 값을 공유 필드에 두면 스레드끼리 서로의 값을 덮어쓸 수 있다.
 
+![생성자에 Repository를 넣어주는 주체 — ApplicationContext가 뜰 때 Controller·Service·Repository를 Bean으로 만들고 생성자로 서로 주입한다. Service는 구현체 이름을 모른 채 인터페이스만 안다. Bean은 기본이 싱글톤이라 두 번 꺼내도 같은 인스턴스여서 ==가 true가 되고, @Repository를 떼면 넣어줄 Bean이 없어 기동 시점에 실패한다. 인스턴스가 하나뿐이라 요청별 값은 필드가 아니라 파라미터로 넘겨야 한다.](../../assets/day05-ioc-di.png)
+
 > **더 볼 것**
 > - [Dependency Injection — Spring Framework Reference](https://docs.spring.io/spring-framework/reference/core/beans/dependencies/factory-collaborators.html): 생성자 기반 DI와 생성자 인자 타입 매칭
 > - [Bean Scopes — Spring Framework Reference](https://docs.spring.io/spring-framework/reference/core/beans/factory-scopes.html): singleton이 "JVM당 하나"가 아니라 "컨테이너당 하나"라는 근거
@@ -152,7 +154,7 @@ void reservationServiceBeanIsSingleton() {
 
 `==` 예측이 틀린 것도 같은 종류의 교정이었다. 연산자의 의미는 처음부터 맞게 알고 있었고, 몰랐던 쪽은 컨테이너가 같은 인스턴스를 돌려준다는 조립 규칙이었다. Singleton을 "하나만 만든다"로 외우는 것과 "그래서 필드를 공유한다"까지 잇는 건 다른 일이라는 것도 여기서 붙었다.
 
-남은 것도 있다. 공유 인스턴스의 경쟁 상태와 `InMemoryReservationRepository`의 `ArrayList` 동시성은 오늘 설명만 하고 재현하지 않았는데, 동시성은 이 5주 트랙에서 다루지 않기로 한 **범위 경계**라 미검증 표시만 남긴다. 그리고 오늘 늘어난 자동 테스트는 Bean 동일성 하나뿐이라 HTTP 응답 계약은 여전히 회귀를 잡지 못한다 — 이건 Week D D5에 갚기로 한 **예약된 부채**다.
+남은 것도 있다. 공유 인스턴스의 경쟁 상태와 `InMemoryReservationRepository`의 `ArrayList` 동시성은 오늘 설명만 하고 재현하지 않았는데, 동시성은 이 5주 트랙에서 다루지 않기로 한 **고치지 않을 것**라 미검증 표시만 남긴다. 그리고 오늘 늘어난 자동 테스트는 Bean 동일성 하나뿐이라 HTTP 응답 계약은 여전히 회귀를 잡지 못한다 — 이건 Week D D5에 갚기로 한 **나중에 고칠 것**다.
 
 다음은 Week A D6 누적시험이다. 그 전에 오늘 힌트가 필요했던 IoC·DI 구분, Singleton 동일성, 생성자 구조를 8/2에 다시 인출한다.
 

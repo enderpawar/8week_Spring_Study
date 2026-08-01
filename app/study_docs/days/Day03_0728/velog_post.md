@@ -27,6 +27,8 @@ Day2에서 만든 `POST /reservations`는 `roomName`이 빈 문자열로 들어�
 
 마지막으로 `BindingResult`는 "검증 결과 보고서"이지 "DTO의 사본"이 아니다. 통과한 필드는 기록되지 않으므로, 응답 바디의 길이는 DTO 필드 수가 아니라 **위반 개수**를 따라간다.
 
+![잘못된 요청이 400이 되기까지 — @RequestBody 변환은 성공해도 @Valid가 @NotBlank를 검사해 실패하면 컨트롤러 본문에 진입하지 않고 MethodArgumentNotValidException이 난다. ExceptionHandlerExceptionResolver가 @ControllerAdvice 계열을 전역 후보로 특별 취급해 처리기를 찾고 400과 실패 필드 Map을 반환한다. getFieldErrors()는 DTO 전체가 아니라 FieldError가 만들어진 필드만 돌려주므로 통과한 requesterName은 애초에 순회 대상이 아니다.](../../assets/day03-validation-flow.png)
+
 > **더 볼 것**
 > - [Exceptions — Spring Framework Reference](https://docs.spring.io/spring-framework/reference/web/webmvc/mvc-controller/ann-exceptionhandler.html): `@ExceptionHandler` 지원이 `DispatcherServlet`의 `HandlerExceptionResolver` 위에 있다는 근거
 > - [Controller Advice — Spring Framework Reference](https://docs.spring.io/spring-framework/reference/web/webmvc/mvc-controller/ann-advice.html): `basePackages`·`assignableTypes`로 적용 범위를 좁히는 방법
@@ -117,7 +119,7 @@ public class GlobalExceptionHandler {
 
 오늘 바뀐 건 "검증을 어떻게 켜는가"보다 **검증 결과를 무엇으로 보는가**였다. 처음엔 `BindingResult`를 DTO의 사본처럼 생각해서 모든 필드가 어떤 형태로든 담겨 있을 거라고 봤는데, 실제로는 위반 사실만 적힌 보고서였다. 응답 바디가 짧았던 이유도, `@RestControllerAdvice`가 전역인 이유도 결국 "누가 무엇을 모아두는가"를 묻는 같은 종류의 질문이었다.
 
-남은 것 둘. `@ExceptionHandler(Exception.class)`가 `ex.getMessage()`를 그대로 500 본문에 실어 보내는데, 예상 못 한 예외가 터지면 내부 구현 정보가 클라이언트에 노출될 수 있다. 외부 메시지와 내부 로그를 분리해야 해서 **즉시 차단(Week A D7)**으로 잡아뒀다. 그리고 오늘 확인은 전부 수동 호출이라 이 400과 본문이 다음 커밋에서도 유지된다는 보장이 없다. 테스트를 제대로 배울 때 갚을 **예약된 부채(Week D D5)**다.
+남은 것 둘. `@ExceptionHandler(Exception.class)`가 `ex.getMessage()`를 그대로 500 본문에 실어 보내는데, 예상 못 한 예외가 터지면 내부 구현 정보가 클라이언트에 노출될 수 있다. 외부 메시지와 내부 로그를 분리해야 해서 **바로 고칠 것(Week A D7)**으로 잡아뒀다. 그리고 오늘 확인은 전부 수동 호출이라 이 400과 본문이 다음 커밋에서도 유지된다는 보장이 없다. 테스트를 제대로 배울 때 갚을 **나중에 고칠 것(Week D D5)**다.
 
 면접에서 받으면 답이 갈릴 질문 하나를 남긴다 — 검증 실패 응답을 필드-메시지 Map으로 주는 것과 오류 코드·요청 식별자를 포함한 고정 스키마로 주는 것 중, 어느 쪽이 어떤 클라이언트에게 유리한가.
 
