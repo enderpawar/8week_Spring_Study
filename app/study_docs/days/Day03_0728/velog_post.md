@@ -1,195 +1,126 @@
-# [백엔드 기본기 Day 3] Bean Validation과 `@RestControllerAdvice` — 잘못된 요청을 일관된 400 응답으로 바꾸기
+# [백엔드 기본기 Day3] @Valid와 @RestControllerAdvice — 잘못된 요청이 400이 되기까지
 
-Day 2에서 HTTP 요청 바디를 `ReservationRequest` DTO로 분리했다. 이번에는 DTO가 형식에 맞더라도 필수 문자열이 비어 있을 수 있다는 문제를 다뤘다. 범위는 `@NotBlank`를 이용한 입력 검증과 검증 실패의 전역 처리까지이며, 오류 응답 형식의 표준화나 모든 엔드포인트의 검증까지 완료한 것은 아니다.
+Day2에서 만든 `POST /reservations`는 `roomName`이 빈 문자열로 들어와도 그대로 예약을 만들어줬다. Day3는 그 요청을 어디에서 막고, 막힌 사실을 어떤 응답으로 되돌려줄지를 다룬다. 검증 규칙은 `@NotBlank` 하나만 쓰고, 오류 응답 포맷 설계나 커스텀 예외 계층은 범위 밖으로 뒀다.
 
-## 한눈에 보기
+> DTO 필드에 `@NotBlank`를 걸고 컨트롤러 파라미터에 `@Valid`를 붙인 뒤, `@RestControllerAdvice` 클래스에서 `MethodArgumentNotValidException`을 400으로 바꿨다. 빈 값을 넣어 요청해보니 응답 바디에 실패한 필드 하나만 담겨 나왔는데, 이걸 "Map이 덮어써져서"라고 잘못 설명했다가 `getFieldErrors()`가 애초에 실패한 필드만 담는다는 걸로 교정했다. 확인은 전부 `curl` 수동 호출이다.
 
-- **문제:** `ReservationRequest`의 필수 값이 비어 있어도 컨트롤러 본문이 실행될 수 있었고, 컨트롤러마다 오류 응답을 만들면 같은 처리가 반복될 수 있었다.
-- **적용:** DTO 필드에 `@NotBlank`, 컨트롤러 파라미터에 `@Valid`를 적용했다. 검증 실패로 발생한 `MethodArgumentNotValidException`은 `@RestControllerAdvice`가 붙은 전역 처리기에서 필드별 메시지와 HTTP 400 응답으로 변환했다.
-- **검증:** `roomName=""`, `requesterName="김민준"` 요청에서 `400`과 `{"roomName":"방 이름은 비어있을 수 없습니다"}`를 확인했다. 글을 다시 검수한 시점에는 `./gradlew.bat test`도 `BUILD SUCCESSFUL`이었지만, 현재 테스트는 애플리케이션 컨텍스트 기동만 검사한다.
-- **한계:** Day 3 코드의 `/reservations/cancel`에는 `@Valid`가 없고, HTTP 실패 경로를 자동화한 테스트도 없다. 모든 예외를 잡는 처리기는 예외 메시지를 그대로 응답하므로 운영용 오류 정책으로 보기 어렵다.
+## 1. 개념 설명
 
-## 1. 문제를 이해하기 위한 이론
+오늘 정리한 용어부터.
 
-### 검증은 왜 컨트롤러 본문보다 앞에서 해야 하는가
+| 용어 | 한줄뜻 | 코드 모습 |
+|---|---|---|
+| `@Valid` | 요청 DTO에 Bean Validation 검증을 실행하라고 컨트롤러에 지시 | `reserve(@RequestBody @Valid ReservationRequest request)` |
+| `@NotBlank` | 문자열이 null·빈 문자열·공백만이면 검증 실패 처리 | `@NotBlank(message = "...") String roomName` |
+| `MethodArgumentNotValidException` | `@Valid` 검증이 실패하면 Spring이 던지는 예외 | `@ExceptionHandler(MethodArgumentNotValidException.class)` |
+| `BindingResult` / `getFieldErrors()` | 검증에 실패한 필드만 `FieldError` 객체로 담아 반환 | `ex.getBindingResult().getFieldErrors()` |
+| `@RestControllerAdvice` | 특정 컨트롤러를 지정하지 않고 전역의 예외를 가로채는 컴포넌트 선언 | `@RestControllerAdvice public class GlobalExceptionHandler { ... }` |
+| `ExceptionHandlerExceptionResolver` | `DispatcherServlet`이 예외 발생 시 위임하는 리졸버. `@ControllerAdvice` 계열 Bean을 미리 수집해 전역 후보로 들고 있음 | 프레임워크 내부 동작 — 직접 작성하는 코드는 없다 |
 
-`@RequestBody`는 JSON을 자바 객체로 변환하지만, 변환된 값이 비즈니스 규칙에 맞는지까지 보장하지 않는다. 예를 들어 `roomName`이 빈 문자열이어도 `String` 타입이라는 조건은 만족한다. 타입 변환 성공과 유효한 입력은 별개의 문제다.
+이 여섯 개는 요청 하나가 400이 되는 한 줄기 흐름 위에 순서대로 놓인다.
 
-따라서 요청 처리 계층의 입구에 사전조건을 두었다. 유효하지 않은 요청을 컨트롤러 본문에 넘기지 않으면 `Reservation` 생성과 `confirm()` 호출 전에 실패를 확정할 수 있다. 이는 호출자가 지켜야 할 조건을 먼저 검사하는 **계약(Contract)** 과 연결된다. 차이는 자바 타입 시스템이 `String` 여부까지만 정적으로 확인하는 반면, `@NotBlank`는 null·빈 문자열·공백 문자열이라는 값의 조건을 런타임에 검사한다는 점이다.
+> `@Valid`가 검증을 **실행시키고** → `@NotBlank`가 위반을 **판정하고** → `MethodArgumentNotValidException`이 그 사실을 **예외로 옮기고** → `ExceptionHandlerExceptionResolver`가 처리할 곳을 **찾아주고** → `@RestControllerAdvice`의 핸들러가 `BindingResult`에서 **실패 목록을 꺼내** 400 본문으로 만든다.
 
-### 핵심 용어
+여기서 역할이 갈리는 지점이 두 군데 있다. 하나는 `@NotBlank`와 `@Valid`의 관계다. **`@NotBlank`는 DTO에 붙은 규칙 선언일 뿐이고, 그 규칙을 실제로 돌리라고 지시하는 건 컨트롤러 파라미터의 `@Valid`다.** 실제로 import 경로부터 다르다 — `@Valid`는 `jakarta.validation.Valid`, `@NotBlank`는 `jakarta.validation.constraints.NotBlank`다.
 
-- **Bean Validation:** 객체의 필드나 프로퍼티에 선언한 제약 조건을 검사하는 표준 검증 규약이다. Spring Boot 3의 코드에서는 `jakarta.validation` 패키지를 사용한다.
-- **`@NotBlank`:** 문자열이 `null`, `""`, 공백 문자만으로 이루어진 경우를 허용하지 않는 제약 조건이다. `@NotNull`이 null만 막는 것과 범위가 다르다.
-- **`@Valid`:** 현재 예제에서는 `ReservationRequest`에 선언된 제약 조건 검사를 실행하도록 메서드 인자 처리 과정에 지시한다. DTO에 `@NotBlank`만 붙이고 컨트롤러 인자에 `@Valid`를 붙이지 않으면 이 요청 경로에서 검증이 시작되지 않는다.
-- **`MethodArgumentNotValidException`:** MVC 컨트롤러 메서드 인자의 Bean Validation이 실패했을 때 Spring MVC가 발생시키는 예외다.
-- **`BindingResult`:** 바인딩과 검증 결과를 담는다. `getFieldErrors()`는 DTO의 모든 필드가 아니라 검증에 실패해 `FieldError`가 만들어진 필드만 반환한다.
-- **`@RestControllerAdvice`:** 여러 컨트롤러에 적용할 예외 처리 메서드를 선언하고, 반환값을 응답 본문으로 쓰게 하는 애노테이션이다. 단순히 Bean이기 때문에 예외를 잡는 것이 아니라, `ExceptionHandlerExceptionResolver`가 `@ControllerAdvice` 계열 Bean을 전역 예외 처리 후보로 관리하기 때문에 동작한다.
+다른 하나는 "Bean으로 등록됨"과 "리졸버가 전역 후보로 취급함"이 별개 조건이라는 것이다. `@Service`나 `@Component`도 컨테이너에 올라간 Bean이지만 거기에 `@ExceptionHandler` 메서드를 둔다고 다른 컨트롤러의 예외까지 잡아주지는 않는다. 이 구분은 아래 자문자답에서 다시 다뤘다.
 
-### 요청에서 오류 응답까지의 흐름
+마지막으로 `BindingResult`는 "검증 결과 보고서"이지 "DTO의 사본"이 아니다. 통과한 필드는 기록되지 않으므로, 응답 바디의 길이는 DTO 필드 수가 아니라 **위반 개수**를 따라간다.
 
-```text
-POST /reservations
-→ Spring MVC가 JSON을 ReservationRequest로 변환
-→ @Valid가 roomName과 requesterName의 @NotBlank를 검사
-→ 실패 시 MethodArgumentNotValidException 발생
-→ ExceptionHandlerExceptionResolver가 처리 가능한 @ExceptionHandler 탐색
-→ GlobalExceptionHandler.handleValidation() 실행
-→ 실패 필드와 메시지를 담은 Map을 HTTP 400 본문으로 반환
-```
+> **더 볼 것**
+> - [Exceptions — Spring Framework Reference](https://docs.spring.io/spring-framework/reference/web/webmvc/mvc-controller/ann-exceptionhandler.html): `@ExceptionHandler` 지원이 `DispatcherServlet`의 `HandlerExceptionResolver` 위에 있다는 근거
+> - [Controller Advice — Spring Framework Reference](https://docs.spring.io/spring-framework/reference/web/webmvc/mvc-controller/ann-advice.html): `basePackages`·`assignableTypes`로 적용 범위를 좁히는 방법
+> - [Validation — Spring MVC Config](https://docs.spring.io/spring-framework/reference/web/webmvc/mvc-config/validation.html): Bean Validation 구현체가 클래스패스에 있으면 글로벌 `Validator`가 등록된다는 부분
+> - 아직 안 본 것 — `FieldError`의 나머지 정보(거부된 값, 코드), `@Validated`, `ProblemDetail` 형식의 오류 응답
 
-검증이 통과하면 `ReservationController.reserve()` 본문으로 들어간다. 반대로 하나라도 실패하면 본문에 진입하지 않으므로 `new Reservation(...)`과 `reservation.confirm()`은 실행되지 않는다. 예외는 평상시 반환 경로를 건너뛰고 별도 처리 경로로 제어를 옮긴다는 점에서, CS에서 배운 예외 기반 제어 흐름의 한 사례다.
+## 2. 코드 구현
 
-### Day 3 코드에서 확인한 위치
+### 규칙은 DTO에, 실행 지시는 컨트롤러에
 
-- [`ReservationRequest.java`](https://github.com/enderpawar/8week_Spring_Study/blob/306100f660de477643481eea8debd0a8b5de4e84/app/src/main/java/com/example/studyroom/dto/ReservationRequest.java): 각 요청 필드의 `@NotBlank` 계약을 선언한다.
-- [`ReservationController.reserve()`](https://github.com/enderpawar/8week_Spring_Study/blob/306100f660de477643481eea8debd0a8b5de4e84/app/src/main/java/com/example/studyroom/controller/ReservationController.java): `@RequestBody @Valid ReservationRequest`로 변환 뒤 검증을 요청한다.
-- [`GlobalExceptionHandler.handleValidation()`](https://github.com/enderpawar/8week_Spring_Study/blob/306100f660de477643481eea8debd0a8b5de4e84/app/src/main/java/com/example/studyroom/exception/GlobalExceptionHandler.java): 실패 필드만 모아 400 응답으로 바꾼다.
-
-## 2. 설계 선택과 판단
-
-검증 규칙은 DTO 필드에 두고, 요청 경로에서는 `@Valid`로 실행했다. 이렇게 하면 “방 이름과 예약자 이름은 공백일 수 없다”는 입력 계약이 DTO 선언 가까이에 남는다. 컨트롤러는 검증 세부 절차보다 정상 요청을 `Reservation`으로 바꾸는 흐름에 집중할 수 있다.
-
-검증 예외를 각 컨트롤러 메서드 안에서 직접 응답으로 바꾸지 않고 `GlobalExceptionHandler`에 모았다. 같은 예외를 여러 요청 경로에서 같은 형태로 처리할 수 있고, 정상 흐름과 실패 응답 변환의 책임도 분리된다. 다만 전역이라는 범위는 자동으로 좋은 정책을 보장하지 않는다. 어떤 예외를 어떤 상태 코드와 공개 가능한 메시지로 바꿀지는 별도로 설계해야 한다.
-
-응답에는 `getFieldErrors()`가 제공한 실패 필드 이름과 기본 메시지만 넣었다. 학습 예제로는 어느 필드가 계약을 위반했는지 바로 확인할 수 있지만, 오류 코드·타임스탬프·요청 식별자 등을 가진 일관된 오류 스키마는 아직 없다.
-
-## 3. 코드로 적용하기
-
-입력 계약과 검증 시작점은 다음 두 부분이다.
+먼저 `record` DTO의 각 필드에 규칙과 메시지를 붙였다.
 
 ```java
 public record ReservationRequest(
     @NotBlank(message = "방 이름은 비어있을 수 없습니다") String roomName,
     @NotBlank(message = "예약자 이름은 비어있을 수 없습니다.") String requesterName
 ) {}
-
-@PostMapping("/reservations")
-public String reserve(@RequestBody @Valid ReservationRequest request) {
-    Reservation reservation = new Reservation(request.roomName(), request.requesterName());
-    reservation.confirm();
-    return reservation.getRequesterName() + "님이 " + reservation.getRoomName()
-        + " 예약 완료 (확정: " + reservation.isConfirmed() + ")";
-}
 ```
 
-`@RequestBody`가 JSON을 `ReservationRequest`로 변환한 뒤 `@Valid`가 record 컴포넌트의 제약 조건을 검사한다. 두 필드가 모두 통과한 경우에만 메서드 본문이 실행된다.
+`message`에 적은 문자열은 나중에 `error.getDefaultMessage()`로 꺼내져 그대로 응답 본문의 값이 된다. 즉 이 자리는 개발자 메모가 아니라 **클라이언트가 실제로 보게 될 문구**다.
 
-실패 경로는 전역 처리기로 옮겼다.
+그리고 컨트롤러 파라미터에 `@Valid`를 붙였다. 이때 소스에 예측을 주석으로 적어뒀다.
+
+```java
+@PostMapping("/reservations")
+public String reserve(@RequestBody @Valid ReservationRequest request) { ... }
+//아마 "" 로 해버리면 @Valid 유효성 검사 들어가서 400 BadRequest 뜨지 않을까 싶은데..
+```
+
+같은 파일의 `cancel()`은 같은 DTO를 받으면서 `@RequestBody`만 붙어 있다. 검증은 타입이 아니라 **파라미터 선언에** 걸리는 것이라, 같은 DTO여도 경로마다 검증 여부가 달라진다는 게 코드에 그대로 남았다.
+
+### 어떤 컨트롤러도 가리키지 않는 예외 처리 클래스
 
 ```java
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ResponseEntity<Map<String, String>> handleValidation(
-            MethodArgumentNotValidException ex) {
+    public ResponseEntity<Map<String, String>> handleValidation(MethodArgumentNotValidException ex) {
         Map<String, String> errors = new LinkedHashMap<>();
         ex.getBindingResult().getFieldErrors()
             .forEach(error -> errors.put(error.getField(), error.getDefaultMessage()));
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errors);
     }
+
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<Map<String, String>> handleUnexpected(Exception ex) { ... }
 }
 ```
 
-`@ExceptionHandler`의 예외 타입이 처리 대상을 정한다. `getFieldErrors()`를 순회하면서 실패한 필드만 `Map`에 넣고, `ResponseEntity`로 본문과 `400 Bad Request`를 함께 반환한다.
+이 클래스 안에는 `ReservationController`를 가리키는 표시가 하나도 없다. 그런데도 그 컨트롤러의 검증 실패를 잡아낸다는 것이 오늘 배운 "전역"의 실체였다.
 
-## 4. 예측 → 실행 → 차이 설명
+이 클래스를 혼자 작성하다가 컴파일 에러가 11개 났는데, 원인은 세 군데였다. 타입 이름 중간에 들어간 공백(`ResponseE ntity`), `new`와 클래스 이름이 붙어버린 `newLinkedHashMap<>()`, 그리고 두 번째 `@ExceptionHandler` 메서드를 클래스 닫는 `}` **뒤**에 쓴 것이다. 앞의 둘은 오타지만 세 번째는 규칙 문제였다 — 클래스를 닫은 뒤는 파일 최상위라서 class·interface·enum·record만 올 수 있고, 메서드 선언이 놓일 자리가 아니다.
 
-### 실패하지 않은 필드도 응답에 포함될까
+### 오늘 확인한 것
 
-| 구분 | 기록 |
+앱을 재시작한 뒤 `roomName`은 빈 문자열, `requesterName`은 `"김민준"`으로 `POST /reservations`를 호출했다.
+
+| 확인 항목 | 결과 |
 |---|---|
-| 실행 전 예측 | `roomName=""`, `requesterName="김민준"`이면 400이고, 응답 바디에는 정상인 `requesterName`도 나올 것이라고 답했다. |
-| 실행 | 해당 JSON으로 `POST /reservations` 요청을 보냈다. |
-| 실제 결과 | 상태 코드는 `400`, 본문은 `{"roomName":"방 이름은 비어있을 수 없습니다"}`였고 `requesterName`은 없었다. |
-| 차이의 원인 | `getFieldErrors()`가 DTO 전체 필드를 순회한다고 생각한 것이 원인이었다. 실제로는 제약 조건을 위반한 필드의 `FieldError`만 반환하므로 정상 필드는 응답 Map에 들어갈 기회가 없다. |
+| 상태코드 | `400 Bad Request` |
+| 응답 바디 | `{"roomName":"방 이름은 비어있을 수 없습니다"}` |
+| 컨트롤러 본문 도달 여부 | 도달하지 않음 (`new Reservation(...)` 미실행) |
 
-처음에는 정상 필드가 “먼저 들어갔다가 덮어써져서 사라졌다”고 설명했지만, Map 갱신 문제가 아니라 순회 대상에 포함되지 않은 것이 정확한 원인이었다.
+전부 `curl` 수동 확인이다. 지금 테스트는 `contextLoads()` 하나여서 이 상태코드와 본문을 자동으로 검증해주지는 않는다. 오늘 코드는 [`306100f` 커밋](https://github.com/enderpawar/8week_Spring_Study/commit/306100f660de477643481eea8debd0a8b5de4e84)에 있다.
 
-### 전역 처리기는 Bean이기만 하면 동작할까
+## 3. 스스로 답한 질문
 
-| 구분 | 기록 |
-|---|---|
-| 실행 전 예측 | 명시적인 연결 없이 예외를 잡는 이유를 “Spring Bean 관리를 통해서”라고 답했다. |
-| 실행·확인 | `GlobalExceptionHandler`가 `ReservationController`를 참조하지 않는 코드와 실제 400 응답을 확인하고, Spring MVC의 예외 처리 흐름을 대조했다. |
-| 실제 결과 | Bean 등록은 필요한 조건이지만 그것만으로 충분하지 않았다. `@ControllerAdvice` 계열 Bean을 `ExceptionHandlerExceptionResolver`가 전역 후보로 특별 취급한다. |
-| 차이의 원인 | 컨테이너의 객체 관리와 MVC 리졸버의 역할을 하나로 뭉뚱그렸다. `@Service`나 일반 `@Component` Bean이 컨트롤러 예외를 자동으로 처리하지 않는다는 반례로 두 역할을 구분할 수 있다. |
+### Q. `requesterName`은 왜 응답 바디에 나타나지 않았을까?
 
-## 5. 검증 근거
+두 필드가 어떤 형태로든 다 나올 거라고 예측했는데 `roomName` 하나만 나왔다. 처음 내놓은 설명은 **"먼저 들어갔다가 덮어써져서 사라졌다"**였다. 틀린 방향이었다. 그 설명이 맞으려면 `forEach`가 두 필드를 모두 순회하면서 같은 키에 값을 다시 넣어야 하는데, `errors.put(error.getField(), ...)`의 키는 필드 이름이라 서로 다른 키다.
 
-| 검증 대상 | 검증 방법 | 확인한 결과 |
-|---|---|---|
-| Day 3 정상 컴파일 | 독립 작성 중 발생한 컴파일 오류 세 곳을 교정한 뒤 빌드 | 타입 이름의 공백, 생성식의 공백, 클래스 바깥 메서드 문제를 고친 뒤 빌드 통과 |
-| 검증 실패 경로 | `roomName=""`, `requesterName="김민준"`으로 `POST /reservations` | `400`, `{"roomName":"방 이름은 비어있을 수 없습니다"}` |
-| 현재 컨텍스트 회귀 검사 | 글 재검수 시 `./gradlew.bat test` 실행 | `BUILD SUCCESSFUL`; `contextLoads()`만 있으므로 HTTP 검증을 대신하지는 않음 |
+교정된 답은 순회 대상 자체가 달랐다는 것이다. `getFieldErrors()`는 DTO의 모든 필드를 도는 게 아니라 **검증에 실패한 필드에 대해 만들어진 `FieldError` 목록**을 돌려준다. `requesterName`은 `@NotBlank`를 통과했으므로 `FieldError`가 생성되지 않았고, `forEach`가 만날 원소 자체가 없었다.
 
-Day 3의 변경 범위는 [`306100f` 커밋](https://github.com/enderpawar/8week_Spring_Study/commit/306100f660de477643481eea8debd0a8b5de4e84)에서 확인할 수 있다. 당시 저장소에는 HTTP 응답을 자동 검증하는 테스트가 없으므로, 위 400 응답은 학습 기록에 남은 수동 요청 결과다.
+재발 방지로 얻은 기준은 이렇다. **비어 있는 결과를 봤을 때 "지워졌나"부터 의심하지 말고 "애초에 들어갔나"를 먼저 확인한다.** 덮어쓰기가 아예 없는 얘기는 아니어서, 한 필드에 위반이 여러 개 걸리면 같은 키에 값이 다시 들어가 실제로 덮어써질 수 있다. 다만 오늘 관찰한 현상의 원인은 그게 아니었다.
 
-## 6. 막힌 지점과 오답 교정
+### Q. `GlobalExceptionHandler`는 `ReservationController`를 어디에도 지정하지 않는데, 어떻게 그 예외까지 잡는가?
 
-### 연쇄 컴파일 오류의 실제 원인은 세 곳이었다
+처음 답은 **"Spring Bean 관리를 통해서"** 잡는다는 것이었다. 부분 정답이었다. Bean 등록은 필요조건이지만 그것만으로는 부족하다는 게 빠져 있었고, `@Service`나 `@Component`로 등록된 Bean은 전역 예외 처리에 참여하지 않는다는 반례로 바로 확인된다.
 
-독립 작성한 `GlobalExceptionHandler`에서 컴파일 오류 11개가 한꺼번에 표시됐다. 그러나 각각을 별도 문제로 보기보다 첫 구문 오류부터 추적하니 원인은 세 곳으로 좁혀졌다.
+교정된 답은 특별 취급의 주체를 짚는 쪽이다. `DispatcherServlet`이 예외를 만나면 `ExceptionHandlerExceptionResolver`에 위임하고, 이 리졸버는 컨테이너에서 **`@ControllerAdvice` 계열 애노테이션이 붙은 Bean만** 따로 수집해 전역 후보 목록으로 들고 있다가, 예외 타입이 맞는 `@ExceptionHandler` 메서드를 찾아 실행한다. "모든 컨트롤러 대상"은 이 애노테이션의 기본값일 뿐이고, `basePackages`나 `assignableTypes`로 범위를 좁힐 수도 있다.
 
-- `ResponseE ntity`의 중간 공백 때문에 하나의 타입 이름이 두 토큰으로 분리됐다.
-- `newLinkedHashMap<>()`는 `new LinkedHashMap<>()`가 아니므로 객체 생성식으로 해석되지 않았다.
-- 두 번째 `@ExceptionHandler` 메서드를 클래스를 닫는 `}` 뒤에 작성해 파일 최상위에 메서드가 놓였다.
+### Q. 검증에 실패한 요청이 컨트롤러 메서드 본문까지 도달하는가?
 
-특히 마지막 오류는 단순 철자보다 자바의 구조에 관한 문제였다. 클래스 닫는 중괄호 뒤에는 독립 메서드를 선언할 수 없다. 교정할 때는 최초 오류 위치의 토큰, 생성식의 `new` 문법, 중괄호가 만드는 클래스 범위를 차례로 확인했다. 컴파일러가 뒤쪽에서 연쇄 오류를 많이 보고하더라도 최초 구문 오류와 코드 블록 경계를 먼저 확인하는 것이 재발 방지 기준이 됐다.
+`@Valid`를 붙이면서 소스 주석에 "400 BadRequest 뜨지 않을까"라고만 적어뒀는데, 정작 언제 멈추는지는 안 적었다. 도달하지 않는다. `@Valid`가 `@NotBlank` 위반을 발견하면 메서드 본문이 실행되기 **전에** `MethodArgumentNotValidException`이 던져지므로, `new Reservation(...)`도 `confirm()`도 실행되지 않는다. 잘못된 값이 도메인 객체로 옮겨가기 전에 계층 초입에서 끊긴다는 뜻이다.
 
-### `getFieldErrors()`에 대한 오답
+## 4. 정리하며
 
-정상 필드가 응답에서 사라진 이유를 Map의 덮어쓰기로 설명한 것은 잘못이었다. 실제 원인은 `BindingResult.getFieldErrors()`가 실패한 필드만 제공한다는 점이었다. 이후에는 컬렉션을 가공한 결과가 예상과 다르면 `put()`만 볼 것이 아니라, 그보다 앞선 컬렉션이 어떤 원소를 제공하는지부터 확인해야 한다.
+오늘 바뀐 건 "검증을 어떻게 켜는가"보다 **검증 결과를 무엇으로 보는가**였다. 처음엔 `BindingResult`를 DTO의 사본처럼 생각해서 모든 필드가 어떤 형태로든 담겨 있을 거라고 봤는데, 실제로는 위반 사실만 적힌 보고서였다. 응답 바디가 짧았던 이유도, `@RestControllerAdvice`가 전역인 이유도 결국 "누가 무엇을 모아두는가"를 묻는 같은 종류의 질문이었다.
 
-## 7. 현재 한계와 다음 개선
+남은 것 둘. `@ExceptionHandler(Exception.class)`가 `ex.getMessage()`를 그대로 500 본문에 실어 보내는데, 예상 못 한 예외가 터지면 내부 구현 정보가 클라이언트에 노출될 수 있다. 외부 메시지와 내부 로그를 분리해야 해서 **즉시 차단(Week A D7)**으로 잡아뒀다. 그리고 오늘 확인은 전부 수동 호출이라 이 400과 본문이 다음 커밋에서도 유지된다는 보장이 없다. 테스트를 제대로 배울 때 갚을 **예약된 부채(Week D D5)**다.
 
-- **검증 적용 범위:** Day 3의 `reserve()`에는 `@Valid`가 있지만 `cancel()`에는 없다. 같은 DTO를 받아도 요청 경로에 따라 검증 여부가 달라질 수 있다.
-- **자동화된 실패 경로 검증 부재:** 현재 테스트는 `contextLoads()`뿐이다. 이후에는 MockMvc 등으로 빈 문자열 요청의 상태 코드와 JSON 본문을 고정해야 회귀를 잡을 수 있다.
-- **오류 응답 스키마 부재:** 필드와 메시지만 담은 Map은 단순하지만, 클라이언트가 안정적으로 분기할 오류 코드가 없다. 한 필드에 여러 위반이 생기면 같은 Map 키에 마지막 메시지가 덮어써질 수도 있다.
-- **포괄 예외 처리:** Day 3 코드의 `@ExceptionHandler(Exception.class)`는 `ex.getMessage()`를 그대로 500 응답에 담는다. 내부 정보 노출 가능성이 있으므로 운영 환경에서는 외부 메시지와 내부 로그를 분리해야 한다.
-- **다음 단계:** 로드맵의 다음 학습은 Service와 Repository의 책임 분리다. 오류 응답 자동화와 표준 스키마는 현재 코드에 남은 후속 과제다.
+면접에서 받으면 답이 갈릴 질문 하나를 남긴다 — 검증 실패 응답을 필드-메시지 Map으로 주는 것과 오류 코드·요청 식별자를 포함한 고정 스키마로 주는 것 중, 어느 쪽이 어떤 클라이언트에게 유리한가.
 
-## 8. 복습을 위한 인출 질문
+---
 
-### Q1. `@RequestBody` 변환에 성공했는데도 `@Valid`가 필요한 이유는 무엇인가?
-
-<details>
-<summary>답 확인</summary>
-
-JSON이 `String` 필드를 가진 DTO로 변환됐다는 사실은 값이 비어 있지 않다는 조건까지 보장하지 않는다. `@Valid`는 DTO에 선언한 `@NotBlank` 같은 런타임 제약 조건 검사를 시작해 타입 검사만으로 표현하지 못한 입력 계약을 확인한다.
-
-</details>
-
-### Q2. `roomName`만 검증에 실패했을 때 정상인 `requesterName`이 오류 응답에 없는 이유는 무엇인가?
-
-<details>
-<summary>답 확인</summary>
-
-`BindingResult.getFieldErrors()`가 DTO의 모든 필드가 아니라 검증에 실패해 `FieldError`가 생성된 필드만 반환하기 때문이다. 정상 필드는 순회 대상이 아니므로 오류 Map에도 추가되지 않는다.
-
-</details>
-
-### Q3. `@RestControllerAdvice`가 컨트롤러를 직접 참조하지 않아도 예외를 처리하는 흐름은 무엇인가?
-
-<details>
-<summary>답 확인</summary>
-
-요청 처리 중 예외가 발생하면 `DispatcherServlet`의 예외 해결 과정에서 `ExceptionHandlerExceptionResolver`가 처리 메서드를 찾는다. 이 리졸버는 `@ControllerAdvice` 계열 Bean을 전역 후보로 관리하고, 예외 타입과 맞는 `@ExceptionHandler` 메서드를 호출한다. 단순 Bean 등록만으로 전역 처리가 되는 것은 아니다.
-
-</details>
-
-### Q4. 컴파일러가 11개 오류를 표시했을 때 실제 원인이 더 적을 수 있는 이유는 무엇인가?
-
-<details>
-<summary>답 확인</summary>
-
-앞쪽의 잘못된 토큰이나 중괄호가 파서의 문법 해석을 깨뜨리면 뒤쪽의 정상 코드도 잘못된 위치에 있는 것처럼 연쇄 진단될 수 있다. 따라서 최초 오류 위치와 구조 경계를 먼저 고쳐 다시 컴파일해야 한다.
-
-</details>
-
-## 정리하며
-
-처음에는 `@Valid`와 `@RestControllerAdvice`를 “검증하고 전역에서 잡는다”는 한 문장으로 이해했다. 실제 요청을 대조하면서 검증 실패는 컨트롤러 본문 전에 제어 흐름을 바꾸고, `getFieldErrors()`는 실패한 필드만 제공하며, 전역 처리는 단순 Bean 등록이 아니라 MVC 예외 리졸버의 탐색 규칙으로 성립한다는 수준까지 구분하게 됐다.
-
-동시에 현재 구현의 경계도 확인했다. 검증은 모든 요청 경로에 적용되지 않았고, 400 응답은 수동으로만 확인했으며, 포괄 예외 처리의 메시지 공개 정책도 안전하지 않다. 다음 학습으로 책임 분리를 진행하되, 이 실패 경로는 자동화된 HTTP 테스트와 일관된 오류 스키마가 필요한 후속 과제로 남는다.
+오늘 공부한 소스코드: [8week_Spring_Study/app](https://github.com/enderpawar/8week_Spring_Study/tree/master/app)

@@ -1,0 +1,66 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 620" width="800" height="620" font-family="system-ui, -apple-system, 'Segoe UI', 'Malgun Gothic', 'Apple SD Gothic Neo', sans-serif">
+  <rect x="0" y="0" width="800" height="620" fill="#ffffff"/>
+
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#64748b"/>
+    </marker>
+    <marker id="arrowRed" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#ef4444"/>
+    </marker>
+  </defs>
+
+  <text x="40" y="34" font-size="19" font-weight="700" fill="#0f172a">@RestController 요청 처리 흐름</text>
+  <text x="40" y="54" font-size="13" fill="#64748b">뷰 해석 단계가 없다. 반환값이 곧 응답 본문이 된다.</text>
+
+  <!-- 1 -->
+  <rect x="40" y="76" width="340" height="56" rx="8" fill="#f1f5f9" stroke="#94a3b8" stroke-width="1.5"/>
+  <text x="60" y="100" font-size="15" font-weight="600" fill="#0f172a">클라이언트 요청</text>
+  <text x="60" y="119" font-size="13" fill="#475569" font-family="ui-monospace, Consolas, monospace">GET /hello</text>
+  <line x1="210" y1="132" x2="210" y2="160" stroke="#64748b" stroke-width="1.8" marker-end="url(#arrow)"/>
+
+  <!-- 2 -->
+  <rect x="40" y="164" width="340" height="56" rx="8" fill="#e0e7ff" stroke="#6366f1" stroke-width="1.5"/>
+  <text x="60" y="188" font-size="15" font-weight="600" fill="#0f172a">DispatcherServlet</text>
+  <text x="60" y="207" font-size="13" fill="#475569">프론트 컨트롤러 — 모든 요청의 입구</text>
+  <line x1="210" y1="220" x2="210" y2="248" stroke="#64748b" stroke-width="1.8" marker-end="url(#arrow)"/>
+
+  <!-- 3 -->
+  <rect x="40" y="252" width="340" height="56" rx="8" fill="#f1f5f9" stroke="#94a3b8" stroke-width="1.5"/>
+  <text x="60" y="276" font-size="15" font-weight="600" fill="#0f172a">HandlerMapping</text>
+  <text x="60" y="295" font-size="13" fill="#475569">경로 + HTTP 메서드로 핸들러를 찾는다</text>
+
+  <!-- 404 branch -->
+  <line x1="380" y1="280" x2="452" y2="280" stroke="#ef4444" stroke-width="1.8" marker-end="url(#arrowRed)"/>
+  <text x="386" y="272" font-size="12" fill="#dc2626">못 찾으면</text>
+  <rect x="456" y="252" width="304" height="56" rx="8" fill="#fee2e2" stroke="#ef4444" stroke-width="1.5"/>
+  <text x="474" y="276" font-size="15" font-weight="600" fill="#0f172a">404 Not Found</text>
+  <text x="474" y="295" font-size="13" fill="#475569">핸들러가 없다는 것 자체가 명시적 신호</text>
+  <text x="474" y="322" font-size="12" fill="#64748b" font-family="ui-monospace, Consolas, monospace">GET /nope → 404</text>
+
+  <line x1="210" y1="308" x2="210" y2="336" stroke="#64748b" stroke-width="1.8" marker-end="url(#arrow)"/>
+
+  <!-- 4 -->
+  <rect x="40" y="340" width="340" height="56" rx="8" fill="#f1f5f9" stroke="#94a3b8" stroke-width="1.5"/>
+  <text x="60" y="364" font-size="15" font-weight="600" fill="#0f172a">HelloController.hello()</text>
+  <text x="60" y="383" font-size="13" fill="#475569" font-family="ui-monospace, Consolas, monospace">return "Hello, StudyRoom!";</text>
+  <line x1="210" y1="396" x2="210" y2="424" stroke="#64748b" stroke-width="1.8" marker-end="url(#arrow)"/>
+
+  <!-- 5 -->
+  <rect x="40" y="428" width="340" height="66" rx="8" fill="#e0e7ff" stroke="#6366f1" stroke-width="1.5"/>
+  <text x="60" y="449" font-size="15" font-weight="600" fill="#0f172a">@ResponseBody</text>
+  <text x="60" y="468" font-size="13" fill="#475569">HttpMessageConverter가 반환값을</text>
+  <text x="60" y="485" font-size="13" fill="#475569">뷰 이름이 아니라 응답 본문으로 변환</text>
+  <text x="400" y="452" font-size="12" fill="#64748b">@RestController</text>
+  <text x="400" y="470" font-size="12" fill="#64748b">= @Controller + @ResponseBody</text>
+  <line x1="210" y1="494" x2="210" y2="522" stroke="#64748b" stroke-width="1.8" marker-end="url(#arrow)"/>
+
+  <!-- 6 -->
+  <rect x="40" y="526" width="340" height="60" rx="8" fill="#dcfce7" stroke="#22c55e" stroke-width="1.5"/>
+  <text x="60" y="550" font-size="15" font-weight="600" fill="#0f172a">200 OK + 본문</text>
+  <text x="60" y="569" font-size="13" fill="#475569">상태를 아무도 안 골랐으면 기본값 200</text>
+
+  <text x="400" y="546" font-size="12" fill="#64748b">여기서 직접 고르고 싶으면</text>
+  <text x="400" y="564" font-size="12" fill="#64748b" font-family="ui-monospace, Consolas, monospace">ResponseEntity.status(...)</text>
+  <text x="400" y="581" font-size="12" fill="#64748b">또는 메서드에 @ResponseStatus</text>
+</svg>
