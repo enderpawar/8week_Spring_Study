@@ -1,6 +1,7 @@
 package com.example.studyroom.service;
 
 import com.example.studyroom.domain.Reservation;
+import com.example.studyroom.exception.ReservationNotFoundException;
 import com.example.studyroom.repository.ReservationRepository;
 import org.springframework.stereotype.Service;
 
@@ -19,7 +20,8 @@ public class ReservationService{
         return reservationRepository.save(reservation); // reservationRepository의 save 메서드 인자값으로 service가 상태를 변경한 reservation 값을 넘겨준다.
     }
     public Reservation cancel(Long id){
-        Reservation reservation = reservationRepository.findById(id);
+        Reservation reservation = reservationRepository.findById(id)
+                .orElseThrow(() -> new ReservationNotFoundException(id));
         reservation.cancel();
         reservationRepository.save(reservation);
         return reservation;

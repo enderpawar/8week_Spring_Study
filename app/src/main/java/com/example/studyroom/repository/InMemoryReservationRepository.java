@@ -5,6 +5,7 @@ import org.springframework.stereotype.Repository;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 @Repository //Spring이 관리하는 Bean, "이 클래스는 저장소 역할의 Bean이다."
 public class InMemoryReservationRepository implements ReservationRepository {
@@ -15,9 +16,18 @@ public class InMemoryReservationRepository implements ReservationRepository {
     public Reservation save(Reservation reservation) {
         if (reservation.getId() == null){
             reservation.assignId(nextId++);
+            store.add(reservation);
+            return reservation;
         }
-        store.add(reservation);
-        return reservation;
+
+        for (int index = 0; index < store.size(); index++) {
+            if (store.get(index).getId().equals(reservation.getId())) {
+                store.set(index, reservation);
+                return reservation;
+            }
+        }
+
+        throw new IllegalArgumentException("저장소에 없는 예약 번호입니다: " + reservation.getId());
     }
 
 
@@ -26,12 +36,12 @@ public class InMemoryReservationRepository implements ReservationRepository {
         return store;
     }
     @Override
-    public Reservation findById(Long id) {
+    public Optional<Reservation> findById(Long id) {
         for(Reservation r : store){
             if(r.getId().equals(id)){
-                return r;
+                return Optional.of(r);
             }
         }
-        return null;
+        return Optional.empty();
     }
 }
