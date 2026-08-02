@@ -143,7 +143,7 @@ mockMvc.perform(post("/reservations/cancel/{id}", 0L))
 - MockMvc 테스트 4개: 예약 200, DTO 검증 400, 없는 예약 404, 경로 ID 검증 400.
 - Spring context 테스트 2개: 컨텍스트 기동, Singleton Service 동일성.
 - 수정 전 코드를 대상으로 실패 테스트를 실행한 기록은 없으므로 TDD의 red-green 순서를 수행했다고 주장하지 않는다.
-- 현재 작업은 커밋 전 검증 상태이므로 게시 글의 commit permalink는 커밋 후 추가한다.
+- 구현·테스트와 Day06·07 산출물: [commit `6c88dcb`](https://github.com/enderpawar/8week_Spring_Study/commit/6c88dcb)
 
 ## 3. 스스로 답한 질문
 

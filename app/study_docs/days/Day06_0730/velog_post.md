@@ -84,7 +84,7 @@ public ReservationService(ReservationRepository reservationRepository) {
 - `ReservationServiceTest`가 ID 기반 조회와 취소 흐름을 검증했다.
 - 누적 인출: IoC/DI, `Long` 비교, 인터페이스 의존, PK, 경로 변수, 생성자 주입을 재확인했다.
 - 별도 성능 측정이나 동시성 race 재현은 하지 않았다.
-- 현재 작업은 커밋 전 검증 상태이므로 게시 글의 commit permalink는 커밋 후 추가한다.
+- 검증 코드와 Day06·07 산출물: [commit `6c88dcb`](https://github.com/enderpawar/8week_Spring_Study/commit/6c88dcb)
 
 ## 3. 스스로 답한 질문
 
