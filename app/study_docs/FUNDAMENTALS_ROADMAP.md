@@ -66,6 +66,8 @@
 - [x] **D6 누적시험 A + 오답 재시험** — 2026-08-02 완료 ([Day06 기록](days/Day06_0730/))
 - [x] **D7 버퍼 / 기술부채 상환** — 2026-08-02 완료 ([Day07 기록](days/Day07_0731/))
 
+Week A 통합 Velog — [같은 객체에서 HTTP 404까지: 식별자 하나로 연결한 저장과 오류 경계](velog/week-a-identity-storage-error-boundary.md)
+
 #### Week B — 데이터 접근 기초
 
 - [ ] D1 Flyway `V1__init`로 스키마 정의
