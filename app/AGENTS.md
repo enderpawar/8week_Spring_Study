@@ -43,6 +43,7 @@ When the learner says `오늘 학습 시작`, `week N 시작`, `week N 공부 �
 6. Teach one small concept or experiment at a time and wait for the learner's answer when it is part of the exercise.
 7. At completion, update the Day evidence, review queue, roadmap checkbox, and explicit next starting point. Mark completion only when code/tests and required documents support it.
 8. Write `velog_post.md` with `study_docs/VELOg_POST_TEMPLATE.md`; theory and verified evidence must precede implementation retrospection.
+   - Weekly exception: for every D6 cumulative retrieval + D7 buffer pair, keep the Day evidence files separate but publish one combined `study_docs/velog/` post titled `[백엔드 기본기 DAY N & DAY N+1] N주차 마무리 시험`. If they occur on separate days, open the draft on D6 and finalize it after D7. Use the template's D6·D7 exam-retrospective structure instead of forcing the normal concept-post H2s.
 
 If a command needs an external prerequisite or an action only the learner can perform, explain why and provide only the minimum required instruction.
 
