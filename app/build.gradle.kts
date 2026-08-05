@@ -21,6 +21,14 @@ repositories { mavenCentral() }
 dependencies {
 	implementation("org.springframework.boot:spring-boot-starter-web")
 	implementation("org.springframework.boot:spring-boot-starter-validation")
+	// week B D1 - 스키마를 코드로 관리한다.
+	// Flyway가 마이그레이션을 실행하려면 DataSource(커넥션)이 필요하다. JPA는 D2~D3에서 추가.
+	implementation("org.springframework.boot:spring-boot-starter-jdbc")
+	//마이그레이션 엔진
+	implementation("org.flywaydb:flyway-core")
+
+	//개발용 DB. runtimeOnly = 컴파일에는 안 쓰이고 실행할 때만 필요
+	runtimeOnly("com.h2database:h2")
 
 	testImplementation("org.springframework.boot:spring-boot-starter-test")
 	testRuntimeOnly("org.junit.platform:junit-platform-launcher")

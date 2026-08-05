@@ -1,5 +1,15 @@
 spring:
   application:
     name: study-room-api
+  datasource:
+    url: jdbc:h2:file:./data/studyroom;MODE=MySQL
+    username: sa
+    password:
 
+  h2:
+    console:
+      enabled: true
+
+  flyway:
+    enabled: true
 # Week B에서 datasource(H2 → MySQL)와 JPA 설정을 여기에 추가한다.
