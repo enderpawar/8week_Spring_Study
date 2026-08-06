@@ -54,8 +54,10 @@
 >
 > `[x]`는 코드·테스트와 해당 Day 산출물(`vocab.md`, `quiz.md`, `explain-log.md`, 필요 시 `progress.md`)로 완료가 확인된 경우에만 표시한다. 시작했거나 설명만 들은 항목은 완료로 표시하지 않는다. 세션 종료 시 체크 상태와 **다음 시작점**을 함께 갱신한다.
 
-**현재 확인 시점: 2026-08-05 — Week B D1 완료. 다음 시작점은 Week B D2(JDBC 완성예제와 JPA 도입 이유).**
-> 8/6 아침 인출에 +1일 오답 재시험 4건이 도래한다: 싱글톤 공유, 저장 계약, 예외 로그/응답 분리, `final`의 작용 범위(2회 오답).
+**현재 확인 시점: 2026-08-06 — Week B D2 대부분 진행(미완). 다음 시작점은 Week B D2 마무리.**
+> **D2 잔여 3건**: ① `JdbcReservationRepository.save()`의 UPDATE 분기(현재 무조건 INSERT라 취소 시 중복 행 생성) ② `JdbcTemplate`/`JdbcClient` 한 줄 비교 ③ JPA·Hibernate·Spring Data JPA 구분. 완료 후 D2를 `[x]`로.
+> 8/7 아침 인출에 +1일 오답 재시험 3건이 도래한다: 저장 계약(2회 오답), 예외 로그/응답 분리(2회 오답), `final`의 작용 범위(**3회 오답** — 판정형 문항으로 출제).
+> 환경 부채: 사용자 범위 환경변수 `SPRING_DATASOURCE_*`·`SPRING_PROFILES_ACTIVE=prod`가 남아 있다(다른 프로젝트용). `test` 태스크에서만 격리해둔 상태라 `bootRun`은 여전히 영향을 받는다.
 
 #### Week A — 웹 계층
 
@@ -72,7 +74,7 @@ Week A 통합 Velog — [백엔드 기본기 DAY 6 & DAY 7: 1주차 마무리 �
 #### Week B — 데이터 접근 기초
 
 - [x] D1 Flyway `V1__init`로 스키마 정의 — 2026-08-05 완료 ([Day08 기록](days/Day08_0801/))
-- [ ] D2 JDBC 완성예제와 JPA 도입 이유
+- [ ] D2 JDBC 완성예제와 JPA 도입 이유 — 2026-08-06 대부분 진행, 잔여 3건 ([Day09 기록](days/Day09_0802/))
 - [ ] D3 Entity 매핑 + 기본 CRUD
 - [ ] D4 영속성 컨텍스트·1차 캐시·동일성
 - [ ] D5 변경 감지·flush 시점

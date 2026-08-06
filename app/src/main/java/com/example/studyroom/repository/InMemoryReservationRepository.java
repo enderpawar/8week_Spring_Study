@@ -1,13 +1,14 @@
 package com.example.studyroom.repository;
 
 import com.example.studyroom.domain.Reservation;
-import org.springframework.stereotype.Repository;
+//import org.springframework.stereotype.Repository;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
-@Repository //Spring이 관리하는 Bean, "이 클래스는 저장소 역할의 Bean이다."
+//@Repository //Spring이 관리하는 Bean, "이 클래스는 저장소 역할의 Bean이다."
+// Repository 어노테이션은 Jdbc에 붙였다. 이건 스프링 없이 단위 테스트를 위해 직접 조립함. DB 없음.
 public class InMemoryReservationRepository implements ReservationRepository {
     private final List<Reservation> store = new ArrayList<>();
     private long nextId = 1;
@@ -31,6 +32,8 @@ public class InMemoryReservationRepository implements ReservationRepository {
     }
 
 
+
+
     @Override
     public List<Reservation> findAll() {
         return store;
@@ -43,5 +46,6 @@ public class InMemoryReservationRepository implements ReservationRepository {
             }
         }
         return Optional.empty();
+
     }
 }

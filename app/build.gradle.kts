@@ -38,4 +38,11 @@ tasks.withType<JavaCompile> { options.encoding = "UTF-8" }
 tasks.withType<Test> {
 	useJUnitPlatform()
 	jvmArgs("-Dfile.encoding=UTF-8")
+	// 테스트는 실행하는 사람의 OS 환경변수에 좌우되면 안 된다.
+	// 환경변수는 application.yml보다 우선순위가 높아서, SPRING_DATASOURCE_URL이 걸려 있으면
+	// 테스트가 엉뚱한(심지어 운영) DB에 붙는다. 여기서 고정해 그 경로를 끊는다.
+	environment("SPRING_DATASOURCE_URL", "jdbc:h2:mem:testdb;MODE=MySQL;DB_CLOSE_DELAY=-1")
+	environment("SPRING_DATASOURCE_USERNAME", "sa")
+	environment("SPRING_DATASOURCE_PASSWORD", "")
+	environment("SPRING_PROFILES_ACTIVE", "test")
 }
