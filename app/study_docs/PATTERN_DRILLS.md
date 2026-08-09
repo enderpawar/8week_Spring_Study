@@ -3,8 +3,8 @@
 > ## 규칙 (이것만 지키면 됨)
 >
 > 1. **먼저 쓴다. 자료는 나중에 본다.** 막혀도 최소 1분은 버틴다. 못 떠올려 낑낑댄 시간이 기억을 만든다.
-> 2. **다 쓴 뒤에** `코드패턴.md` 또는 `src/`와 대조한다. **정답은 이 파일에 없다.**
-> 3. **하루 한 묶음이면 충분하다.** 10분짜리다. 한 번에 다 하지 않는다. (묶음 1~3 = Week A, 묶음 4~5 = Week B)
+> 2. **다 쓴 뒤에** `CODE_PATTERNS.md` 또는 `src/`와 대조한다. **정답은 이 파일에 없다.**
+> 3. **하루 한 묶음이면 충분하다.** 10분짜리다. 한 번에 다 하지 않는다. (묶음 1~3 = Week A, 묶음 4~6 = Week B)
 > 4. 틀린 항목은 표시해두고 **다음날 그것만 다시** 쓴다.
 
 **도메인이 예약이 아니다.** 도서 대출(`Loan`)로 낸다 — 예약 코드를 복사하면 안 되고, **구조를 옮겨 써야** 하기 때문이다.
@@ -18,6 +18,7 @@
 | `LoanService` · `LoanController` | `ReservationService` · `ReservationController` |
 | `loan` 테이블 — `book_title`, `borrower_name`, `returned` | `reservation` 테이블 |
 | `JdbcLoanRepository` | `JdbcReservationRepository` |
+| `SpringDataLoanRepository` / `JpaLoanRepository` | `SpringDataReservationRepository` / `JpaReservationRepository` |
 
 > 실제 파일로 만들지 않아도 된다. **종이나 빈 메모장에 쓴다.** 컴파일이 목적이 아니라 인출이 목적이다.
 > (D9와 독립 과제는 실제로 코드를 만든다.)
@@ -375,6 +376,148 @@ ____________ > ____________ > application-{profile}.yml > ____________
 
 ---
 
+# 묶음 6 — Entity와 Spring Data JPA (D15~D17)
+
+## D15. Spring Data 어댑터 (↔ P15)
+
+기존 `LoanService`는 `LoanRepository`에 계속 의존해야 한다. 빈칸을 채워 Spring Data를 기존 경계 뒤에 연결하시오.
+
+```java
+public ____________ SpringDataLoanRepository
+        ____________ JpaRepository<Loan, ____________> {
+}
+```
+
+```java
+@____________
+public class JpaLoanRepository ____________ LoanRepository {
+
+    private final ______________________________ delegate;
+
+    public JpaLoanRepository(________________________________ delegate) {
+        this.delegate = delegate;
+    }
+
+    @Override
+    public Loan save(Loan loan) {
+        return ______________________________;
+    }
+
+    @Override
+    public Optional<Loan> findById(Long id) {
+        return ______________________________;
+    }
+
+    @Override
+    public List<Loan> findAll() {
+        return ______________________________;
+    }
+}
+```
+
+**관계 화살표를 직접 그리시오.**
+
+```text
+LoanService  ______>  LoanRepository
+JpaLoanRepository  ______>  LoanRepository
+JpaLoanRepository  ______>  SpringDataLoanRepository
+SpringDataLoanRepository  ______>  JpaRepository<Loan, Long>
+```
+
+**추가 질문**
+- `SpringDataLoanRepository`가 `class`가 아니라 `interface`여야 하는 이유는?
+- `LoanService`가 Spring Data 타입에 직접 의존하지 않게 어댑터를 둔 이유는?
+- 두 Repository 구현체에 모두 `@Repository`를 붙이면 기동 시 무엇을 기준으로 실패하는가?
+
+---
+
+## D16. JPA Entity 매핑 (↔ P16)
+
+도서 대출 Domain을 Entity로 매핑하시오. 정상 생성 규칙과 JPA 복원 경로를 둘 다 남겨야 한다.
+
+```java
+@____________
+public class Loan {
+    private String bookTitle;
+    private String borrowerName;
+    private boolean returned;
+
+    @____________
+    @____________(strategy = GenerationType.____________)
+    private Long id;
+
+    public Loan(String bookTitle, String borrowerName) {
+        this.bookTitle = bookTitle;
+        this.borrowerName = borrowerName;
+        this.returned = false;
+    }
+
+    ____________ Loan() {
+    }
+}
+```
+
+**판정 문제**
+
+| # | 상황 | 컴파일/실행 예측 | 이유 |
+|---|---|---|---|
+| ⓐ | `bookTitle`, `borrowerName`을 `final`로 두고 위의 빈 생성자를 유지 | | |
+| ⓑ | `@Id`를 `id` 필드가 아니라 `assignId()` 위에 둠 | | |
+| ⓒ | `@Id`는 필드에, 다른 매핑 애노테이션은 getter에 섞음 | | |
+| ⓓ | Flyway가 테이블을 관리하는데 `ddl-auto: create`를 사용 | | |
+
+**추가 질문:** `protected Loan()`은 누구에게는 열려 있고 누구에게는 감춰지는가? 이 가시성이 Domain 생성 규칙과 어떤 관계인가?
+
+---
+
+## D17. JPA 저장 계약 통합 테스트 (↔ P17)
+
+새 대출을 저장한 뒤 같은 ID의 반납 상태를 갱신한다. **UPDATE 로그만 보는 것으로 끝내지 말고 중복 행도 검사**하시오.
+
+```java
+@____________
+@____________
+class JpaLoanRepositoryTest {
+
+    @Autowired LoanRepository repository;
+    @Autowired EntityManager entityManager;
+
+    @Test
+    void savingExistingLoanUpdatesWithoutAddingDuplicate() {
+        int countBeforeSave = repository.____________().size();
+        Loan saved = repository.____________(new Loan("운영체제", "jinwoo"));
+        entityManager.____________();
+
+        saved.returnBook();
+        repository.____________(saved);
+        entityManager.____________();
+        entityManager.____________();
+
+        List<Loan> all = repository.____________();
+        List<Loan> sameIdRows = all.stream()
+                .filter(candidate -> ____________________________________________)
+                .toList();
+
+        assertEquals(____________________, all.size());
+        assertEquals(____, sameIdRows.size());
+        assertTrue(________________________________);
+    }
+}
+```
+
+**실행 전 순서를 적으시오.**
+
+```text
+신규 save → ________ → 기존 객체 상태 변경 → 기존 save → ________ → ________ → findAll
+```
+
+**추가 질문**
+- 첫 번째 `flush()`와 두 번째 `flush()`가 각각 어떤 SQL을 관찰 가능하게 만드는가?
+- `clear()` 없이 조회하면 테스트가 DB가 아니라 무엇을 보고 통과할 수 있는가?
+- 전체 행 수를 `1`로 고정하지 않고 저장 전 행 수를 기준으로 검사하는 이유는?
+
+---
+
 # 독립 과제 — 0층부터 (자료 안 보고)
 
 드릴을 다 채운 뒤에 한다. **실제 코드로 작성하고, 판정 기준을 통과해야 완료다.**
@@ -434,6 +577,7 @@ ____________ > ____________ > application-{profile}.yml > ____________
 | 3 | Week A · D7~D9 (Service·DI·테스트) | | | | |
 | 4 | Week B · D10~D11 (Flyway·제약) | | | | |
 | 5 | Week B · D12~D14 (JDBC·매핑·환경격리) | | | | |
+| 6 | Week B · D15~D17 (JPA 어댑터·Entity·통합 테스트) | | | | |
 | 과제 A | 목록 조회 0층부터 | | | | |
 | 과제 B | 새 도메인 예외 → 409 | | | | |
 | 과제 C | DTO 제약 추가 | | | | |

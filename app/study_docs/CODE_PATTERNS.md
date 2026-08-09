@@ -7,7 +7,7 @@
 > 순서대로 읽으면 "읽을 땐 알겠는데 못 쓰겠다"가 그대로 남는다. 본인이 쓴 글이라 술술 읽히고, 그 매끄러움을 "알고 있음"으로 착각하기 때문이다(유창성 착각).
 >
 > **올바른 순서:**
-> `패턴드릴.md`로 **먼저 손으로 쓴다** → 막히거나 틀린다 → **그때 여기서 찾는다**
+> `PATTERN_DRILLS.md`로 **먼저 손으로 쓴다** → 막히거나 틀린다 → **그때 여기서 찾는다**
 >
 > 못 떠올려 낑낑댄 시간이 기억을 만든다. 그 상태에서 정답을 봐야 박힌다.
 
@@ -744,9 +744,9 @@ tasks.withType<Test> {
 
 ---
 
-## P15. Spring Data 어댑터 구조 — ⚠️ **미검증**
+## P15. Spring Data 어댑터 구조
 
-> **이 패턴만 다른 패턴과 지위가 다르다.** 나머지는 전부 돌아가는 코드에서 뽑았지만, 이건 **아직 컴파일되지 않았다**(D3 진행 중, `Reservation.java:50`에서 빌드 실패). **D3 완료 후 확정한다.**
+> **검증 완료:** 실제 Spring Context에서 Spring Data Repository 인터페이스 1개가 발견됐고, 어댑터를 통한 신규 저장·조회·기존 ID 갱신 테스트가 통과했다.
 
 **[언제]** JDBC 구현을 Spring Data JPA로 바꿀 때. Day4에 뽑은 인터페이스를 **버리지 않고** 얹는 방법이다.
 
@@ -775,20 +775,31 @@ public class JpaReservationRepository implements ReservationRepository {
 }
 ```
 
-**[관계도]**
+**[UML 관계도]** — 화살표 방향이 의존성의 방향이다.
 
-```
-ReservationService
-      │ 의존
-      ▼
-ReservationRepository            ← 내 인터페이스 (Day4. 그대로 유지)
-      ▲ implements
-JpaReservationRepository         ← 내 클래스. 어댑터
-      │ 필드로 보유 (상속 아님!)
-      ▼
-SpringDataReservationRepository  ← 내 인터페이스. 본문 없음
-      ▲ extends
-JpaRepository<Reservation, Long> ← 스프링이 준 것
+```mermaid
+classDiagram
+    class ReservationService
+    class ReservationRepository {
+        <<interface>>
+        +save(Reservation) Reservation
+        +findById(Long) Optional
+        +findAll() List
+    }
+    class JpaReservationRepository {
+        -SpringDataReservationRepository delegate
+    }
+    class SpringDataReservationRepository {
+        <<interface>>
+    }
+    class JpaRepository {
+        <<Spring Data interface>>
+    }
+
+    ReservationService --> ReservationRepository : depends on
+    JpaReservationRepository ..|> ReservationRepository : implements
+    JpaReservationRepository --> SpringDataReservationRepository : delegates to
+    SpringDataReservationRepository --|> JpaRepository : extends
 ```
 
 **[판단]**
@@ -806,7 +817,164 @@ JpaRepository<Reservation, Long> ← 스프링이 준 것
 | `@Id`를 `assignId()` **메서드** 위에 붙임 | `@Id` 위치가 **접근 방식(access type)** 까지 결정한다. 필드에 붙이면 필드 접근, getter에 붙이면 프로퍼티 접근. `assignId`는 getter도 setter도 아니라 프로퍼티로 인식되지 않는다 |
 | `@Repository` 구현체가 셋이 됨 | `NoUniqueBeanDefinitionException` (P8과 같은 실패) |
 
-**[근거]** `repository/SpringDataReservationRepository.java` (작성됨) · `repository/JpaReservationRepository.java` (**본문 미작성**) · `days/WeekB/Day10_0807/progress.md`
+**[근거]** `src/main/java/com/example/studyroom/repository/SpringDataReservationRepository.java:7` · `src/main/java/com/example/studyroom/repository/JpaReservationRepository.java:10` · `src/test/java/com/example/studyroom/repository/JpaReservationRepositoryTest.java:28`
+
+---
+
+## P16. JPA Entity 매핑 — 식별자와 기본 생성자
+
+**[언제]** 기존 Domain 객체를 JPA가 DB 행으로 저장하고 복원하게 만들 때.
+
+**[골격]**
+
+```java
+@Entity
+public class Reservation {
+    private String roomName;
+    private String requesterName;
+    private boolean confirmed;
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    public Reservation(String roomName, String requesterName) {
+        this.roomName = roomName;
+        this.requesterName = requesterName;
+        this.confirmed = false;
+    }
+
+    protected Reservation() {
+    }
+}
+```
+
+**[매핑 구조]**
+
+```mermaid
+classDiagram
+    class Reservation {
+        <<Entity>>
+        -Long id : Id, GeneratedValue(IDENTITY)
+        -String roomName
+        -String requesterName
+        -boolean confirmed
+        +Reservation(roomName, requesterName)
+        #Reservation()
+        +confirm()
+        +cancel()
+    }
+    class reservation_table {
+        <<Flyway V1 table>>
+        BIGINT id PK AUTO_INCREMENT
+        VARCHAR room_name NOT NULL
+        VARCHAR requester_name NOT NULL
+        BOOLEAN confirmed NOT NULL
+    }
+
+    Reservation --> reservation_table : Hibernate maps fields to columns
+```
+
+**[판단]**
+- `@Id`를 **필드에** 두면 필드 접근 방식이 선택된다. 같은 Entity에서 getter 접근과 섞지 않는다.
+- `IDENTITY`는 DB의 `AUTO_INCREMENT`에 ID 생성을 맡긴다. INSERT가 실행된 뒤 생성된 키가 `id`에 들어온다.
+- `protected` 기본 생성자는 Hibernate가 조회 결과를 객체로 복원할 통로다. 일반 코드에는 의미 없는 빈 객체 생성을 감춘다.
+- 현재 구현은 빈 생성자와 함께 쓰기 위해 `roomName`·`requesterName`의 `final`을 제거했다. `final`은 객체 전체의 불변 표시가 아니라 **모든 생성자 경로에서 초기화되어야 하는 변수 제약**이다.
+- `ddl-auto: none`으로 Hibernate의 DDL 생성을 막았다. 스키마 생성·변경의 주인은 Flyway다.
+
+**[❌ 흔한 실수 — 실제 기록]**
+
+| 실수 | 실제 결과 |
+|---|---|
+| `final` 필드 둘을 둔 채 빈 기본 생성자도 컴파일된다고 예측 — 학습자 답 `"된다"` | 빈 생성자 경로에서 `final` 필드를 초기화하지 못한다. 완성 코드에서는 두 필드의 `final`을 제거했다 (D10 실험 1) |
+| `@Id`를 `assignId()` 위에 붙임 | `@Id` 위치는 접근 방식까지 결정한다. `assignId`는 식별자 getter가 아니므로 필드 `id`로 옮겼다 (D10 진행 기록) |
+| `protected Reservation()}`로 입력 | `{`가 빠진 파싱 오류로 의미 분석 전에 컴파일이 멈췄다 (D10 진행 기록) |
+
+**[근거]** `src/main/java/com/example/studyroom/domain/Reservation.java:7` · `src/main/java/com/example/studyroom/domain/Reservation.java:13` · `src/main/java/com/example/studyroom/domain/Reservation.java:50` · `study_docs/days/WeekB/Day10_0807/explain-log.md:7`
+
+---
+
+## P17. JPA 저장 계약 통합 테스트 — flush·clear·상대 행 수
+
+**[언제]** Repository 구현을 바꾼 뒤 `save()`의 신규/갱신 계약과 실제 SQL을 함께 검증할 때.
+
+**[골격]**
+
+```java
+@SpringBootTest
+@Transactional
+class JpaReservationRepositoryTest {
+
+    @Autowired ReservationRepository repository;
+    @Autowired EntityManager entityManager;
+
+    @Test
+    void savingExistingReservationUpdatesWithoutAddingDuplicate() {
+        int countBeforeSave = repository.findAll().size();
+        Reservation reservation = new Reservation("B202", "minji");
+        reservation.confirm();
+        Reservation saved = repository.save(reservation);
+        entityManager.flush();
+
+        saved.cancel();
+        repository.save(saved);
+        entityManager.flush();
+        entityManager.clear();
+
+        List<Reservation> all = repository.findAll();
+        List<Reservation> sameIdRows = all.stream()
+                .filter(candidate -> candidate.getId().equals(saved.getId()))
+                .toList();
+
+        assertEquals(countBeforeSave + 1, all.size());
+        assertEquals(1, sameIdRows.size());
+        assertFalse(sameIdRows.get(0).isConfirmed());
+    }
+}
+```
+
+**[UML 시퀀스]** — 기존 ID의 `save()` 호출과 UPDATE 실행 시점은 같은 사건이 아니다.
+
+```mermaid
+sequenceDiagram
+    participant T as Integration Test
+    participant A as JpaReservationRepository
+    participant S as Spring Data Repository
+    participant H as Hibernate / EntityManager
+    participant D as H2 Database
+
+    T->>A: save(new Reservation)
+    A->>S: delegate.save(entity)
+    S->>H: persist(entity)
+    H->>D: INSERT (IDENTITY id 필요)
+    D-->>H: generated id
+    H-->>T: saved entity
+
+    T->>A: save(existing entity)
+    A->>S: delegate.save(entity)
+    S-->>T: managed entity
+    T->>H: flush()
+    H->>D: UPDATE ... WHERE id=?
+    T->>H: clear()
+    T->>A: findAll()
+    A->>S: delegate.findAll()
+    S->>D: SELECT
+    D-->>T: same id exactly once
+```
+
+**[판단]**
+- `flush()`는 쓰기 SQL을 검증 지점까지 DB로 보낸다. 정확한 자동 flush 시점과 변경 감지는 D11~D12에서 더 다룬다.
+- `clear()`는 1차 캐시를 비운다. 이후 조회가 메모리에 남은 객체가 아니라 DB 결과를 다시 읽게 한다.
+- UPDATE 로그만 확인하면 추가 INSERT가 없었다고 보장할 수 없다. **저장 전후 상대 행 수가 +1인지**와 **같은 ID가 정확히 한 행인지**를 함께 검사한다.
+- `@Transactional`로 각 테스트의 변경을 롤백하지만, 다른 Context가 남긴 데이터가 없다고 가정하지 않는다.
+
+**[❌ 흔한 실수 — 실제 기록]**
+
+| 실수 | 실제 결과 |
+|---|---|
+| 전체 행 수를 무조건 `1`로 단언 | 단독 실행은 통과했지만 전체 12개 실행에서 다른 통합 테스트의 행 때문에 실패했다. `countBeforeSave + 1`과 같은 ID 1행 검사로 교정했다 (D10 자동 검증) |
+
+**[근거]** `src/test/java/com/example/studyroom/repository/JpaReservationRepositoryTest.java:45` · `src/test/java/com/example/studyroom/repository/JpaReservationRepositoryTest.java:62` · `study_docs/days/WeekB/Day10_0807/explain-log.md:72`
 
 ---
 
@@ -817,8 +985,10 @@ JpaRepository<Reservation, Long> ← 스프링이 준 것
 2. 스키마      db/migration/V1__init.sql — 여기가 유일한 주인       (P10)
 3. 제약        NOT NULL / DEFAULT / PK — 앱 검증과 층이 다르다      (P11)
 4. 테스트 격리  build.gradle.kts test 태스크에 환경변수 고정         (P14)
-5. 구현        JDBC(직접) 또는 Spring Data 어댑터(위임)             (P12·P13·P15)
-6. 설정        ddl-auto: none — Hibernate는 스키마를 안 건드린다     (P15)
+5. Entity      @Entity + @Id + @GeneratedValue + 기본 생성자         (P16)
+6. 구현        JDBC(직접) 또는 Spring Data 어댑터(위임)             (P12·P13·P15)
+7. 검증        flush·clear 뒤 상대 행 수와 동일 ID 개수 확인         (P17)
+8. 설정        ddl-auto: none — Hibernate는 스키마를 안 건드린다     (P16)
 ```
 
 **스키마의 주인은 하나여야 한다.** Flyway와 `ddl-auto`가 동시에 스키마를 만들면 장부와 실제가 어긋난다.

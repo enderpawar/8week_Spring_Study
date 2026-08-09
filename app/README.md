@@ -6,18 +6,17 @@
 
 ## 현재 진행 상황
 
-실제 코드와 Day 산출물로 확인된 완료 지점은 **Week A Day 4 — 웹 계층의 책임 분리**입니다. 다음 학습은 **Day 5 — IoC·DI와 생성자 주입**입니다.
+실제 코드와 Day 산출물로 확인된 완료 지점은 **Week B Day 10 — Entity 매핑과 Spring Data JPA 기본 CRUD**입니다. 다음 학습은 **Day 11 — 영속성 컨텍스트·1차 캐시·동일성**입니다.
 
 | 단계 | 학습 주제 | 구현·학습 증거 | 상태 |
 |---|---|---|---|
-| Day 1 | HTTP 요청→응답 왕복, 상태 코드 | [기술 글](study_docs/days/WeekA/Day01_0725/velog_post.md) · [예측과 실제 차이](study_docs/days/WeekA/Day01_0725/explain-log.md) | 완료 |
-| Day 2 | record DTO와 Domain 분리 | [기술 글](study_docs/days/WeekA/Day02_0726/velog_post.md) · [인출 문제](study_docs/days/WeekA/Day02_0726/quiz.md) | 완료 |
-| Day 3 | Bean Validation과 전역 오류 처리 | [기술 글](study_docs/days/WeekA/Day03_0728/velog_post.md) · [복습 점검](study_docs/days/WeekA/Day03_0728/velog_post_review.md) | 완료 |
-| Day 4 | Controller·Service·Repository 책임 분리 | [기술 글](study_docs/days/WeekA/Day04_0728/velog_post.md) · [검증 기록](study_docs/days/WeekA/Day04_0728/progress.md) | 완료 |
-| Day 5 | IoC·DI, Bean, 생성자 주입 | 현재 코드의 `@Service`·`@Repository`와 생성자 주입 실험 | 다음 학습 |
-| Week B | Flyway, JDBC, JPA, 영속성 컨텍스트 | [5주 로드맵](study_docs/FUNDAMENTALS_ROADMAP.md) | Week A 완료 후 진행 |
+| Week A · Day 1~7 | HTTP, DTO·Domain, 검증·오류, 계층 분리, IoC·DI | [Week A 기록](study_docs/days/WeekA/) · [주차 마무리 글](study_docs/velog/week-a-identity-storage-error-boundary.md) | 완료 |
+| Day 8 | Flyway 스키마 버전 관리 | [기술 글](study_docs/days/WeekB/Day08_0801/velog_post.md) · [실험 기록](study_docs/days/WeekB/Day08_0801/explain-log.md) | 완료 |
+| Day 9 | JDBC 직접 구현과 저장 계약 | [기술 글](study_docs/days/WeekB/Day09_0802/velog_post.md) · [실험 기록](study_docs/days/WeekB/Day09_0802/explain-log.md) | 완료 |
+| Day 10 | Entity 매핑과 Spring Data JPA CRUD | [기술 글](study_docs/days/WeekB/Day10_0807/velog_post.md) · [검증 기록](study_docs/days/WeekB/Day10_0807/progress.md) | 완료 |
+| Day 11 | 영속성 컨텍스트·1차 캐시·동일성 | [5주 로드맵](study_docs/FUNDAMENTALS_ROADMAP.md) | 다음 학습 |
 
-Day 4에서는 `ReservationRepository` 인터페이스와 메모리 구현체를 분리하고, 예약 생성·취소 흐름을 Controller에서 Service로 옮겼습니다. 식별자 없이 특정 예약을 갱신할 수 없다는 문제를 만나 `id`를 도입했으며, Wrapper 비교와 저장소 중복 저장 가능성은 오답 및 후속 실험으로 남겼습니다.
+Day 10까지 `ReservationRepository` 경계는 유지하면서 저장 구현을 InMemory → JDBC → Spring Data JPA 어댑터로 교체했습니다. Flyway가 스키마를 관리하고 Hibernate는 Entity 매핑을 통해 CRUD SQL을 실행합니다. JPA 통합 테스트는 신규 저장·조회와 기존 ID 갱신·중복 방지를 검증합니다.
 
 ## 현재 코드에서 확인할 수 있는 구조
 
@@ -28,17 +27,22 @@ ReservationController      HTTP 매핑·요청 검증·응답
    ↓
 ReservationService         예약 생성·취소 흐름
    ↓
-ReservationRepository      저장소 계약
+ReservationRepository              애플리케이션 저장소 계약
+   ↑ implements
+JpaReservationRepository           Spring Data 어댑터
+   ↓ delegates
+SpringDataReservationRepository    런타임 구현 생성
    ↓
-InMemoryReservationRepository
+Hibernate → Flyway V1 스키마
 ```
 
 - `ReservationRequest`: 요청 경계의 `record` DTO와 Bean Validation
-- `Reservation`: 예약 상태와 상태 변경 행동을 가진 Domain 객체
+- `Reservation`: `@Entity`로 매핑된 예약 Domain 객체
 - `GlobalExceptionHandler`: 검증 실패를 공통 400 응답으로 변환
 - `ReservationRepository`: 구현체 교체를 위한 저장소 인터페이스
+- `JpaReservationRepository`: 애플리케이션 계약을 Spring Data JPA에 연결하는 어댑터
 
-현재 의존성은 Spring Web과 Validation뿐입니다. JPA·H2·Flyway는 Week B에서 직접 추가하고, Spring Security와 JWT는 Week D에서 추가합니다. 계획된 기술을 현재 구현처럼 표시하지 않습니다.
+현재 의존성은 Spring Web·Validation·JDBC·Flyway·Spring Data JPA·H2입니다. Spring Security와 JWT는 Week D에서 추가합니다. 계획된 기술을 현재 구현처럼 표시하지 않습니다.
 
 ## 학습 방법과 증거
 
@@ -59,6 +63,8 @@ InMemoryReservationRepository
 - `velog_post.md`: 이론, 설계 판단, 검증 근거, 오답, 현재 한계를 연결한 기술 글
 
 기술 글은 [복습·포트폴리오 겸용 템플릿](study_docs/VELOg_POST_TEMPLATE.md)의 사실 검증 및 품질 기준을 따릅니다.
+
+코드 작성 형태를 인출할 때는 [패턴 드릴](study_docs/PATTERN_DRILLS.md)을 먼저 풀고, 막히거나 틀린 뒤에 [코드 패턴 참조서](study_docs/CODE_PATTERNS.md)와 실제 `src/` 코드를 대조합니다. 두 파일은 Day 10까지 P1~P17과 D1~D17을 담고 있으며, UML 스타일 관계도와 실행 시퀀스는 여러 계층이 연결되는 패턴에만 사용합니다.
 
 ## 5주 로드맵
 
@@ -94,6 +100,8 @@ InMemoryReservationRepository
 │  ├─ days/                    # 날짜별 학습 증거
 │  ├─ FUNDAMENTALS_ROADMAP.md  # 로드맵과 진행 체크리스트
 │  ├─ VELOg_POST_TEMPLATE.md   # 기술 블로그 작성·검수 기준
+│  ├─ CODE_PATTERNS.md         # 검증된 코드 골격·판단·실제 오류 참조서
+│  ├─ PATTERN_DRILLS.md        # 정답 없는 빈칸·판정·독립 드릴
 │  ├─ 복습큐.md
 │  ├─ spring-core-notes.md
 │  └─ interview-notes.md

@@ -45,7 +45,7 @@ When the learner says `오늘 학습 시작`, `DayN 시작`, `week N 시작`, `w
 8. Write `velog_post.md` with `study_docs/VELOg_POST_TEMPLATE.md`; theory and verified evidence must precede implementation retrospection.
    - Weekly exception: for every D6 cumulative retrieval + D7 buffer pair, keep the Day evidence files separate but publish one combined `study_docs/velog/` post titled `[백엔드 기본기 DAY N & DAY N+1] N주차 마무리 시험`. If they occur on separate days, open the draft on D6 and finalize it after D7. Use the template's D6·D7 exam-retrospective structure instead of forcing the normal concept-post H2s.
 
-9. **At the end of each week (after D7), promote that week's worked examples**: append the week's patterns to `study_docs/코드패턴.md` and the matching fill-in drills to `study_docs/패턴드릴.md`. Skeletons must come from working code in `src/`; mark anything that does not yet compile `⚠️ 미검증`. `❌ 흔한 실수` entries must be the learner's own actual errors from that week's `explain-log.md`, quoted verbatim — never generic advice. Do not include drill answers. See `CLAUDE.md` for the full rule.
+9. **At the end of each week (after D7), promote that week's worked examples**: append the week's patterns to `study_docs/CODE_PATTERNS.md` and the matching fill-in drills to `study_docs/PATTERN_DRILLS.md`. Skeletons must come from working code in `src/`; mark anything that does not yet compile `⚠️ 미검증`. `❌ 흔한 실수` entries must be the learner's own actual errors from that week's `explain-log.md`, quoted verbatim — never generic advice. Do not include drill answers. See `CLAUDE.md` for the full rule.
 
 If a command needs an external prerequisite or an action only the learner can perform, explain why and provide only the minimum required instruction.
 

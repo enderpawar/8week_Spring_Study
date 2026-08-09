@@ -6,19 +6,17 @@
 
 ## 현재 진행 상황
 
-현재 코드와 학습 기록으로 검증된 범위는 **Week A Day 4 — 웹 계층과 책임 분리**까지입니다.
+현재 코드와 학습 기록으로 검증된 범위는 **Week B Day 10 — Entity 매핑과 Spring Data JPA 기본 CRUD**까지입니다. 다음 학습은 **Day 11 — 영속성 컨텍스트·1차 캐시·동일성**입니다.
 
 | 단계 | 학습 주제 | 구현·학습 증거 | 상태 |
 |---|---|---|---|
-| Day 1 | HTTP 요청→응답 왕복, 상태 코드 | [코드 없는 인출 문제](app/study_docs/days/Day01_0725/quiz.md) · [예측과 실제 차이](app/study_docs/days/Day01_0725/explain-log.md) | 완료 |
-| Day 2 | record DTO와 가변 Domain 분리 | [학습 문제](app/study_docs/days/Day02_0726/quiz.md) · [실수와 교정 기록](app/study_docs/days/Day02_0726/velog_post.md) | 완료 |
-| Day 3 | Bean Validation과 전역 오류 처리 | [학습 문제](app/study_docs/days/Day03_0728/quiz.md) · [복습 인출 점검](app/study_docs/days/Day03_0728/velog_post_review.md) | 완료 |
-| Day 4 | Controller·Service·Repository 책임 분리 | [진행 및 검증 기록](app/study_docs/days/Day04_0728/progress.md) · [독립 변형 회고](app/study_docs/days/Day04_0728/velog_post.md) | 완료 |
-| Day 5 | IoC·DI, Bean, 생성자 주입 | 현재 코드의 `@Service`·`@Repository`와 생성자 주입을 실험 | 다음 학습 |
-| Day 6 | Week A 누적 인출 시험 | [복습큐](app/study_docs/복습큐.md)와 Week A 전 범위 | 예정 |
-| Week B | Flyway, JDBC, JPA, 영속성 컨텍스트 | [5주 로드맵](app/study_docs/FUNDAMENTALS_ROADMAP.md) | Week A 완료 후 진행 |
+| Week A · Day 1~7 | HTTP, DTO·Domain, 검증·오류, 계층 분리, IoC·DI | [Week A 기록](app/study_docs/days/WeekA/) · [주차 마무리 글](app/study_docs/velog/week-a-identity-storage-error-boundary.md) | 완료 |
+| Day 8 | Flyway 스키마 버전 관리 | [기술 글](app/study_docs/days/WeekB/Day08_0801/velog_post.md) · [실험 기록](app/study_docs/days/WeekB/Day08_0801/explain-log.md) | 완료 |
+| Day 9 | JDBC 직접 구현과 저장 계약 | [기술 글](app/study_docs/days/WeekB/Day09_0802/velog_post.md) · [실험 기록](app/study_docs/days/WeekB/Day09_0802/explain-log.md) | 완료 |
+| Day 10 | Entity 매핑과 Spring Data JPA CRUD | [기술 글](app/study_docs/days/WeekB/Day10_0807/velog_post.md) · [검증 기록](app/study_docs/days/WeekB/Day10_0807/progress.md) | 완료 |
+| Day 11 | 영속성 컨텍스트·1차 캐시·동일성 | [5주 로드맵](app/study_docs/FUNDAMENTALS_ROADMAP.md) | 다음 학습 |
 
-최근 완료한 Day 4에서는 `ReservationRepository` 인터페이스와 메모리 구현체를 분리하고, 예약 생성·취소 흐름을 Controller에서 Service로 옮겼습니다. 식별자 없이 특정 예약을 갱신할 수 없다는 문제를 직접 만나 `id`를 도입했으며, `Long`의 `==` 비교와 저장소 중복 저장 가능성도 오답 및 후속 실험 항목으로 기록했습니다.
+Day 10까지 `ReservationRepository` 경계는 유지하면서 저장 구현을 InMemory → JDBC → Spring Data JPA 어댑터로 교체했습니다. Flyway가 스키마를 관리하고 Hibernate는 Entity 매핑을 통해 CRUD SQL을 실행합니다. JPA 통합 테스트는 신규 저장·조회와 기존 ID 갱신·중복 방지를 검증합니다.
 
 ## 학습 방식
 
@@ -38,16 +36,19 @@
 - `explain-log.md`: 예측, 실행 결과, 예상과 달랐던 이유
 - `velog_post.md`: 먼저 핵심 이론을 독립적으로 복습할 수 있게 설명하고, 이어서 설계 판단·검증·실수·한계를 정리한 기술 회고. 모든 글은 [기술 블로그 템플릿](app/study_docs/VELOg_POST_TEMPLATE.md)의 사실 검증 및 품질 기준을 따른다
 
+코드 작성 형태를 복습할 때는 [패턴 드릴](app/study_docs/PATTERN_DRILLS.md)을 먼저 풀고, 막히거나 틀린 뒤에 [코드 패턴 참조서](app/study_docs/CODE_PATTERNS.md)와 실제 소스를 대조합니다. 현재 두 파일에는 Day 10까지 P1~P17과 D1~D17이 기록되어 있으며, 여러 계층의 관계와 실행 순서는 UML 스타일 Mermaid 도식으로 확인할 수 있습니다.
+
 ## 현재 코드에서 확인할 수 있는 것
 
 - `ReservationController`: HTTP 요청과 응답 처리
 - `ReservationService`: 예약 생성·취소 규칙 조정
 - `ReservationRepository`: 저장소 계약을 인터페이스로 분리
-- `InMemoryReservationRepository`: 메모리 기반 저장과 식별자 부여
+- `JpaReservationRepository`: 기존 저장소 계약을 Spring Data JPA에 연결하는 어댑터
+- `SpringDataReservationRepository`: 런타임 Repository 구현 생성
 - `ReservationRequest`: `record` DTO와 Bean Validation
 - `GlobalExceptionHandler`: 검증 오류의 공통 응답 처리
 
-현재는 `web`, `validation` 의존성만 사용합니다. JPA·H2·Flyway는 데이터 접근 원리를 학습하는 Week B에서 직접 추가하고, Spring Security와 JWT는 Week D에서 추가합니다. 최종 기술 목록을 미리 넣어 완성된 것처럼 보이지 않도록 **현재 구현과 계획을 구분**했습니다.
+현재는 Spring Web·Validation·JDBC·Flyway·Spring Data JPA·H2를 사용합니다. Spring Security와 JWT는 Week D에서 추가합니다. 최종 기술 목록을 미리 넣어 완성된 것처럼 보이지 않도록 **현재 구현과 계획을 구분**했습니다.
 
 ## 학습 로드맵
 
@@ -70,6 +71,8 @@
 │  └─ study_docs/
 │     ├─ days/                  # 날짜별 단어장·퀴즈·설명 로그·회고
 │     ├─ FUNDAMENTALS_ROADMAP.md
+│     ├─ CODE_PATTERNS.md       # 검증된 코드 골격·판단·실제 오류 참조서
+│     ├─ PATTERN_DRILLS.md      # 정답 없는 빈칸·판정·독립 드릴
 │     ├─ spring-core-notes.md
 │     ├─ interview-notes.md
 │     └─ 복습큐.md
