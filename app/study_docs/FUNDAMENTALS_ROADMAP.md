@@ -54,28 +54,33 @@
 >
 > `[x]`는 코드·테스트와 해당 Day 산출물(`vocab.md`, `quiz.md`, `explain-log.md`, 필요 시 `progress.md`)로 완료가 확인된 경우에만 표시한다. 시작했거나 설명만 들은 항목은 완료로 표시하지 않는다. 세션 종료 시 체크 상태와 **다음 시작점**을 함께 갱신한다.
 
-**현재 확인 시점: 2026-08-06 — Week B D2 대부분 진행(미완). 다음 시작점은 Week B D2 마무리.**
-> **D2 잔여 3건**: ① `JdbcReservationRepository.save()`의 UPDATE 분기(현재 무조건 INSERT라 취소 시 중복 행 생성) ② `JdbcTemplate`/`JdbcClient` 한 줄 비교 ③ JPA·Hibernate·Spring Data JPA 구분. 완료 후 D2를 `[x]`로.
-> 8/7 아침 인출에 +1일 오답 재시험 3건이 도래한다: 저장 계약(2회 오답), 예외 로그/응답 분리(2회 오답), `final`의 작용 범위(**3회 오답** — 판정형 문항으로 출제).
+**현재 확인 시점: 2026-08-09 — Week B D3(Day10) 완료. 다음 시작점은 Week B D4의 영속성 컨텍스트·1차 캐시·동일성.**
+> **D3 완료 근거**: `Reservation` Entity 매핑, Spring Data JPA 어댑터 CRUD, JDBC Bean 후보 제거를 완료했다. 통합 테스트 2개로 신규 저장·단건 조회와 기존 ID 갱신·중복 방지를 검증했고 Hibernate 로그에서 `INSERT`·`SELECT`·`UPDATE`를 확인했다. 상세는 [Day10 진행 기록](days/WeekB/Day10_0807/progress.md).
+> **D4 시작 실험**: 한 트랜잭션 안에서 같은 ID를 두 번 조회하기 전에 SELECT 횟수와 두 객체의 참조 동일성(`first == second`)을 예측한다. Day10에서 명시한 `flush()`가 무엇을 강제했는지는 D5까지 관찰을 이어간다.
+> **밀린 인출분(2026-08-09 Day10 등록 전 기준 실측)**: 기존 복습큐 38행 중 **36행이 도래**했다(미래 도래는 `@Repository` 8/19, `Optional`→도메인예외 8/12 둘뿐). 내역 — 8/3 1건 / 8/4 18건 / **8/6 오답재시험 4건** / 8/7 8건(Day08 계열) / 8/8 4건 / 8/9 1건. 여기에 Day09 `quiz.md` §1 6문항(8/7 출제 예정이었으나 미실시)과 Day10 신규 7건이 별도로 있다.
+> **한 번에 따라잡지 않는다.** 아침 10분에는 복습큐 「밀렸을 때 규칙」대로 **5~7문항만** 뽑고(오답재시험 4건 우선), 나머지는 Week B D7 버퍼에서 몰아 처리한다. 도래일은 뒤로 밀지 않는다 — 지연량이 증거다.
 > 환경 부채: 사용자 범위 환경변수 `SPRING_DATASOURCE_*`·`SPRING_PROFILES_ACTIVE=prod`가 남아 있다(다른 프로젝트용). `test` 태스크에서만 격리해둔 상태라 `bootRun`은 여전히 영향을 받는다.
+> 일정: 달력상 8/9는 Week C D2이나 실제 진도는 Week B D3이다(**6일 지연**). Week C·D가 「벽」으로 지정된 주라 추가 지연을 전제하고, 자르지 않기로 한 항목(JPA·트랜잭션·검증·오류·인증·테스트·디버깅)을 우선 지킨다.
 
 #### Week A — 웹 계층
 
-- [x] D1 요청→응답 왕복 — [Day01 기록](days/Day01_0725/)
-- [x] D2 record DTO vs Domain 분리 — [Day02 기록](days/Day02_0726/)
-- [x] D3 전역 오류처리 + Bean Validation — [Day03 기록](days/Day03_0728/)
-- [x] D4 Service/Repository 책임 분리 — [Day04 진행 기록](days/Day04_0728/progress.md)
-- [x] D5 IoC·DI·생성자 주입 — [Day05 진행 기록](days/Day05_0729/progress.md)
-- [x] **D6 누적시험 A + 오답 재시험** — 2026-08-02 완료 ([Day06 기록](days/Day06_0730/))
-- [x] **D7 버퍼 / 기술부채 상환** — 2026-08-02 완료 ([Day07 기록](days/Day07_0731/))
+- [x] D1 요청→응답 왕복 — [Day01 기록](days/WeekA/Day01_0725/)
+- [x] D2 record DTO vs Domain 분리 — [Day02 기록](days/WeekA/Day02_0726/)
+- [x] D3 전역 오류처리 + Bean Validation — [Day03 기록](days/WeekA/Day03_0728/)
+- [x] D4 Service/Repository 책임 분리 — [Day04 진행 기록](days/WeekA/Day04_0728/progress.md)
+- [x] D5 IoC·DI·생성자 주입 — [Day05 진행 기록](days/WeekA/Day05_0729/progress.md)
+- [x] **D6 누적시험 A + 오답 재시험** — 2026-08-02 완료 ([Day06 기록](days/WeekA/Day06_0730/))
+- [x] **D7 버퍼 / 기술부채 상환** — 2026-08-02 완료 ([Day07 기록](days/WeekA/Day07_0731/))
 
 Week A 통합 Velog — [백엔드 기본기 DAY 6 & DAY 7: 1주차 마무리 시험](velog/week-a-identity-storage-error-boundary.md)
 
 #### Week B — 데이터 접근 기초
 
-- [x] D1 Flyway `V1__init`로 스키마 정의 — 2026-08-05 완료 ([Day08 기록](days/Day08_0801/))
-- [ ] D2 JDBC 완성예제와 JPA 도입 이유 — 2026-08-06 대부분 진행, 잔여 3건 ([Day09 기록](days/Day09_0802/))
-- [ ] D3 Entity 매핑 + 기본 CRUD
+- [x] D1 Flyway `V1__init`로 스키마 정의 — 2026-08-05 완료 ([Day08 기록](days/WeekB/Day08_0801/))
+- [x] D2 JDBC 완성예제와 JPA 도입 이유 — 2026-08-07 종료 ([Day09 기록](days/WeekB/Day09_0802/))
+  - 잔여 ① `JdbcReservationRepository.save()`의 UPDATE 분기는 **JDBC 구현에 쓰지 않았다.** Spring Data `save()`가 같은 분기(ID 없으면 INSERT, 있으면 UPDATE)를 수행하므로 대체된 것으로 처리한다. **JDBC 구현에는 중복 행 버그가 그대로 남아 있고 이를 검증하는 테스트도 없다** — 대조군으로만 보존한다.
+  - 잔여 ②③(`JdbcTemplate`/`JdbcClient` 비교, JPA·Hibernate·Spring Data 구분)은 D3 도입부에서 흡수했다.
+- [x] D3 Entity 매핑 + 기본 CRUD — 2026-08-09 완료 ([Day10 기록](days/WeekB/Day10_0807/))
 - [ ] D4 영속성 컨텍스트·1차 캐시·동일성
 - [ ] D5 변경 감지·flush 시점
 - [ ] D6 누적시험 A+B
@@ -192,17 +197,24 @@ Week A 통합 Velog — [백엔드 기본기 DAY 6 & DAY 7: 1주차 마무리 �
 
 ## 6. 산출물 (매일 갱신 = 증거)
 
-**요일별 폴더 구조** — 7/25(Day01)~8/28(Day35), 5주×7일 순차 번호 + 날짜 접미사.
+**주차 > 요일 폴더 구조** — 7/25(Day01)~8/28(Day35), 5주×7일 순차 번호 + 날짜 접미사.
+Day 폴더는 소속 주차 폴더(`WeekA`~`WeekE`) 아래에 둔다. Day 번호는 주차를 넘어 이어서 센다(Week B는 Day08부터).
 
 ```
 study_docs/
 ├─ days/
-│  ├─ Day01_0725/vocab.md, quiz.md, explain-log.md, velog_post.md   ← 일반 개념·구현 Day
-│  ├─ …
-│  ├─ Day06_0730/vocab.md, quiz.md, explain-log.md                  ← 주간 D6 누적시험
-│  └─ Day07_0731/vocab.md, quiz.md, explain-log.md, progress.md     ← 주간 D7 버퍼
-│     (progress.md는 진행 상태·부채를 남길 필요가 있는 날만 추가)
+│  ├─ WeekA/                                                        ← 주차 폴더 (WeekA~WeekE)
+│  │  ├─ Day01_0725/vocab.md, quiz.md, explain-log.md, velog_post.md   ← 일반 개념·구현 Day
+│  │  ├─ …
+│  │  ├─ Day06_0730/vocab.md, quiz.md, explain-log.md                  ← 주간 D6 누적시험
+│  │  └─ Day07_0731/vocab.md, quiz.md, explain-log.md, progress.md     ← 주간 D7 버퍼
+│  │     (progress.md는 진행 상태·부채를 남길 필요가 있는 날만 추가)
+│  └─ WeekB/
+│     ├─ Day08_0801/…
+│     └─ Day09_0802/…
 ├─ velog/                      ← 주 1편 대표글. 심화글 또는 D6·D7 통합 마무리 시험 글.
+├─ 코드패턴.md                  ← **참조서**. 패턴별 골격 + 판단 근거 + 실제로 낸 오류. 주차별 append.
+├─ 패턴드릴.md                  ← **드릴**. 빈칸 + 독립과제. 손으로 먼저 쓰고 나서 위 파일과 대조한다.
 ├─ interview-notes.md          ← 면접 문장(기존 파일 유지, 누적)
 ├─ spring-core-notes.md        ← Week A~C 인출·되설명 워크시트(기존 파일 재사용)
 ├─ 기술부채.md                  ← 기술 부채 원장(부채·분류·해결 Day·상태) — 단일 추적 위치.
@@ -212,10 +224,13 @@ study_docs/
 
 각 Day 폴더의 `vocab.md`/`quiz.md`/`explain-log.md`는 그날 Full/Light 루프 내용만 담는다.
 
+**`코드패턴.md`·`패턴드릴.md`는 Day 산출물이 아니라 주차를 가로지르는 누적 자산이다.** `vocab.md`가 용어의 뜻(선언적 지식)을 담는다면 이 둘은 코드의 형태(절차적 지식)를 담는다 — 하나로 다른 하나가 채워지지 않는다. 각 Day의 완성예제는 그 주가 끝날 때 `코드패턴.md`에 패턴으로 승격시키고, 대응하는 빈칸을 `패턴드릴.md`에 추가한다. **사용 순서는 항상 드릴로 먼저 인출 → 틀림 → 그때 참조서 확인이다.** 참조서를 순서대로 읽는 것은 §0의 "다시 읽기는 효과 없다"에 해당한다. `❌ 흔한 실수` 항목은 학습자가 실제로 낸 오류만 쓰고 일반론은 넣지 않는다.
+
 각 Day의 **완료 판정 산출물**은 `vocab.md`, `quiz.md`, `explain-log.md`이며, 진행 상태나 기술 부채를 별도로 남길 필요가 있을 때만 `progress.md`를 작성한다. Day 완료는 코드·테스트와 이 산출물로 판정하며, **Velog 글은 완료 조건으로 사용하지 않는다**(위 「세션 재개용 진행 체크리스트」의 `[x]` 기준과 동일). 일반 Day는 `velog_post.md`를 쓰고, 각 주 D6·D7은 Day별 학습 증거를 유지한 채 `study_docs/velog/`의 주차 마무리 시험 글 한 편으로 합친다. D6에 초안을 열고 D7 완료 후 확정한다.
 
 Velog 글은 [Spring 기본기 기술 블로그 템플릿](VELOg_POST_TEMPLATE.md)을 따른다. 일반 개념·구현 Day는 핵심 메커니즘 또는 설계 판단 중심으로 쓰고, D6·D7 통합 글은 시험 범위·실제 오답·D7 코드 적용·자동 검증·다음 시작점 순서로 유연하게 작성한다.
 Day 번호 ↔ Week·요일 매핑: Day(N) = Week A~E 중 `⌈N/7⌉`번째 주, 그 주의 D`((N-1)%7)+1`.
+따라서 Day(N)의 저장 경로는 `study_docs/days/Week{A~E 중 ⌈N/7⌉번째}/DayNN_MMDD/`이다.
 
 ## 7. 규칙
 
@@ -228,12 +243,13 @@ Day 번호 ↔ Week·요일 매핑: Day(N) = Week A~E 중 `⌈N/7⌉`번째 주,
 - **Day 플랜이 끝나면 무조건 그날 안에 git commit + push.** 그날 산출물(코드·vocab·quiz·explain-log·복습큐 갱신)이 유실 없이 원격에 남아야 다음날/복습주기에 그대로 이어볼 수 있다.
 - **Velog 글은 Day 흐름을 유지하되 D6·D7은 주차 마무리 글로 합친다.** 일반 Day는 소재에 맞춰 쓰고, 각 주의 D6 누적시험과 D7 버퍼는 `[백엔드 기본기 DAY N & DAY N+1] N주차 마무리 시험` 한 편으로 통합한다. 서로 다른 날에 진행하면 D6에 초안을 열고 D7 완료 후 확정한다. Day별 `vocab`·`quiz`·`explain-log` 증거는 분리해서 보존한다. 통합 글은 실제 시험 범위·오답 교정·D7 코드 적용·자동 검증·다음 시작점을 중심으로 쓰며 일반 개념 글의 고정 H2를 강제하지 않는다. 실제로 비교하지 않은 대안이나 수행하지 않은 검증을 만들지 않고 `[직접 작성]`은 덮어쓰지 않는다.
 - **기술 부채는 분류해서 원장 한 곳에 모은다.** 바로 고칠 것(다음 실험 결과를 왜곡·빌드 실패·보안 위험) / 나중에 고칠 것(해결 Day 지정) / 고치지 않을 것(이 트랙에서 해결하지 않음, 1회만 명시) 중 하나로 나눠 `기술부채.md`에 기록한다. 같은 한계를 매 글마다 반복해 적지 않는다.
-- **각 주 D7은 지연 흡수와 부채 점검 슬롯이다.** ① 그 주의 미완료 필수 유닛 처리 → ② 바로 고칠 것이거나 현재까지 배운 범위로 해결 가능한 고우선순위 부채 상환 → ③ 주간 독립과제 순으로 쓴다. 이후 주차의 개념이 필요한 부채는 해결 Day만 배정하고, **부채가 남아 있다는 이유만으로 선행 진도를 중단하지 않는다.**
+- **각 주 D7은 지연 흡수와 부채 점검 슬롯이다.** ⓪ **밀린 인출 백로그 소화**(아침 10분으로는 못 따라잡은 도래분 — 오답재시험부터) → ① 그 주의 미완료 필수 유닛 처리 → ② 바로 고칠 것이거나 현재까지 배운 범위로 해결 가능한 고우선순위 부채 상환 → ③ 주간 독립과제 순으로 쓴다. 이후 주차의 개념이 필요한 부채는 해결 Day만 배정하고, **부채가 남아 있다는 이유만으로 선행 진도를 중단하지 않는다.**
+- **주차 마무리(D7 종료) 시 패턴 승격은 필수 절차다.** 그 주의 완성예제를 `코드패턴.md`에 패턴으로, 대응 빈칸을 `패턴드릴.md`에 묶음으로 append한다. 골격은 `src/`의 돌아가는 코드에서만 뽑고 미검증분은 `⚠️ 미검증`으로 표시하며, `❌ 흔한 실수`는 그 주 `explain-log.md`의 실제 오류만 원문 인용한다. 드릴에 정답은 넣지 않는다. 상세 절차는 [`../CLAUDE.md`](../CLAUDE.md) 참고.
 
 ## 8. 새 세션 시작 체크리스트
 
 1. 이 문서의 **세션 재개용 진행 체크리스트**에서 마지막 `[x]`와 첫 미완료 필수 Day를 확인한다.
 2. `study_docs/복습큐.md`에서 오늘 도래한 항목과 +1일 오답 재시험을 확인한다.
-3. 해당 `study_docs/days/DayNN_MMDD/`와 현재 코드·테스트를 대조한다.
+3. 해당 `study_docs/days/WeekX/DayNN_MMDD/`와 현재 코드·테스트를 대조한다.
 4. 저장소 루트에서 `./gradlew test`로 시작 상태를 확인한다.
 5. Day 완료 후 산출물·복습큐·진행 체크리스트·다음 시작점을 함께 갱신한다.

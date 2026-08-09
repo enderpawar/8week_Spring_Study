@@ -10,10 +10,10 @@
 
 | 단계 | 학습 주제 | 구현·학습 증거 | 상태 |
 |---|---|---|---|
-| Day 1 | HTTP 요청→응답 왕복, 상태 코드 | [기술 글](study_docs/days/Day01_0725/velog_post.md) · [예측과 실제 차이](study_docs/days/Day01_0725/explain-log.md) | 완료 |
-| Day 2 | record DTO와 Domain 분리 | [기술 글](study_docs/days/Day02_0726/velog_post.md) · [인출 문제](study_docs/days/Day02_0726/quiz.md) | 완료 |
-| Day 3 | Bean Validation과 전역 오류 처리 | [기술 글](study_docs/days/Day03_0728/velog_post.md) · [복습 점검](study_docs/days/Day03_0728/velog_post_review.md) | 완료 |
-| Day 4 | Controller·Service·Repository 책임 분리 | [기술 글](study_docs/days/Day04_0728/velog_post.md) · [검증 기록](study_docs/days/Day04_0728/progress.md) | 완료 |
+| Day 1 | HTTP 요청→응답 왕복, 상태 코드 | [기술 글](study_docs/days/WeekA/Day01_0725/velog_post.md) · [예측과 실제 차이](study_docs/days/WeekA/Day01_0725/explain-log.md) | 완료 |
+| Day 2 | record DTO와 Domain 분리 | [기술 글](study_docs/days/WeekA/Day02_0726/velog_post.md) · [인출 문제](study_docs/days/WeekA/Day02_0726/quiz.md) | 완료 |
+| Day 3 | Bean Validation과 전역 오류 처리 | [기술 글](study_docs/days/WeekA/Day03_0728/velog_post.md) · [복습 점검](study_docs/days/WeekA/Day03_0728/velog_post_review.md) | 완료 |
+| Day 4 | Controller·Service·Repository 책임 분리 | [기술 글](study_docs/days/WeekA/Day04_0728/velog_post.md) · [검증 기록](study_docs/days/WeekA/Day04_0728/progress.md) | 완료 |
 | Day 5 | IoC·DI, Bean, 생성자 주입 | 현재 코드의 `@Service`·`@Repository`와 생성자 주입 실험 | 다음 학습 |
 | Week B | Flyway, JDBC, JPA, 영속성 컨텍스트 | [5주 로드맵](study_docs/FUNDAMENTALS_ROADMAP.md) | Week A 완료 후 진행 |
 
@@ -78,7 +78,7 @@ InMemoryReservationRepository
 
 1. [로드맵 진행 체크리스트](study_docs/FUNDAMENTALS_ROADMAP.md) — 마지막 완료 Day와 다음 필수 Day
 2. [복습큐](study_docs/복습큐.md) — 오늘 도래한 문제와 전날 오답
-3. 해당 `study_docs/days/DayNN_MMDD/` — 기존 학습 증거와 중단 지점
+3. 해당 `study_docs/days/WeekX/DayNN_MMDD/` — 기존 학습 증거와 중단 지점
 4. 현재 소스와 테스트 — 실제 구현 상태
 5. [기술 블로그 템플릿](study_docs/VELOg_POST_TEMPLATE.md) — 당일 글의 작성·검수 기준
 
