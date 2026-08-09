@@ -1,0 +1,84 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 860 640" width="860" height="640" font-family="system-ui, -apple-system, 'Segoe UI', 'Malgun Gothic', 'Apple SD Gothic Neo', sans-serif">
+  <rect x="0" y="0" width="860" height="640" fill="#ffffff"/>
+  <defs>
+    <marker id="assoc" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10" fill="none" stroke="#334155" stroke-width="1.2"/>
+    </marker>
+    <marker id="realize" viewBox="0 0 12 12" refX="11" refY="6" markerWidth="11" markerHeight="11" orient="auto-start-reverse">
+      <path d="M 0 0 L 11 6 L 0 12 z" fill="#ffffff" stroke="#334155" stroke-width="1.2"/>
+    </marker>
+  </defs>
+
+  <text x="30" y="28" font-size="12" fill="#475569">클래스 다이어그램 — 저장 기술을 JDBC에서 JPA로 바꾼 뒤의 의존 관계</text>
+
+  <!-- ReservationService -->
+  <rect x="30" y="52" width="330" height="56" fill="#ffffff" stroke="#334155" stroke-width="1.3"/>
+  <text x="195" y="74" font-size="11.5" fill="#475569" text-anchor="middle">«@Service»</text>
+  <text x="195" y="96" font-size="13" font-weight="600" fill="#0f172a" text-anchor="middle">ReservationService</text>
+
+  <line x1="195" y1="108" x2="195" y2="148" stroke="#334155" stroke-width="1.2" marker-end="url(#assoc)"/>
+  <text x="206" y="132" font-size="11" fill="#475569">생성자 주입</text>
+
+  <!-- ReservationRepository -->
+  <rect x="30" y="152" width="330" height="124" fill="#ffffff" stroke="#334155" stroke-width="1.3"/>
+  <text x="195" y="174" font-size="11.5" fill="#475569" text-anchor="middle">«interface»</text>
+  <text x="195" y="196" font-size="13" font-weight="600" fill="#0f172a" text-anchor="middle">ReservationRepository</text>
+  <line x1="30" y1="206" x2="360" y2="206" stroke="#334155" stroke-width="1.1"/>
+  <text x="42" y="226" font-size="11.5" fill="#0f172a" font-family="ui-monospace, Consolas, monospace">+ save(Reservation) : Reservation</text>
+  <text x="42" y="246" font-size="11.5" fill="#0f172a" font-family="ui-monospace, Consolas, monospace">+ findById(Long) : Optional&lt;Reservation&gt;</text>
+  <text x="42" y="266" font-size="11.5" fill="#0f172a" font-family="ui-monospace, Consolas, monospace">+ findAll() : List&lt;Reservation&gt;</text>
+
+  <!-- realization: JpaReservationRepository -> ReservationRepository -->
+  <line x1="480" y1="214" x2="368" y2="214" stroke="#334155" stroke-width="1.2" stroke-dasharray="7 5" marker-end="url(#realize)"/>
+  <text x="424" y="206" font-size="11" fill="#475569" text-anchor="middle">«realize»</text>
+
+  <!-- JpaReservationRepository -->
+  <rect x="480" y="152" width="350" height="124" fill="#ffffff" stroke="#334155" stroke-width="1.3"/>
+  <text x="655" y="174" font-size="11.5" fill="#475569" text-anchor="middle">«@Repository»</text>
+  <text x="655" y="196" font-size="13" font-weight="600" fill="#0f172a" text-anchor="middle">JpaReservationRepository</text>
+  <line x1="480" y1="206" x2="830" y2="206" stroke="#334155" stroke-width="1.1"/>
+  <text x="492" y="226" font-size="11.5" fill="#0f172a" font-family="ui-monospace, Consolas, monospace">- delegate : SpringDataReservationRepository</text>
+  <line x1="480" y1="236" x2="830" y2="236" stroke="#334155" stroke-width="1.1"/>
+  <text x="492" y="256" font-size="11.5" fill="#0f172a" font-family="ui-monospace, Consolas, monospace">+ save(Reservation) : Reservation</text>
+
+  <line x1="655" y1="276" x2="655" y2="316" stroke="#334155" stroke-width="1.2" marker-end="url(#assoc)"/>
+  <text x="666" y="300" font-size="11" fill="#475569">생성자 주입</text>
+
+  <!-- SpringDataReservationRepository (empty operation compartment) -->
+  <rect x="480" y="320" width="350" height="84" fill="#ffffff" stroke="#334155" stroke-width="1.3"/>
+  <text x="655" y="342" font-size="11.5" fill="#475569" text-anchor="middle">«interface»</text>
+  <text x="655" y="364" font-size="13" font-weight="600" fill="#0f172a" text-anchor="middle">SpringDataReservationRepository</text>
+  <line x1="480" y1="374" x2="830" y2="374" stroke="#334155" stroke-width="1.1"/>
+
+  <!-- generalization -->
+  <line x1="655" y1="404" x2="655" y2="444" stroke="#334155" stroke-width="1.2" marker-end="url(#realize)"/>
+
+  <!-- JpaRepository -->
+  <rect x="480" y="448" width="350" height="124" fill="#ffffff" stroke="#334155" stroke-width="1.3"/>
+  <text x="655" y="470" font-size="11.5" fill="#475569" text-anchor="middle">«interface»</text>
+  <text x="655" y="492" font-size="13" font-weight="600" fill="#0f172a" text-anchor="middle">JpaRepository&lt;Reservation, Long&gt;</text>
+  <line x1="480" y1="502" x2="830" y2="502" stroke="#334155" stroke-width="1.1"/>
+  <text x="492" y="522" font-size="11.5" fill="#0f172a" font-family="ui-monospace, Consolas, monospace">+ save(S) : S</text>
+  <text x="492" y="542" font-size="11.5" fill="#0f172a" font-family="ui-monospace, Consolas, monospace">+ findById(Long) : Optional&lt;Reservation&gt;</text>
+  <text x="492" y="562" font-size="11.5" fill="#0f172a" font-family="ui-monospace, Consolas, monospace">+ findAll() : List&lt;Reservation&gt;</text>
+
+  <!-- Reservation entity -->
+  <rect x="30" y="320" width="330" height="174" fill="#ffffff" stroke="#334155" stroke-width="1.3"/>
+  <text x="195" y="342" font-size="11.5" fill="#475569" text-anchor="middle">«@Entity»</text>
+  <text x="195" y="364" font-size="13" font-weight="600" fill="#0f172a" text-anchor="middle">Reservation</text>
+  <line x1="30" y1="374" x2="360" y2="374" stroke="#334155" stroke-width="1.1"/>
+  <text x="42" y="394" font-size="11.5" fill="#0f172a" font-family="ui-monospace, Consolas, monospace">- roomName : String</text>
+  <text x="42" y="414" font-size="11.5" fill="#0f172a" font-family="ui-monospace, Consolas, monospace">- requesterName : String</text>
+  <text x="42" y="434" font-size="11.5" fill="#0f172a" font-family="ui-monospace, Consolas, monospace">- confirmed : boolean</text>
+  <text x="42" y="454" font-size="11.5" fill="#0f172a" font-family="ui-monospace, Consolas, monospace">- id : Long  «@Id, IDENTITY»</text>
+  <line x1="30" y1="464" x2="360" y2="464" stroke="#334155" stroke-width="1.1"/>
+  <text x="42" y="484" font-size="11.5" fill="#0f172a" font-family="ui-monospace, Consolas, monospace"># Reservation()</text>
+
+  <!-- note on SpringDataReservationRepository -->
+  <line x1="410" y1="545" x2="512" y2="400" stroke="#94a3b8" stroke-width="1" stroke-dasharray="5 4"/>
+  <path d="M 30 528 L 396 528 L 410 542 L 410 616 L 30 616 Z" fill="#f8fafc" stroke="#94a3b8" stroke-width="1.1"/>
+  <path d="M 396 528 L 396 542 L 410 542" fill="none" stroke="#94a3b8" stroke-width="1.1"/>
+  <text x="42" y="554" font-size="11.5" fill="#0f172a">Spring Data가 기동 시 이 인터페이스를 찾아</text>
+  <text x="42" y="576" font-size="11.5" fill="#0f172a">구현 객체를 만들어 Bean으로 등록한다.</text>
+  <text x="42" y="600" font-size="11" fill="#475569" font-family="ui-monospace, Consolas, monospace">Found 1 JPA repository interface.</text>
+</svg>
