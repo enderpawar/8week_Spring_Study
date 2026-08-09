@@ -5,7 +5,13 @@ spring:
     url: jdbc:h2:file:./data/studyroom;MODE=MySQL
     username: sa
     password:
-
+  jpa:
+    hibernate:
+      ddl-auto: none # Hibernate는 스키마를 건드리지 않는다. 주인은 Flyway.
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
   h2:
     console:
       enabled: true

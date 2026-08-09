@@ -26,6 +26,7 @@ dependencies {
 	implementation("org.springframework.boot:spring-boot-starter-jdbc")
 	//마이그레이션 엔진
 	implementation("org.flywaydb:flyway-core")
+	implementation("org.springframework.boot:spring-boot-starter-data-jpa")
 
 	//개발용 DB. runtimeOnly = 컴파일에는 안 쓰이고 실행할 때만 필요
 	runtimeOnly("com.h2database:h2")

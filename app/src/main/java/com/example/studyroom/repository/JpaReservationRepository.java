@@ -1,0 +1,32 @@
+package com.example.studyroom.repository;
+
+import com.example.studyroom.domain.Reservation;
+import org.springframework.stereotype.Repository;
+
+import java.util.List;
+import java.util.Optional;
+
+@Repository
+public class JpaReservationRepository implements ReservationRepository{
+
+    private final SpringDataReservationRepository delegate;
+
+
+    public JpaReservationRepository(SpringDataReservationRepository delegate){
+        this.delegate = delegate;
+    }
+
+    @Override
+    public Reservation save(Reservation reservation){
+        return delegate.save(reservation);
+    }
+
+    @Override
+    public Optional<Reservation> findById(Long id){
+        return delegate.findById(id);
+    }
+    @Override
+    public List<Reservation> findAll(){
+        return delegate.findAll();
+    }
+}

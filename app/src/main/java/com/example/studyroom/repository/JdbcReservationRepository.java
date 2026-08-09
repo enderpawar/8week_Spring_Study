@@ -1,19 +1,13 @@
 package com.example.studyroom.repository;
 
 import com.example.studyroom.domain.Reservation;
-import org.springframework.stereotype.Repository;
 
 import javax.sql.DataSource;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Statement;
+import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
-@Repository
 public class JdbcReservationRepository implements ReservationRepository{
 //DataSource = 커넥션 풀.  SpringBoot 가 aplication.yml의 url/username/passwrd를 읽어 HikariCP 풀 객체를 Bean으로 만들어 두었고, 우리는 그걸 주입받기만 한다.
     //매번 접속하지 않는 이유? -> TCP 연결 + 인증은 수십 ms 짜리 비용이라 미리 열어둔 커넥션을 빌렸다 반납하는 편이 압도적으로 싸다.

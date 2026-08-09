@@ -1,12 +1,19 @@
 package com.example.studyroom.domain; // 자바 컴파일러에게 컴퓨터의 물리주소와 ㅣㅂ슷하게,
 
+import jakarta.persistence.*;
 //Domain = 상태 + 규칙(business rule)을 함께 가진다.
 // record 형태가 아님. 상태가 바뀔 수 있어야하니까.
+
+@Entity
 public class Reservation{
-    private final String roomName;
-    private final String requesterName;
+    private String roomName;
+    private String requesterName;
     private boolean confirmed;
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id; // DB에 저장될 때, 자동으로 생성되는 PK값을 담기 위한 필드. final 아님. 저장되기 전에는 아직 값이 없음
+
 
     public Reservation(String roomName,String requesterName){
         this.roomName = roomName;
@@ -38,6 +45,10 @@ public class Reservation{
 
     public Long getId(){
         return id;
+    }
+
+    protected Reservation(){
+
     }
 }
 
