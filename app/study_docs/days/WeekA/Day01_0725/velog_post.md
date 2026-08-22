@@ -21,7 +21,7 @@
 
 그럼 요청 하나가 응답이 되기까지 누가 뭘 하는가.
 
-![시퀀스 다이어그램. 클라이언트가 GET /hello를 DispatcherServlet에 보내면 DispatcherServlet이 HandlerMapping에 핸들러를 조회한다. alt 프레임의 첫 분기(매칭되는 핸들러 있음)에서는 hello()가 호출되고 반환된 문자열이 200 OK와 함께 클라이언트로 돌아간다. 아무도 상태를 지정하지 않아 기본값이 붙는다. 두 번째 분기(없음)에서는 HandlerMapping이 핸들러 없음을 알리고 404가 반환되는데, HelloController 생명선까지는 가지도 못한다.](../../assets/day01-request-flow.png)
+![시퀀스 다이어그램. 클라이언트가 GET /hello를 DispatcherServlet에 보내면 DispatcherServlet이 HandlerMapping에 핸들러를 조회한다. alt 프레임의 첫 분기(매칭되는 핸들러 있음)에서는 hello()가 호출되고 반환된 문자열이 200 OK와 함께 클라이언트로 돌아간다. 아무도 상태를 지정하지 않아 기본값이 붙는다. 두 번째 분기(없음)에서는 HandlerMapping이 핸들러 없음을 알리고 404가 반환되는데, HelloController 생명선까지는 가지도 못한다.](../../../assets/day01-request-flow.png)
 
 이 흐름이 오늘 헷갈렸던 것들을 한 줄씩 설명해준다.
 

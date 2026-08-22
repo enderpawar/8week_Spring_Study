@@ -19,7 +19,7 @@ Day9에 만든 `JdbcReservationRepository`는 `save()`에 INSERT만 있어서, �
 
 그래서 오늘 추가한 파일 중 하나는 본문이 비어 있다.
 
-![클래스 다이어그램. ReservationService가 «interface» ReservationRepository를 생성자 주입으로 참조하고, «@Repository» JpaReservationRepository가 그 인터페이스를 «realize»한다. JpaReservationRepository는 delegate 필드로 «interface» SpringDataReservationRepository를 주입받고, 그 인터페이스는 오퍼레이션 칸이 비어 있는 채로 JpaRepository<Reservation, Long>를 상속한다. 왼쪽 아래의 «@Entity» Reservation은 roomName·requesterName·confirmed·id가 모두 private이고 id에 «@Id, IDENTITY»가 붙어 있으며, 생성자 Reservation()은 protected다. 노트는 Spring Data가 기동 시 이 인터페이스를 찾아 구현 객체를 만들어 Bean으로 등록한다는 것과 기동 로그의 "Found 1 JPA repository interface."를 가리킨다.](../../assets/day10-jpa-adapter.png)
+![클래스 다이어그램. ReservationService가 «interface» ReservationRepository를 생성자 주입으로 참조하고, «@Repository» JpaReservationRepository가 그 인터페이스를 «realize»한다. JpaReservationRepository는 delegate 필드로 «interface» SpringDataReservationRepository를 주입받고, 그 인터페이스는 오퍼레이션 칸이 비어 있는 채로 JpaRepository<Reservation, Long>를 상속한다. 왼쪽 아래의 «@Entity» Reservation은 roomName·requesterName·confirmed·id가 모두 private이고 id에 «@Id, IDENTITY»가 붙어 있으며, 생성자 Reservation()은 protected다. 노트는 Spring Data가 기동 시 이 인터페이스를 찾아 구현 객체를 만들어 Bean으로 등록한다는 것과 기동 로그의 "Found 1 JPA repository interface."를 가리킨다.](../../../assets/day10-jpa-adapter.png)
 
 `SpringDataReservationRepository`에는 `save`도 `findById`도 없는데 테스트가 그 셋을 다 호출한다. 구현을 소스에서 찾으려고 하면 못 찾는다. 기동 로그에 `Found 1 JPA repository interface.`가 찍히는데, Spring Data가 시작할 때 인터페이스를 스캔해 구현 객체를 만들고 Bean으로 등록하기 때문이다.
 

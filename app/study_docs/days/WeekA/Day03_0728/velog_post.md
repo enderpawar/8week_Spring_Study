@@ -27,7 +27,7 @@ Day2에서 만든 `POST /reservations`는 `roomName`이 빈 문자열로 들어�
 
 마지막으로 `BindingResult`는 "검증 결과 보고서"이지 "DTO의 사본"이 아니다. 통과한 필드는 기록되지 않으므로, 응답 바디의 길이는 DTO 필드 수가 아니라 **위반 개수**를 따라간다.
 
-![시퀀스 다이어그램. 클라이언트가 roomName이 빈 문자열인 JSON을 POST하면 DispatcherServlet이 자기 자신에게 @RequestBody 변환과 @Valid 검사를 수행한다. alt 프레임의 첫 분기(검증 통과)에서는 ReservationController.reserve()가 호출되고 200 OK가 돌아간다. 두 번째 분기(검증 실패, MethodArgumentNotValidException)에서는 GlobalExceptionHandler.handleValidation()이 호출돼 400과 roomName 키만 담긴 Map이 반환되는데, 이 분기에서 ReservationController 생명선은 한 번도 닿지 않는다.](../../assets/day03-validation-flow.png)
+![시퀀스 다이어그램. 클라이언트가 roomName이 빈 문자열인 JSON을 POST하면 DispatcherServlet이 자기 자신에게 @RequestBody 변환과 @Valid 검사를 수행한다. alt 프레임의 첫 분기(검증 통과)에서는 ReservationController.reserve()가 호출되고 200 OK가 돌아간다. 두 번째 분기(검증 실패, MethodArgumentNotValidException)에서는 GlobalExceptionHandler.handleValidation()이 호출돼 400과 roomName 키만 담긴 Map이 반환되는데, 이 분기에서 ReservationController 생명선은 한 번도 닿지 않는다.](../../../assets/day03-validation-flow.png)
 
 > **더 볼 것**
 > - [Exceptions — Spring Framework Reference](https://docs.spring.io/spring-framework/reference/web/webmvc/mvc-controller/ann-exceptionhandler.html): `@ExceptionHandler` 지원이 `DispatcherServlet`의 `HandlerExceptionResolver` 위에 있다는 근거
