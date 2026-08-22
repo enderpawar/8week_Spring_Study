@@ -1,0 +1,850 @@
+<title>Spring 패턴 따라치기</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap">
+
+<style>
+:root{
+  --ground:#f7f8fa; --surface:#ffffff; --surface-2:#eef2f7; --code-bg:#f4f6f9;
+  --line:#dce3ec; --line-strong:#c3cedc;
+  --ink:#0f172a; --body:#334155; --muted:#64748b;
+  --accent:#9a5b16; --accent-soft:#f7ead9; --accent-line:#d9b98c;
+  --pass:#15803d; --pass-soft:#dff3e5; --fail:#b3261e; --fail-soft:#fbe4e2;
+  --shadow:0 1px 2px rgba(15,23,42,.05), 0 8px 24px -16px rgba(15,23,42,.35);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --ground:#0c1320; --surface:#141d2b; --surface-2:#1b2634; --code-bg:#0f1826;
+    --line:#283445; --line-strong:#3a4a60;
+    --ink:#e9eff7; --body:#c3cedc; --muted:#8496ab;
+    --accent:#e0a04a; --accent-soft:#33270f; --accent-line:#6a5227;
+    --pass:#57d98a; --pass-soft:#12301e; --fail:#f38b84; --fail-soft:#391b19;
+    --shadow:0 1px 2px rgba(0,0,0,.4), 0 10px 28px -18px rgba(0,0,0,.8);
+  }
+}
+:root[data-theme="dark"]{
+  --ground:#0c1320; --surface:#141d2b; --surface-2:#1b2634; --code-bg:#0f1826;
+  --line:#283445; --line-strong:#3a4a60;
+  --ink:#e9eff7; --body:#c3cedc; --muted:#8496ab;
+  --accent:#e0a04a; --accent-soft:#33270f; --accent-line:#6a5227;
+  --pass:#57d98a; --pass-soft:#12301e; --fail:#f38b84; --fail-soft:#391b19;
+  --shadow:0 1px 2px rgba(0,0,0,.4), 0 10px 28px -18px rgba(0,0,0,.8);
+}
+
+*{box-sizing:border-box}
+body{
+  margin:0; background:var(--ground); color:var(--body);
+  font-family:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI","Malgun Gothic",sans-serif;
+  font-size:15px; line-height:1.6; -webkit-font-smoothing:antialiased;
+}
+code,pre,textarea,.mono{font-family:"IBM Plex Mono",ui-monospace,Consolas,monospace}
+h1,h2,h3{color:var(--ink); text-wrap:balance; margin:0}
+button{font:inherit; cursor:pointer}
+:focus-visible{outline:2px solid var(--accent); outline-offset:2px; border-radius:3px}
+@media (prefers-reduced-motion:reduce){*{animation:none!important; transition:none!important}}
+
+/* ---------- header ---------- */
+.top{
+  position:sticky; top:0; z-index:20; background:var(--surface);
+  border-bottom:1px solid var(--line);
+}
+.top-in{
+  max-width:1280px; margin:0 auto; padding:14px 24px;
+  display:flex; align-items:center; gap:20px; flex-wrap:wrap;
+}
+.brand{display:flex; align-items:baseline; gap:10px; margin-right:auto}
+.brand h1{font-size:17px; font-weight:600; letter-spacing:-.01em}
+.brand .sub{font-size:12px; color:var(--muted)}
+.meter{display:flex; align-items:center; gap:10px}
+.meter-track{
+  width:170px; height:6px; border-radius:99px; background:var(--surface-2);
+  border:1px solid var(--line); overflow:hidden;
+}
+.meter-fill{display:block; height:100%; width:0; background:var(--accent); transition:width .3s ease}
+.meter-num{
+  font-size:12px; color:var(--muted); font-variant-numeric:tabular-nums;
+  min-width:62px; text-align:right;
+}
+.btn{
+  border:1px solid var(--line-strong); background:var(--surface); color:var(--body);
+  padding:7px 13px; border-radius:7px; font-size:13px; font-weight:500;
+  transition:background .15s ease, border-color .15s ease;
+}
+.btn:hover{background:var(--surface-2)}
+.btn.primary{background:var(--accent); border-color:var(--accent); color:var(--surface)}
+:root[data-theme="dark"] .btn.primary,
+:root:not([data-theme="light"]) .btn.primary{color:#0c1320}
+@media (prefers-color-scheme: light){:root:not([data-theme="dark"]) .btn.primary{color:#fff}}
+.btn.primary:hover{filter:brightness(1.08)}
+.btn.ghost{border-color:transparent; background:transparent; color:var(--muted)}
+.btn.ghost:hover{background:var(--surface-2); color:var(--body)}
+
+/* ---------- shell ---------- */
+.shell{max-width:1280px; margin:0 auto; padding:24px; display:grid; grid-template-columns:216px 1fr; gap:28px; align-items:start}
+@media (max-width:900px){.shell{grid-template-columns:1fr; gap:18px}}
+
+.rail{position:sticky; top:78px; display:flex; flex-direction:column; gap:18px; max-height:calc(100vh - 100px); overflow:auto; padding-right:4px}
+@media (max-width:900px){.rail{position:static; max-height:none; overflow:visible}}
+.rail-group h2{
+  font-size:11px; font-weight:600; letter-spacing:.09em; text-transform:uppercase;
+  color:var(--muted); margin-bottom:8px;
+}
+.rail-list{display:flex; flex-direction:column; gap:1px}
+.rail-link{
+  display:flex; align-items:center; gap:9px; padding:6px 9px; border-radius:6px;
+  color:var(--body); text-decoration:none; font-size:13px; border:1px solid transparent;
+}
+.rail-link:hover{background:var(--surface-2)}
+.rail-link .tag{font-size:11px; font-weight:600; color:var(--muted); min-width:26px; font-variant-numeric:tabular-nums}
+.rail-link .nm{overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+.dot{width:7px; height:7px; border-radius:50%; background:var(--line-strong); flex:none; margin-left:auto}
+.dot.pass{background:var(--pass)}
+.dot.fail{background:var(--fail)}
+
+/* ---------- intro ---------- */
+.intro{
+  background:var(--surface); border:1px solid var(--line); border-radius:12px;
+  padding:20px 22px; margin-bottom:24px; box-shadow:var(--shadow);
+}
+.intro h2{font-size:15px; margin-bottom:10px}
+.intro p{margin:0 0 8px; font-size:13.5px; max-width:68ch}
+.intro p:last-child{margin-bottom:0}
+.intro .rule{
+  border-left:2px solid var(--accent-line); background:var(--accent-soft);
+  padding:9px 13px; border-radius:0 6px 6px 0; font-size:13px; margin-top:12px;
+}
+
+/* ---------- mode switch ---------- */
+.modes{display:inline-flex; padding:3px; gap:3px; background:var(--surface-2); border:1px solid var(--line); border-radius:9px}
+.mode{border:none; background:transparent; color:var(--muted); padding:6px 14px; border-radius:6px; font-size:13px; font-weight:500}
+.mode[aria-pressed="true"]{background:var(--surface); color:var(--ink); box-shadow:0 1px 2px rgba(15,23,42,.12)}
+
+/* ---------- section ---------- */
+.week{margin-bottom:34px}
+.week-head{display:flex; align-items:baseline; gap:12px; padding-bottom:9px; border-bottom:1px solid var(--line); margin-bottom:18px}
+.week-head h2{font-size:16px; font-weight:600}
+.week-head .note{font-size:12.5px; color:var(--muted)}
+
+/* ---------- card ---------- */
+.card{
+  background:var(--surface); border:1px solid var(--line); border-radius:12px;
+  margin-bottom:16px; overflow:hidden; box-shadow:var(--shadow); scroll-margin-top:84px;
+}
+.card-head{display:flex; align-items:center; gap:11px; padding:14px 18px; border-bottom:1px solid var(--line)}
+.pid{
+  font-family:"IBM Plex Mono",monospace; font-size:12px; font-weight:600;
+  color:var(--accent); background:var(--accent-soft); border:1px solid var(--accent-line);
+  padding:2px 7px; border-radius:5px; flex:none;
+}
+.card-head h3{font-size:14.5px; font-weight:600; flex:1; min-width:0}
+.state{
+  font-size:11px; font-weight:600; letter-spacing:.05em; text-transform:uppercase;
+  padding:3px 9px; border-radius:99px; border:1px solid var(--line-strong); color:var(--muted); flex:none;
+}
+.state.pass{color:var(--pass); border-color:var(--pass); background:var(--pass-soft)}
+.state.fail{color:var(--fail); border-color:var(--fail); background:var(--fail-soft)}
+
+.when{padding:11px 18px; font-size:13px; color:var(--muted); border-bottom:1px solid var(--line); background:var(--surface-2)}
+.when b{color:var(--body); font-weight:600}
+
+.work{display:grid; grid-template-columns:1fr 1fr; gap:0}
+@media (max-width:860px){.work{grid-template-columns:1fr}}
+.pane{padding:16px 18px; min-width:0}
+.pane + .pane{border-left:1px solid var(--line)}
+@media (max-width:860px){.pane + .pane{border-left:none; border-top:1px solid var(--line)}}
+.pane-head{
+  display:flex; align-items:center; gap:8px; margin-bottom:9px;
+  font-size:11px; font-weight:600; letter-spacing:.08em; text-transform:uppercase; color:var(--muted);
+}
+.pane-head .sp{margin-left:auto}
+
+pre.code{
+  margin:0; background:var(--code-bg); border:1px solid var(--line); border-radius:8px;
+  padding:13px 14px; font-size:12.5px; line-height:1.65; color:var(--ink);
+  overflow-x:auto; white-space:pre; tab-size:4;
+}
+pre.code.hidden{display:none}
+textarea.editor{
+  width:100%; min-height:230px; resize:vertical; background:var(--code-bg);
+  border:1px solid var(--line); border-radius:8px; padding:13px 14px;
+  font-size:12.5px; line-height:1.65; color:var(--ink); tab-size:4; white-space:pre;
+  overflow-wrap:normal; overflow-x:auto;
+}
+textarea.editor:focus{border-color:var(--accent)}
+
+.tools{display:flex; gap:7px; margin-top:10px; flex-wrap:wrap}
+.result{margin-top:11px; font-size:13px; color:var(--muted); min-height:20px}
+.result.pass{color:var(--pass); font-weight:500}
+.result.fail{color:var(--fail); font-weight:500}
+.diff{
+  margin-top:9px; border:1px solid var(--line); border-radius:7px; overflow:hidden;
+  font-family:"IBM Plex Mono",monospace; font-size:12px; background:var(--code-bg);
+}
+.diff div{padding:3px 10px; white-space:pre; overflow-x:auto}
+.diff .ok{color:var(--muted)}
+.diff .miss{background:var(--fail-soft); color:var(--fail)}
+.diff .want{background:var(--pass-soft); color:var(--pass)}
+.diff .ln{display:inline-block; width:2.2em; color:var(--muted); user-select:none}
+
+.checklist{margin:0; padding:0; list-style:none; display:flex; flex-direction:column; gap:7px}
+.checklist li{display:flex; gap:9px; align-items:flex-start; font-size:13px}
+.checklist input{margin-top:4px; accent-color:var(--accent); flex:none}
+.gate{
+  border:1px dashed var(--line-strong); border-radius:8px; padding:13px 14px;
+  font-size:13px; color:var(--muted); background:var(--surface-2);
+}
+.mistake{
+  margin-top:12px; padding:10px 13px; border-radius:7px; font-size:12.5px;
+  background:var(--fail-soft); border:1px solid var(--line); color:var(--body);
+}
+.mistake b{color:var(--fail); font-weight:600}
+.foot{max-width:1280px; margin:0 auto; padding:8px 24px 40px; font-size:12.5px; color:var(--muted)}
+</style>
+
+<header class="top">
+  <div class="top-in">
+    <div class="brand">
+      <h1>Spring 패턴 따라치기</h1>
+      <span class="sub">CODE_PATTERNS P1–P21</span>
+    </div>
+    <div class="modes" role="group" aria-label="연습 모드">
+      <button class="mode" id="mFollow" aria-pressed="true">따라치기</button>
+      <button class="mode" id="mRecall" aria-pressed="false">전이 연습</button>
+    </div>
+    <div class="meter">
+      <span class="meter-track"><span class="meter-fill" id="fill"></span></span>
+      <span class="meter-num" id="num">0 / 0</span>
+    </div>
+    <button class="btn ghost" id="reset">입력 비우기</button>
+  </div>
+</header>
+
+<div class="shell">
+  <nav class="rail" id="rail" aria-label="패턴 목록"></nav>
+  <main>
+    <section class="intro">
+      <h2 id="introTitle">따라치기 — 돌아가는 코드의 형태를 손에 넣기</h2>
+      <div id="introBody"></div>
+    </section>
+    <div id="app"></div>
+  </main>
+</div>
+<p class="foot">골격은 전부 <code>src/</code>의 컴파일·테스트를 통과한 코드에서 가져왔습니다. 판단 근거와 실수 기록은 <code>study_docs/CODE_PATTERNS.md</code>, 빈칸 드릴은 <code>study_docs/PATTERN_DRILLS.md</code>에 있습니다.</p>
+
+<script>
+const INTRO = {
+  follow: {
+    title: "따라치기 — 돌아가는 코드의 형태를 손에 넣기",
+    body: `<p>왼쪽 골격을 보고 오른쪽에 <b>직접 타이핑</b>합니다. 복사·붙여넣기는 아무것도 남기지 않습니다.</p>
+    <p>채점은 줄 단위로 하되 들여쓰기와 빈 줄은 무시합니다. 토큰이 하나라도 다르면 그 줄을 짚어줍니다.</p>
+    <div class="rule"><b>용어의 뜻</b>은 <code>vocab.md</code>가, <b>코드의 형태</b>는 이 연습이 담당합니다. 둘은 다른 능력이라 하나로 다른 하나가 채워지지 않습니다.</div>`
+  },
+  recall: {
+    title: "전이 연습 — 다른 도메인에서 같은 구조 세우기",
+    body: `<p>예약(<code>Reservation</code>)이 아니라 <b>도서 대출(<code>Loan</code>)</b> 도메인으로 같은 구조를 세웁니다. 같은 도메인으로 하면 베끼기가 되고 구조 전이가 일어나지 않습니다.</p>
+    <p>여기서는 정답을 채점하지 않습니다. <b>지어낸 코드를 정답이라고 내놓지 않기 위해서</b>입니다 — 이 저장소의 골격은 실제로 돌아가는 <code>src/</code>에서만 가져옵니다. 대신 그 패턴의 판단 기준을 체크리스트로 스스로 대조합니다.</p>
+    <div class="rule">참조 골격은 <b>직접 써본 뒤에</b> 열립니다. 인출 순서(손으로 먼저 → 틀림 → 그때 참조서)를 지키기 위한 잠금입니다.</div>`
+  }
+};
+
+const WEEKS = [
+{ id:"A", title:"Week A — 웹 계층", note:"요청 하나가 계층을 지나는 길", items:[
+
+{ id:"P1", title:"엔드포인트 하나 받기 — Controller", when:"새 URL을 열 때.", lang:"java",
+  code:`@RestController
+public class ReservationController {
+
+    private final ReservationService reservationService;
+
+    public ReservationController(ReservationService reservationService) {
+        this.reservationService = reservationService;
+    }
+
+    @PostMapping("/reservations")
+    public String reserve(@RequestBody @Valid ReservationRequest request) {
+        Reservation reservation = reservationService.reserve(
+                request.roomName(), request.requesterName());
+        return "예약 번호" + reservation.getId();
+    }
+}`,
+  judge:["Controller에는 HTTP 입출력만 둔다 — if로 업무 규칙을 판단하기 시작하면 그건 Service 일이다",
+         "@RequestBody는 본문(JSON), @PathVariable은 URL 경로 조각 — 받는 위치가 다르다",
+         "생성자 주입이라 필드에 final을 붙일 수 있다"],
+  mistake:"같은 이름·같은 파라미터 메서드를 애노테이션만 다르게 2개 선언 → 컴파일 에러. 컴파일러는 애노테이션을 안 본다 (D01)",
+  transfer:"POST /loans로 대출을 생성하는 LoanController를 세우시오. 생성자 주입, @RequestBody @Valid LoanRequest, LoanService 위임까지." },
+
+{ id:"P2", title:"요청 DTO — record + 검증", when:"클라이언트가 보내는 JSON을 받을 때.", lang:"java",
+  code:`public record ReservationRequest(
+        @NotBlank(message = "방 이름은 비어있을 수 없습니다")
+        String roomName,
+
+        @NotBlank(message = "예약자 이름은 비어있을 수 없습니다.")
+        String requesterName
+) {}`,
+  judge:["DTO는 record, Domain은 class — DTO는 값을 옮기기만 하니 불변이면 되고 Domain은 상태가 바뀌어야 하니 불변이면 안 된다",
+         "검증 애노테이션은 DTO에 붙인다 — 잘못된 입력을 계층 초입에서 끊기 위해",
+         "이것만으로는 검증이 안 돈다. Controller 파라미터의 @Valid와 한 쌍이다"],
+  mistake:"request.getRoomName() 호출 → cannot find symbol. record 접근자는 필드명 그대로이고 JavaBean getXxx 관례를 안 따른다 (D02)",
+  transfer:"LoanRequest를 record로 선언하시오. bookTitle, borrowerName 두 필드에 한글 메시지를 단 @NotBlank." },
+
+{ id:"P3", title:"Domain 클래스 — 가변 + 캡슐화", when:"업무 규칙을 가진 객체가 필요할 때.", lang:"java",
+  code:`public class Reservation {
+    private String roomName;
+    private String requesterName;
+    private boolean confirmed;
+    private Long id;
+
+    public Reservation(String roomName, String requesterName) {
+        this.roomName = roomName;
+        this.requesterName = requesterName;
+        this.confirmed = false;
+    }
+
+    public void confirm() { this.confirmed = true; }
+
+    public void cancel(String cancelReason) {
+        this.confirmed = false;
+        this.cancelReason = cancelReason;
+    }
+
+    public void assignId(Long id) { this.id = id; }
+}`,
+  judge:["setConfirmed(boolean)을 만들지 않는다 — confirm()/cancel()처럼 업무 의미가 담긴 이름만 연다",
+         "confirmed의 초기값을 생성자가 false로 못 박는다. 확정 상태로 태어나는 예약이 없다",
+         "id는 저장소가 붙인다. 그래서 final이 아니고 assignId라는 별도 문이 필요하다"],
+  mistake:"cancel() 처리에서 findById 없이 new Reservation(...)으로 새 객체를 만들어 저장 → 새 예약이 하나 더 생기고 원본은 confirmed:true 그대로 남았다 (D04)",
+  transfer:"Loan 클래스를 세우시오. bookTitle·borrowerName·returned·id, 생성자에서 returned를 시작 상태로 못 박고, 상태 변경은 업무 의미가 담긴 이름으로." },
+
+{ id:"P4", title:"도메인 예외", when:"업무적으로 의미 있는 실패를 표현할 때.", lang:"java",
+  code:`public class ReservationNotFoundException extends RuntimeException {
+    public ReservationNotFoundException(Long id) {
+        super("예약을 찾을 수 없습니다. (id: " + id + ")");
+    }
+}`,
+  judge:["RuntimeException을 상속한다 — checked로 만들면 모든 호출부가 throws를 달아야 해서 계층이 오염된다",
+         "메시지를 생성자 안에서 만든다 — 호출부는 new ...Exception(id) 한 줄이면 되고 형식이 한 곳에만 있다",
+         "이름이 NotFound인 것과 응답이 404인 것은 별개다. 도메인은 HTTP를 몰라야 한다"],
+  mistake:"",
+  transfer:"LoanNotFoundException을 세우시오. 무엇을 상속하고, 메시지 조립을 누가 책임지는지까지 같은 판단으로." },
+
+{ id:"P5", title:"전역 예외 처리 — 핸들러", when:"예외를 HTTP 응답으로 바꿀 때.", lang:"java",
+  code:`@RestControllerAdvice
+public class GlobalExceptionHandler {
+
+    private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
+
+    @ExceptionHandler(ReservationNotFoundException.class)
+    public ResponseEntity<Map<String, String>> handleNotFound(ReservationNotFoundException ex) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(Map.of("error", ex.getMessage()));
+    }
+
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<Map<String, String>> handleUnexpected(Exception ex) {
+        log.error("처리하지 못한 예외", ex);
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(Map.of("error", "요청 처리 중 오류가 발생했습니다."));
+    }
+}`,
+  judge:["검증 실패가 두 종류라 핸들러도 둘이다 — 본문 DTO는 MethodArgumentNotValidException, 파라미터는 HandlerMethodValidationException. 하나만 만들면 나머지가 500으로 샌다",
+         "ex.getMessage()를 응답에 넣지 않는다 — SQL문·파일 경로·라이브러리 버전이 새어 나간다",
+         "log.error(\"...\", ex) — 예외를 두 번째 인자로 넘겨야 스택트레이스가 남는다"],
+  mistake:"두 번째 @ExceptionHandler 메서드를 클래스 닫는 } 뒤에 작성 → 컴파일 에러. } 이후는 파일 최상위라 class/interface/enum/record만 올 수 있다 (D03)",
+  transfer:"LoanNotFoundException을 404로, 예상 밖 예외를 500으로 매핑하는 전역 처리기를 세우시오. 500 본문에 무엇을 넣지 말아야 하는지 지키면서." },
+
+{ id:"P6", title:"Repository — 인터페이스 + 저장 계약", when:"저장소가 필요할 때. 인터페이스와 구현을 반드시 분리한다.", lang:"java",
+  code:`public interface ReservationRepository {
+    Reservation save(Reservation reservation);
+    List<Reservation> findAll();
+    Optional<Reservation> findById(Long id);
+}`,
+  judge:["save()의 계약: ID 없으면 추가, 있으면 교체. 이 분기를 빠뜨리면 취소할 때마다 행이 하나씩 는다",
+         "Optional로 부재를 표현하고, 예외로 바꾸는 건 Service가 한다. 저장소는 \"없다\"까지만 말한다",
+         "인터페이스를 분리하는 이유는 테스트다 — 실행은 DB 구현, 테스트는 메모리 구현"],
+  mistake:"인터페이스만 같으면 계약도 같을 거라 가정 → 인터페이스는 시그니처만 강제하고 의미는 강제 못 한다. JDBC 구현엔 분기가 없어 취소할 때마다 복사본이 생겼다 (D09)",
+  transfer:"LoanRepository 인터페이스를 세우시오. 부재를 반환형에 드러내는 타입을 골라서." },
+
+{ id:"P7", title:"Service — 조율 + Optional → 도메인 예외", when:"업무 규칙이 필요할 때.", lang:"java",
+  code:`@Service
+public class ReservationService {
+
+    private final ReservationRepository reservationRepository;
+
+    public ReservationService(ReservationRepository reservationRepository) {
+        this.reservationRepository = reservationRepository;
+    }
+
+    public Reservation cancel(Long id, String cancelReason) {
+        Reservation reservation = reservationRepository.findById(id)
+                .orElseThrow(() -> new ReservationNotFoundException(id));
+        reservation.cancel(cancelReason);
+        reservationRepository.save(reservation);
+        return reservation;
+    }
+}`,
+  judge:["찾기 → 바꾸기 → 저장이 갱신의 3단계다. new로 시작하면 갱신이 아니라 추가가 된다",
+         "Optional이 여기서 끝난다 — orElseThrow로 도메인 예외로 바꿔 위층에 넘긴다",
+         "상태 변경을 Service가 직접 하지 않는다. reservation.setConfirmed(false)가 아니라 reservation.cancel()"],
+  mistake:"요청별 값을 싱글톤 Service의 필드에 저장 → 여러 스레드가 같은 객체를 공유하므로 요청끼리 값이 섞인다. 해결책은 final이 아니라 애초에 필드에 안 두는 것 (D05·D09)",
+  transfer:"LoanService.giveBack(Long id)를 세우시오. 없는 대출은 도메인 예외로 바꾸고, 상태 변경은 도메인에게 시키면서." },
+
+{ id:"P9", title:"MockMvc — 포트 없이 전 구간", when:"층이 실제로 이어지는지 확인할 때.", lang:"java",
+  code:`@SpringBootTest
+@AutoConfigureMockMvc
+class ReservationControllerHttpTest {
+
+    @Autowired
+    private MockMvc mockMvc;
+
+    @Test
+    void cancelReturns404WhenReservationDoesNotExist() throws Exception {
+        mockMvc.perform(post("/reservations/cancel/{id}", 999_999L)
+                        .param("cancelReason", "테스트 사유"))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.error")
+                        .value("예약을 찾을 수 없습니다. (id: 999999)"));
+    }
+}`,
+  judge:["@PathVariable 짝 버그는 MockMvc만 잡는다 — URL 매핑을 실제로 지나야 드러나므로 단위 테스트를 늘려도 안 잡힌다",
+         "한글 JSON은 텍스트 블록(\"\"\")으로 쓴다. curl/PowerShell은 인코딩과 이스케이프에서 깨진다",
+         "초록불은 \"버그가 없다\"가 아니라 \"지금 확인한 것들에는 문제가 없다\"이다"],
+  mistake:"새로 필수가 된 쿼리 파라미터를 요청에 안 넣음 → 기대하던 404가 아니라 다른 이유의 400이 돌아와 테스트 실패 (D14)",
+  transfer:"없는 대출 번호로 반납을 요청하면 404와 메시지가 오는지 검사하는 MockMvc 테스트를 쓰시오." }
+]},
+
+{ id:"B", title:"Week B — 데이터 접근", note:"스키마의 주인은 Flyway, 매핑의 주인은 엔티티", items:[
+
+{ id:"P10", title:"Flyway — 스키마를 코드로", when:"테이블을 만들거나 바꿀 때. DB 콘솔에서 직접 CREATE TABLE을 치지 않는다.", lang:"sql",
+  code:`CREATE TABLE reservation (
+    id BIGINT NOT NULL AUTO_INCREMENT,
+    room_name VARCHAR(100) NOT NULL,
+    requester_name VARCHAR(50) NOT NULL,
+    confirmed BOOLEAN NOT NULL DEFAULT FALSE,
+    PRIMARY KEY (id)
+);`,
+  judge:["파일명은 V1__init.sql — 언더바 2개. 경로는 src/main/resources/db/migration/",
+         "적용된 마이그레이션은 불변이다. 고치지 말고 V2를 새로 쌓는다 — push한 커밋을 rebase하지 않는 것과 같은 규칙",
+         "SQL 주석은 -- 로 쓴다. #은 MySQL 방언이라 MODE=MySQL이어도 H2 파서가 막는다"],
+  mistake:"이미 적용된 파일에 주석 한 줄 추가 → Migration checksum mismatch for migration version 1. Flyway는 SQL을 해석하지 않고 파일 전체의 해시를 대조한다 (D08)",
+  transfer:"loan 테이블을 만드는 V1__init.sql을 쓰시오. 파일 경로부터 적고, 번호는 DB가 붙이게." },
+
+{ id:"P12", title:"JDBC로 저장하기 — 자원 반납", when:"SQL을 직접 쓸 때. JPA를 쓰면 이 코드는 사라진다.", lang:"java",
+  code:`@Override
+public Reservation save(Reservation reservation) {
+    String sql = "INSERT INTO reservation (room_name, requester_name, confirmed) VALUES (?,?,?)";
+
+    try (Connection con = dataSource.getConnection();
+         PreparedStatement ps = con.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
+
+        ps.setString(1, reservation.getRoomName());
+        ps.setString(2, reservation.getRequesterName());
+        ps.setBoolean(3, reservation.isConfirmed());
+        ps.executeUpdate();
+
+        try (ResultSet keys = ps.getGeneratedKeys()) {
+            if (keys.next()) {
+                reservation.assignId(keys.getLong(1));
+            }
+        }
+        return reservation;
+
+    } catch (SQLException e) {
+        throw new IllegalStateException("예약 저장 실패", e);
+    }
+}`,
+  judge:["값을 이어붙이지 않고 ?로 자리만 비운다 — DB가 SQL 구조를 먼저 파싱해 굳힌 뒤 값을 채우므로 SQL Injection이 막힌다",
+         "try-with-resources는 블록 이탈 시 역순으로 자동 close한다. 커넥션을 반납 안 하면 풀이 말라 서버 전체가 멈춘다",
+         "파라미터 인덱스는 1부터다 (0 아님)",
+         "감쌀 때 원인 e를 두 번째 인자로 반드시 넘겨야 스택트레이스가 보존된다"],
+  mistake:"save()에 신규/갱신 분기를 안 만들고 INSERT만 → 취소할 때마다 복사본 행이 생겼다. 그런데 테스트 10개는 전부 통과했다 (D09)",
+  transfer:"JdbcLoanRepository.save()를 쓰시오. 자원 반납과 생성 키 회수까지." },
+
+{ id:"P13", title:"ResultSet → 객체 매핑", when:"SELECT 결과를 도메인 객체로 바꿀 때.", lang:"java",
+  code:`private Reservation mapRow(ResultSet rs) throws SQLException {
+    Reservation reservation = new Reservation(
+            rs.getString("room_name"), rs.getString("requester_name"));
+
+    reservation.assignId(rs.getLong("id"));
+
+    if (rs.getBoolean("confirmed")) {
+        reservation.confirm();
+    }
+    return reservation;
+}`,
+  judge:["ResultSet은 커서다 — next()는 행을 옮기고, getXxx()는 현재 행에서 값만 읽는다(이동하지 않는다)",
+         "mapRow가 3단계인 이유가 캡슐화의 대가다 — 생성자가 confirmed를 항상 false로 시작하게 막아뒀는데 DB엔 이미 확정된 행이 있다",
+         "이 3단계 전체가 JPA로 가면 사라진다. 늘어난 코드 중 비즈니스 로직은 한 줄도 없다"],
+  mistake:"mapRow 안에서 rs.next()를 부름 → 행이 하나 걸러 하나씩 사라진다. 컴파일도 되고 예외도 안 나는 종류의 버그 (D09)",
+  transfer:"loan 행 하나를 Loan 객체로 되돌리는 mapRow를 쓰시오. 상태는 도메인 메서드로 바꾸면서." },
+
+{ id:"P15", title:"Spring Data 어댑터 구조", when:"JDBC 구현을 Spring Data JPA로 바꿀 때. 기존 인터페이스를 버리지 않고 얹는다.", lang:"java",
+  code:`public interface SpringDataReservationRepository
+        extends JpaRepository<Reservation, Long> {
+}
+
+@Repository
+public class JpaReservationRepository implements ReservationRepository {
+
+    private final SpringDataReservationRepository delegate;
+
+    public JpaReservationRepository(SpringDataReservationRepository delegate) {
+        this.delegate = delegate;
+    }
+
+    @Override
+    public Reservation save(Reservation reservation) {
+        return delegate.save(reservation);
+    }
+
+    @Override
+    public Optional<Reservation> findById(Long id) {
+        return delegate.findById(id);
+    }
+}`,
+  judge:["SpringDataReservationRepository는 class가 아니라 interface다 — 기동 시 Spring Data가 프록시 구현체를 만들어 Bean으로 등록한다",
+         "상속(is-a)이 아니라 보유(has-a)다. 어댑터를 끼우는 이유는 Service가 스프링 타입을 모르게 하는 것(DIP)",
+         "어제의 20줄이 delegate.save(r) 한 줄이 된다 — 없앤 게 SQL만이 아니라 저장 계약의 분기 판단까지다"],
+  mistake:"@Repository 붙은 구현체가 2개 → NoUniqueBeanDefinitionException: expected single matching bean but found 2. 스프링은 임의로 고르지 않고 즉시 죽는다 (D09)",
+  transfer:"SpringDataLoanRepository와 JpaLoanRepository 어댑터를 세우시오. LoanService가 계속 LoanRepository에만 의존하도록." },
+
+{ id:"P16", title:"JPA Entity 매핑 — 식별자와 기본 생성자", when:"기존 Domain 객체를 JPA가 DB 행으로 저장하고 복원하게 만들 때.", lang:"java",
+  code:`@Entity
+public class Reservation {
+    private String roomName;
+    private String requesterName;
+    private boolean confirmed;
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    public Reservation(String roomName, String requesterName) {
+        this.roomName = roomName;
+        this.requesterName = requesterName;
+        this.confirmed = false;
+    }
+
+    protected Reservation() {
+    }
+}`,
+  judge:["@Id를 필드에 두면 필드 접근 방식이 선택된다. getter 접근과 섞지 않는다",
+         "IDENTITY는 DB의 AUTO_INCREMENT에 ID 생성을 맡긴다 — INSERT가 실행된 뒤 키가 들어온다",
+         "protected 기본 생성자는 Hibernate가 조회 결과를 복원할 통로다. 일반 코드에는 의미 없는 빈 객체 생성을 감춘다",
+         "ddl-auto: none으로 Hibernate의 DDL 생성을 막았다. 스키마의 주인은 Flyway다"],
+  mistake:"final 필드 둘을 둔 채 빈 기본 생성자도 컴파일된다고 예측(\"된다\") → final 인스턴스 필드는 모든 생성자 경로에서 초기화되어야 한다 (D10)",
+  transfer:"Loan을 Entity로 매핑하시오. 정상 생성 규칙과 JPA 복원 경로를 둘 다 남기면서." },
+
+{ id:"P17", title:"JPA 저장 계약 통합 테스트", when:"Repository 구현을 바꾼 뒤 save()의 신규/갱신 계약을 검증할 때.", lang:"java",
+  code:`@SpringBootTest
+@Transactional
+class JpaReservationRepositoryTest {
+
+    @Autowired
+    private ReservationRepository repository;
+
+    @Autowired
+    private EntityManager entityManager;
+
+    @Test
+    void savingExistingReservationUpdatesWithoutAddingDuplicate() {
+        int countBeforeSave = repository.findAll().size();
+        Reservation reservation = new Reservation("B202", "minji");
+        reservation.confirm();
+        Reservation saved = repository.save(reservation);
+        entityManager.flush();
+
+        saved.cancel("일정이 맞지 않습니다.");
+        repository.save(saved);
+        entityManager.flush();
+        entityManager.clear();
+
+        List<Reservation> all = repository.findAll();
+
+        assertEquals(countBeforeSave + 1, all.size());
+    }
+}`,
+  judge:["flush()는 쓰기 SQL을 검증 지점까지 DB로 보낸다",
+         "clear()는 1차 캐시를 비운다 — 이후 조회가 메모리에 남은 객체가 아니라 DB 결과를 다시 읽게 한다",
+         "UPDATE 로그만 보면 추가 INSERT가 없었다고 보장할 수 없다. 상대 행 수(+1)와 같은 ID 행 개수를 함께 검사한다"],
+  mistake:"전체 행 수를 무조건 1로 단언 → 단독 실행은 통과했지만 전체 12개 실행에서 다른 통합 테스트의 행 때문에 실패 (D10)",
+  transfer:"새 대출을 저장한 뒤 같은 ID의 반납 상태를 갱신하는 테스트를 쓰시오. 중복 행도 함께 검사하면서." },
+
+{ id:"P18", title:"1차 캐시 — 같은 트랜잭션에서 같은 참조", when:"같은 id를 한 트랜잭션에서 여러 번 조회할 때 SQL이 몇 번 나가는지 확인할 때.", lang:"java",
+  code:`@Test
+void repeatedFindByIdWithinSameTransactionReturnsSameInstance() {
+    Reservation reservation = new Reservation("B101", "Jinwoo");
+    Reservation saved = repository.save(reservation);
+    entityManager.flush();
+    Long id = saved.getId();
+
+    entityManager.clear();
+
+    Reservation first = repository.findById(id).orElseThrow();
+    Reservation second = repository.findById(id).orElseThrow();
+
+    assertSame(first, second);
+}`,
+  judge:["save()가 반환한 객체는 그 순간부터 이미 1차 캐시에 있다 — clear() 없이 바로 조회하면 첫 조회조차 SELECT가 0번이다",
+         "clear()는 조회를 막는 게 아니라 \"처음 조회하는 상태\"로 되돌린다. 그 다음 첫 조회만 SELECT를 발생시킨다",
+         "assertSame은 값이 아니라 같은 자바 객체(참조)인지 검사한다. assertEquals와는 다른 것을 증명한다"],
+  mistake:"save() 직후 clear() 없이 2회 조회하면 SELECT가 1번 나갈 거라 예측 → 실제는 0번. 이미 캐시에 있어 첫 조회부터 캐시 히트였다 (D11)",
+  transfer:"같은 id로 두 번 조회해 참조 동일성을 확인하는 테스트를 Loan으로 쓰시오. clear()를 넣은 경우와 뺀 경우 SELECT 횟수를 먼저 예측하고." },
+
+{ id:"P19", title:"변경 감지 — save() 없이 UPDATE", when:"관리 중인 Entity의 필드만 바꿔도 flush 시점에 반영되는지 확인할 때.", lang:"java",
+  code:`@Test
+void modifyingManagedEntityWithoutExplicitSaveStillPersistsOnFlush() {
+    Reservation reservation = new Reservation("B202", "노은주");
+    reservation.confirm();
+
+    Reservation saved = repository.save(reservation);
+    entityManager.flush();
+    Long id = saved.getId();
+    Reservation managed = repository.findById(id).orElseThrow();
+
+    managed.cancel("일정이 맞지 않습니다.");
+
+    entityManager.flush();
+
+    entityManager.clear();
+    Reservation reloaded = repository.findById(id).orElseThrow();
+
+    assertFalse(reloaded.isConfirmed());
+}`,
+  judge:["Hibernate는 flush 시점에 로드 스냅샷과 현재 값을 비교한다. 다르면 UPDATE를 자동 생성한다 — save()는 필수 조건이 아니다",
+         "비교 대상은 \"로드된 시점의 값\"이지 \"지금 값\"이 아니다. 여러 번 바꿔도 최종값이 로드 시점과 같으면 dirty로 안 잡힌다",
+         "실험이 성립하려면 DB 저장값과 변경값이 실제로 달라야 한다"],
+  mistake:"confirm() 없이 저장(스냅샷 false) 후 cancel()(→false) → 값이 안 바뀌어 dirty checking이 작동했는지 증명 못 하는 테스트가 됐다. 하루에 두 번 같은 함정을 밟았다 (D12·D14)",
+  transfer:"save() 없이 반납 상태만 바꾸고 flush로 UPDATE가 나가는지 확인하는 테스트를 Loan으로 쓰시오. 스냅샷과 최종값이 실제로 달라지게 구성하면서." },
+
+{ id:"P20", title:"CHECK 제약 — NOT NULL이 못 막는 구멍", when:"NOT NULL이 빈 문자열을 통과시키는 걸 막아야 할 때.", lang:"sql",
+  code:`ALTER TABLE reservation
+    ADD CONSTRAINT room_name CHECK (room_name <> '');
+
+ALTER TABLE reservation
+    ADD CONSTRAINT requester_name CHECK (requester_name <> '');`,
+  judge:["ALTER TABLE ADD ...는 CREATE TABLE처럼 여러 항목을 괄호로 묶지 않는다. 한 문장에 하나씩 이어 쓴다",
+         "CHECK 뒤 조건식은 비교 대상(컬럼)을 반드시 포함해야 한다",
+         "@NotBlank(자바 애노테이션)와 SQL의 CHECK는 다른 층의 다른 문법이다 — NOT BLANK 같은 SQL 키워드는 없다",
+         "ddl-auto: validate는 컬럼 존재/타입만 검사한다. CHECK 제약까지 검사하지는 않는다"],
+  mistake:"ADD CONSTRAINT room_name CHECK NOT BLANK → 문법 오류. NOT BLANK는 자바 애노테이션이지 SQL 키워드가 아니다 (D14)",
+  transfer:"loan 테이블의 두 이름 컬럼에 빈 문자열을 막는 제약을 추가하는 V2 마이그레이션을 쓰시오. V1은 열지 말고." },
+
+{ id:"P21", title:"시그니처 변경의 파급", when:"기존 Domain 메서드의 시그니처를 바꿀 때.", lang:"java",
+  code:`public void cancel(String cancelReason) {
+    this.confirmed = false;
+    this.cancelReason = cancelReason;
+}
+
+public Reservation cancel(Long id, String cancelReason) {
+    Reservation reservation = reservationRepository.findById(id)
+            .orElseThrow(() -> new ReservationNotFoundException(id));
+    reservation.cancel(cancelReason);
+    reservationRepository.save(reservation);
+    return reservation;
+}
+
+@PostMapping("/reservations/cancel/{id}")
+public String cancel(@PathVariable @Positive(message = "예약 번호는 1 이상이어야 합니다") Long id,
+                      @RequestParam @NotBlank(message = "취소 시 사유를 남겨주세요") String cancelReason) {
+    Reservation reservation = reservationService.cancel(id, cancelReason);
+    return reservation.getRequesterName() + "님이 예약을 취소하셨습니다";
+}`,
+  judge:["Domain 시그니처를 바꾸면 호출하는 모든 곳(main + test)이 컴파일 에러로 드러난다 — 어디서 쓰이는지 외울 필요가 없다",
+         "새 파라미터를 어디서 받을지는 값의 성격으로 정한다. 리소스를 식별하는 값은 경로, 부가 정보는 쿼리 파라미터나 바디",
+         "@PathVariable은 URL 템플릿에 실제 대응 자리가 있어야 한다",
+         "@Positive는 숫자 전용이다. 문자열의 \"비어있지 않음\"은 @NotBlank로 검사한다",
+         "오버로드 대신 시그니처를 바꾸는 선택의 트레이드오프는 일관성 vs 하위 호환이다"],
+  mistake:"cancelReason을 @PathVariable로 선언했는데 URL엔 {id} 하나뿐 → 매핑 실패. 거기 붙인 @Positive는 숫자용이라 String에 맞지 않았다 (D14)",
+  transfer:"Loan.returnBook()을 returnBook(String condition)으로 바꾼다고 할 때, Domain·Service·Controller 세 층을 모두 쓰시오. condition을 어디서 받을지 스스로 정하고." }
+]}
+];
+
+/* ---------- state ---------- */
+const KEY = "spring-pattern-typing-v1";
+let mode = "follow";
+let saved = {};
+try { saved = JSON.parse(localStorage.getItem(KEY) || "{}") || {}; } catch (e) { saved = {}; }
+function persist(){ try { localStorage.setItem(KEY, JSON.stringify(saved)); } catch (e) {} }
+
+const ALL = WEEKS.flatMap(w => w.items);
+const esc = s => String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+
+/* grading: ignore indentation and blank lines, collapse internal whitespace runs */
+const lines = s => String(s).replace(/\r\n/g,"\n").split("\n")
+  .map(l => l.trim().replace(/\s+/g," ")).filter(l => l.length > 0);
+
+function grade(mine, want){
+  const a = lines(mine), b = lines(want);
+  if (a.length === 0) return { ok:false, empty:true, rows:[] };
+  const n = Math.max(a.length, b.length);
+  const rows = []; let bad = 0;
+  for (let i = 0; i < n; i++){
+    const got = a[i], exp = b[i];
+    if (got === exp) rows.push({ cls:"ok", text:got, i:i+1 });
+    else { bad++; if (got !== undefined) rows.push({ cls:"miss", text:got, i:i+1 });
+           if (exp !== undefined) rows.push({ cls:"want", text:exp, i:i+1 }); }
+  }
+  return { ok: bad === 0, empty:false, rows, bad };
+}
+
+/* ---------- render ---------- */
+const app = document.getElementById("app");
+const rail = document.getElementById("rail");
+
+function cardHTML(p){
+  const judge = p.judge.map(j => `<li><input type="checkbox"><span>${esc(j)}</span></li>`).join("");
+  const mistake = p.mistake
+    ? `<div class="mistake"><b>실제로 낸 실수</b> — ${esc(p.mistake)}</div>` : "";
+
+  if (mode === "follow"){
+    return `<div class="when"><b>언제</b> · ${esc(p.when)}</div>
+      <div class="work">
+        <section class="pane">
+          <div class="pane-head"><span>참조 골격</span><span class="sp"></span></div>
+          <pre class="code">${esc(p.code)}</pre>
+          ${mistake}
+        </section>
+        <section class="pane">
+          <div class="pane-head"><span>내가 친 것</span></div>
+          <textarea class="editor" spellcheck="false" placeholder="여기에 직접 타이핑합니다. 복사·붙여넣기는 아무것도 남기지 않습니다."></textarea>
+          <div class="tools">
+            <button class="btn primary" data-check>채점</button>
+            <button class="btn ghost" data-clear>지우기</button>
+          </div>
+          <div class="result" data-result>들여쓰기와 빈 줄은 무시하고 토큰만 맞춰 채점합니다.</div>
+        </section>
+      </div>`;
+  }
+
+  return `<div class="when"><b>전이 과제</b> · ${esc(p.transfer)}</div>
+    <div class="work">
+      <section class="pane">
+        <div class="pane-head"><span>내가 쓴 것 — Loan 도메인</span></div>
+        <textarea class="editor" spellcheck="false" placeholder="자료를 보지 않고 먼저 씁니다. 막혀도 최소 1분은 버팁니다."></textarea>
+        <div class="tools">
+          <button class="btn primary" data-reveal>다 썼음 · 참조 골격 열기</button>
+          <button class="btn ghost" data-clear>지우기</button>
+        </div>
+        <div class="result" data-result>참조 골격은 직접 써본 뒤에 열립니다.</div>
+      </section>
+      <section class="pane">
+        <div class="pane-head"><span>판단 기준 — 내 코드가 지켰나</span></div>
+        <ul class="checklist">${judge}</ul>
+        <div class="gate" data-gate style="margin-top:13px">Reservation 도메인의 검증된 골격은 왼쪽에 쓴 뒤 열립니다.</div>
+        <pre class="code hidden" data-answer>${esc(p.code)}</pre>
+        ${mistake}
+      </section>
+    </div>`;
+}
+
+function render(){
+  const cfg = INTRO[mode === "follow" ? "follow" : "recall"];
+  document.getElementById("introTitle").textContent = cfg.title;
+  document.getElementById("introBody").innerHTML = cfg.body;
+
+  app.innerHTML = ""; rail.innerHTML = "";
+
+  WEEKS.forEach(w => {
+    const g = document.createElement("div");
+    g.className = "rail-group";
+    g.innerHTML = `<h2>${esc(w.title)}</h2><div class="rail-list">` +
+      w.items.map(p => `<a class="rail-link" href="#c-${p.id}"><span class="tag">${p.id}</span><span class="nm">${esc(p.title.split(" — ")[0])}</span><span class="dot" data-dot="${p.id}"></span></a>`).join("") +
+      `</div>`;
+    rail.appendChild(g);
+
+    const sec = document.createElement("section");
+    sec.className = "week";
+    sec.innerHTML = `<div class="week-head"><h2>${esc(w.title)}</h2><span class="note">${esc(w.note)}</span></div>`;
+    w.items.forEach(p => {
+      const card = document.createElement("article");
+      card.className = "card"; card.id = "c-" + p.id;
+      card.innerHTML = `<div class="card-head"><span class="pid">${p.id}</span><h3>${esc(p.title)}</h3><span class="state" data-state>미확인</span></div>` + cardHTML(p);
+      wire(card, p);
+      sec.appendChild(card);
+    });
+    app.appendChild(sec);
+  });
+  tally();
+}
+
+function wire(card, p){
+  const key = mode + ":" + p.id;
+  const ed = card.querySelector(".editor");
+  const res = card.querySelector("[data-result]");
+  const state = card.querySelector("[data-state]");
+
+  ed.value = saved[key] || "";
+  ed.addEventListener("input", () => { saved[key] = ed.value; persist(); tally(); });
+
+  card.querySelector("[data-clear]").addEventListener("click", () => {
+    ed.value = ""; saved[key] = ""; persist();
+    res.className = "result"; res.textContent = "지웠습니다. 다시 쓰시면 됩니다.";
+    state.className = "state"; state.textContent = "미확인";
+    setDot(p.id, ""); tally();
+  });
+
+  const checkBtn = card.querySelector("[data-check]");
+  if (checkBtn) checkBtn.addEventListener("click", () => {
+    const r = grade(ed.value, p.code);
+    if (r.empty){
+      res.className = "result"; res.textContent = "아직 아무것도 안 쓰셨습니다.";
+      return;
+    }
+    if (r.ok){
+      res.className = "result pass"; res.textContent = "전부 일치합니다.";
+      state.className = "state pass"; state.textContent = "통과"; setDot(p.id, "pass");
+    } else {
+      res.className = "result fail";
+      res.innerHTML = `${r.bad}개 줄이 다릅니다. 아래에서 내가 친 줄과 골격의 줄을 나란히 봅니다.` +
+        `<div class="diff">` + r.rows.map(x =>
+          `<div class="${x.cls}"><span class="ln">${x.cls === "want" ? "→" : x.i}</span>${esc(x.text)}</div>`).join("") + `</div>`;
+      state.className = "state fail"; state.textContent = "불일치"; setDot(p.id, "fail");
+    }
+    tally();
+  });
+
+  const revealBtn = card.querySelector("[data-reveal]");
+  if (revealBtn) revealBtn.addEventListener("click", () => {
+    if (lines(ed.value).length < 3){
+      res.className = "result fail";
+      res.textContent = "아직 이릅니다. 세 줄 이상 직접 써본 뒤에 열립니다 — 못 떠올려 낑낑댄 시간이 기억을 만듭니다.";
+      return;
+    }
+    card.querySelector("[data-gate]").style.display = "none";
+    card.querySelector("[data-answer]").classList.remove("hidden");
+    res.className = "result pass";
+    res.textContent = "열렸습니다. 도메인 이름을 빼고 구조가 같은지 대조하세요.";
+    state.className = "state pass"; state.textContent = "대조함"; setDot(p.id, "pass");
+    tally();
+  });
+}
+
+function setDot(id, cls){
+  const d = rail.querySelector(`[data-dot="${id}"]`);
+  if (d) d.className = "dot" + (cls ? " " + cls : "");
+}
+
+function tally(){
+  const done = ALL.filter(p => lines(saved[mode + ":" + p.id] || "").length > 0).length;
+  document.getElementById("num").textContent = done + " / " + ALL.length;
+  document.getElementById("fill").style.width = (ALL.length ? (done / ALL.length * 100) : 0) + "%";
+}
+
+document.getElementById("mFollow").addEventListener("click", () => setMode("follow"));
+document.getElementById("mRecall").addEventListener("click", () => setMode("recall"));
+function setMode(m){
+  mode = m;
+  document.getElementById("mFollow").setAttribute("aria-pressed", String(m === "follow"));
+  document.getElementById("mRecall").setAttribute("aria-pressed", String(m === "recall"));
+  render();
+  window.scrollTo({ top:0, behavior:"smooth" });
+}
+
+document.getElementById("reset").addEventListener("click", () => {
+  if (!confirm("이 모드의 입력을 전부 비웁니다. 계속할까요?")) return;
+  ALL.forEach(p => { delete saved[mode + ":" + p.id]; });
+  persist(); render();
+});
+
+render();
+</script>
