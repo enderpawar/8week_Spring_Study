@@ -54,9 +54,10 @@
 >
 > `[x]`는 코드·테스트와 해당 Day 산출물(`vocab.md`, `quiz.md`, `explain-log.md`, 필요 시 `progress.md`)로 완료가 확인된 경우에만 표시한다. 시작했거나 설명만 들은 항목은 완료로 표시하지 않는다. 세션 종료 시 체크 상태와 **다음 시작점**을 함께 갱신한다.
 
-**현재 확인 시점: 2026-08-09 — Week B D3(Day10) 완료. 다음 시작점은 Week B D4의 영속성 컨텍스트·1차 캐시·동일성.**
-> **D3 완료 근거**: `Reservation` Entity 매핑, Spring Data JPA 어댑터 CRUD, JDBC Bean 후보 제거를 완료했다. 통합 테스트 2개로 신규 저장·단건 조회와 기존 ID 갱신·중복 방지를 검증했고 Hibernate 로그에서 `INSERT`·`SELECT`·`UPDATE`를 확인했다. 상세는 [Day10 진행 기록](days/WeekB/Day10_0807/progress.md).
-> **D4 시작 실험**: 한 트랜잭션 안에서 같은 ID를 두 번 조회하기 전에 SELECT 횟수와 두 객체의 참조 동일성(`first == second`)을 예측한다. Day10에서 명시한 `flush()`가 무엇을 강제했는지는 D5까지 관찰을 이어간다.
+**현재 확인 시점: 2026-08-22 — Week B D6(Day13) 완료, D7(Day14) 일부 완료. 다음 시작점은 Week B D7의 남은 항목: ③ 독립과제(`cancel_reason` 컬럼 추가) → Week B 패턴 승격(필수) → Week C D1.**
+> **D4·D5 완료 근거(2026-08-22, 데이터 유실 복구 후 재학습)**: `JpaReservationRepositoryTest`에 통합 테스트 2개를 추가했다. ① 같은 트랜잭션 안에서 같은 id를 2회 `findById()`하면 SELECT는 0번(이미 캐시), `clear()` 추가 시 SELECT 1번으로 바뀌고 `first == second`는 두 조건 모두 `true` — 1차 캐시가 값이 아니라 트랜잭션·id 기준으로 참조를 재사용함을 확인했다(`JpaReservationRepositoryTest.java:64-80`). ② `confirmed=true`로 저장한 예약을 재조회해 `cancel()`만 호출하고 `save()`는 호출하지 않았는데도 `flush()` 시점에 `UPDATE`가 자동 실행됨을 로그로 확인했다(`JpaReservationRepositoryTest.java:82-109`, dirty checking). 상세는 [Day11 기록](days/WeekB/Day11_0822/), [Day12 기록](days/WeekB/Day12_0822/).
+> **D3 완료 근거(2026-08-09)**: `Reservation` Entity 매핑, Spring Data JPA 어댑터 CRUD, JDBC Bean 후보 제거를 완료했다. 통합 테스트 2개로 신규 저장·단건 조회와 기존 ID 갱신·중복 방지를 검증했고 Hibernate 로그에서 `INSERT`·`SELECT`·`UPDATE`를 확인했다. 상세는 [Day10 진행 기록](days/WeekB/Day10_0807/progress.md).
+> **D6 시작**: Week A+B 범위 누적시험. 오답은 그 자리에서 복습큐에 등록한다.
 > **밀린 인출분(2026-08-09 Day10 등록 전 기준 실측)**: 기존 복습큐 38행 중 **36행이 도래**했다(미래 도래는 `@Repository` 8/19, `Optional`→도메인예외 8/12 둘뿐). 내역 — 8/3 1건 / 8/4 18건 / **8/6 오답재시험 4건** / 8/7 8건(Day08 계열) / 8/8 4건 / 8/9 1건. 여기에 Day09 `quiz.md` §1 6문항(8/7 출제 예정이었으나 미실시)과 Day10 신규 7건이 별도로 있다.
 > **한 번에 따라잡지 않는다.** 아침 10분에는 복습큐 「밀렸을 때 규칙」대로 **5~7문항만** 뽑고(오답재시험 4건 우선), 나머지는 Week B D7 버퍼에서 몰아 처리한다. 도래일은 뒤로 밀지 않는다 — 지연량이 증거다.
 > 환경 부채: 사용자 범위 환경변수 `SPRING_DATASOURCE_*`·`SPRING_PROFILES_ACTIVE=prod`가 남아 있다(다른 프로젝트용). `test` 태스크에서만 격리해둔 상태라 `bootRun`은 여전히 영향을 받는다.
@@ -81,10 +82,10 @@ Week A 통합 Velog — [백엔드 기본기 DAY 6 & DAY 7: 1주차 마무리 �
   - 잔여 ① `JdbcReservationRepository.save()`의 UPDATE 분기는 **JDBC 구현에 쓰지 않았다.** Spring Data `save()`가 같은 분기(ID 없으면 INSERT, 있으면 UPDATE)를 수행하므로 대체된 것으로 처리한다. **JDBC 구현에는 중복 행 버그가 그대로 남아 있고 이를 검증하는 테스트도 없다** — 대조군으로만 보존한다.
   - 잔여 ②③(`JdbcTemplate`/`JdbcClient` 비교, JPA·Hibernate·Spring Data 구분)은 D3 도입부에서 흡수했다.
 - [x] D3 Entity 매핑 + 기본 CRUD — 2026-08-09 완료 ([Day10 기록](days/WeekB/Day10_0807/))
-- [ ] D4 영속성 컨텍스트·1차 캐시·동일성
-- [ ] D5 변경 감지·flush 시점
-- [ ] D6 누적시험 A+B
-- [ ] D7 버퍼 / `ddl-auto: validate`
+- [x] D4 영속성 컨텍스트·1차 캐시·동일성 — 2026-08-22 완료 ([Day11 기록](days/WeekB/Day11_0822/))
+- [x] D5 변경 감지·flush 시점 — 2026-08-22 완료 ([Day12 기록](days/WeekB/Day12_0822/))
+- [x] D6 누적시험 A+B — 2026-08-22 완료, 8/8 통과 ([Day13 기록](days/WeekB/Day13_0822/))
+- [ ] D7 버퍼 / `ddl-auto: validate` — ①②(ddl-auto: validate 전환, CHECK 제약 부채 상환) 2026-08-22 완료([Day14 기록](days/WeekB/Day14_0822/)). **미완료: ③ 주간 독립과제(다음 세션으로 이월), Week B 패턴 승격(`CODE_PATTERNS.md`/`PATTERN_DRILLS.md` P18+ append + P10~P17 재감사, `CLAUDE.md` 필수 절차)**
 
 #### Week C — 트랜잭션·프록시·성능
 
