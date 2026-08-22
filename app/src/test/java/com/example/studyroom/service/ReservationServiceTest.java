@@ -15,8 +15,8 @@ class ReservationServiceTest {
         InMemoryReservationRepository repository = new InMemoryReservationRepository();
         ReservationService service = new ReservationService(repository);
         Long id = service.reserve("A-101", "민지").getId();
-
-        service.cancel(id);
+        String cancelReason = "일정이 안맞음";
+        service.cancel(id,cancelReason);
 
         assertEquals(1, repository.findAll().size());
         assertFalse(repository.findById(id).orElseThrow().isConfirmed());
@@ -25,7 +25,6 @@ class ReservationServiceTest {
     @Test
     void cancelThrowsDomainExceptionWhenReservationDoesNotExist() {
         ReservationService service = new ReservationService(new InMemoryReservationRepository());
-
-        assertThrows(ReservationNotFoundException.class, () -> service.cancel(999L));
+        assertThrows(ReservationNotFoundException.class, () -> service.cancel(999L,"일정이 맞지 않습니다 "));
     }
 }

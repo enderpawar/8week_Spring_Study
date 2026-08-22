@@ -40,9 +40,27 @@ ALTER TABLE reservation
 
 **상태 재확인:** Day10에서 `JpaReservationRepository`가 유일한 `@Repository` Bean으로 전환되며 이미 해결됐던 것을 오늘 확인하고 원장에 반영했다(`InMemoryReservationRepository`의 `@Repository`는 주석 처리 상태).
 
-## ④ 주간 독립과제 — 이번 세션에서는 보류
+## ④ 주간 독립과제 — `cancel_reason` 컬럼 추가 (같은 세션 내 이어서 완료)
 
-Week B 주제(Flyway·JPA·영속성)에 맞춘 독립과제로 "예약에 `cancel_reason` 컬럼을 처음부터 끝까지 힌트 없이 추가하기"(V3 마이그레이션 + Entity 필드 + 검증)를 제안했으나, 학습자가 오늘은 여기까지 하기로 결정했다. **다음 세션 시작 시 이 독립과제부터 처리한다.**
+Week B 주제(Flyway·JPA·영속성)에 맞춘 독립과제로 "예약에 `cancel_reason` 컬럼을 처음부터 끝까지 힌트 없이 추가하기"를 제안했다. 골격 없이 요구사항만 제시했고, 학습자가 스스로 설계·구현했다.
+
+**한 일:**
+1. `V3__cancel_reason.sql` — `ALTER TABLE reservation ADD cancel_reason VARCHAR(100);` (NULL 허용 — 미취소 예약은 사유가 없어야 하므로 `NOT NULL`을 쓰지 않기로 직접 판단).
+2. `Reservation` Entity에 `cancelReason` 필드 + `getCancelReason()` 추가.
+3. `cancel()`의 시그니처를 `cancel(String cancelReason)`으로 변경(오버로드가 아니라 시그니처 자체를 바꾸는 쪽을 선택 — "취소엔 항상 사유가 있어야 한다"는 도메인 판단).
+4. 연쇄 수정: `ReservationService.cancel(Long, String)`, `ReservationController.cancel(...)`(+`@RequestParam @NotBlank cancelReason` 쿼리 파라미터), 기존 호출부 4곳(`JpaReservationRepositoryTest` 2곳, `ReservationServiceTest` 2곳), 그리고 API 계약이 바뀐 Controller 테스트 2곳(`ReservationControllerHttpTest`)까지 전부 갱신.
+5. 새 통합 테스트 `checkCancelReason()` — 관리 중인 Entity에 사유를 남기고 `save()` 호출 없이 `flush()`만으로 반영되는지, `clear()` 후 재조회로 검증.
+
+**시행착오 (막힌 지점들):**
+- SQL: `ALTER TABLE`에 `CREATE TABLE`의 괄호 문법을 반복 적용 → 3차 시도 만에 교정. `NOT NULL` vs `CHECK`까지 고려했다가 "그냥 nullable로 두면 된다"는 더 단순한 답으로 스스로 수렴.
+- Entity 메서드: 처음엔 파라미터 없이 자기 자신에게 대입하는 메서드(`this.cancelReason = cancelReason`, 컴파일 불가)를 작성 → 게터/세터 역할 구분 질문 후 교정.
+- `cancel()` 시그니처 변경의 파급효과(main 1곳 + test 4곳)를 직접 컴파일 에러로 확인하며 하나씩 추적 수정 — DI/인터페이스 없이도 메서드 시그니처 하나가 호출부 전체에 어떻게 전파되는지 실감.
+- `checkCancelReason()` 테스트를 두 번 다시 썼다: 1차는 assert가 없었고, 2차는 D5와 같은 "로드 스냅샷과 최종값이 같아 아무것도 증명 못 하는" 함정(취소 사유를 저장 전과 후에 같은 문자열로 두 번 설정)에 다시 빠졌다가 스스로 서로 다른 문자열로 바꿔 교정.
+- Controller: `cancelReason`을 `@PathVariable`로 잘못 선언(URL 템플릿에 자리가 없음) + `@Positive`(숫자용)를 `String`에 오용 → `@RequestParam` + `@NotBlank`로 교정. 그 결과 기존 Controller 테스트 2개가 필수 쿼리 파라미터 누락으로 깨졌고, `.param("cancelReason", ...)`으로 갱신해 해결.
+
+**검증:** 전체 테스트 16개 `BUILD SUCCESSFUL`.
+
+근거: `src/main/resources/db/migration/V3__cancel_reason.sql`, `src/main/java/com/example/studyroom/domain/Reservation.java`, `src/main/java/com/example/studyroom/service/ReservationService.java`, `src/main/java/com/example/studyroom/controller/ReservationController.java`, `src/test/java/com/example/studyroom/repository/JpaReservationRepositoryTest.java:123-141`, `src/test/java/com/example/studyroom/controller/ReservationControllerHttpTest.java:51-66`
 
 ## 오늘 세션 전체 요약 (D4~D7)
 
@@ -55,7 +73,7 @@ Week B 주제(Flyway·JPA·영속성)에 맞춘 독립과제로 "예약에 `canc
 
 ## 다음 학습 시작점
 
-Week C D1 — 트랜잭션 경계 / 커밋·롤백. 단, 이번 세션에서 이월된 Week B 독립과제(`cancel_reason` 컬럼 추가)를 Week C D1 이전에 먼저 처리한다.
+Week B 독립과제까지 같은 세션에서 완료했다. 남은 건 **Week B 패턴 승격**(`CODE_PATTERNS.md`/`PATTERN_DRILLS.md`, `CLAUDE.md` 필수 절차) 뿐이며, 그 다음이 Week C D1 — 트랜잭션 경계 / 커밋·롤백이다.
 
 ## [직접 작성] 오늘 배운 것을 내 문장으로
 

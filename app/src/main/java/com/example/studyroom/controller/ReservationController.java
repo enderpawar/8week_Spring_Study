@@ -3,12 +3,10 @@ package com.example.studyroom.controller;
 import com.example.studyroom.domain.Reservation;
 import com.example.studyroom.dto.ReservationRequest;
 import com.example.studyroom.service.ReservationService;
-import jakarta.validation.constraints.Positive;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RestController;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Positive;
+import org.springframework.web.bind.annotation.*;
 
 
 @RestController
@@ -29,8 +27,8 @@ public class ReservationController{
 //아마 "" 로 해버리면 @Valid 유효성 검사 들어가서 400 BadRequest 뜨지 않을까 싶은데..
 
     @PostMapping("/reservations/cancel/{id}")
-    public String cancel(@PathVariable @Positive(message = "예약 번호는 1 이상이어야 합니다") Long id) {
-        Reservation reservation = reservationService.cancel(id);
+    public String cancel(@PathVariable @Positive(message = "예약 번호는 1 이상이어야 합니다") Long id,@RequestParam @NotBlank (message = "취소 시 사유를 남겨주세요") String cancelReason) {
+        Reservation reservation = reservationService.cancel(id,cancelReason);
 
         return reservation.getRequesterName() + "님이" + reservation.getRoomName() + " 예약을 취소하셨습니다 (확정 : " + reservation.isConfirmed() + ")";
     }

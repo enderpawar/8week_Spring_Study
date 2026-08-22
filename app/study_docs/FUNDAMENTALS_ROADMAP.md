@@ -54,7 +54,7 @@
 >
 > `[x]`는 코드·테스트와 해당 Day 산출물(`vocab.md`, `quiz.md`, `explain-log.md`, 필요 시 `progress.md`)로 완료가 확인된 경우에만 표시한다. 시작했거나 설명만 들은 항목은 완료로 표시하지 않는다. 세션 종료 시 체크 상태와 **다음 시작점**을 함께 갱신한다.
 
-**현재 확인 시점: 2026-08-22 — Week B D6(Day13) 완료, D7(Day14) 일부 완료. 다음 시작점은 Week B D7의 남은 항목: ③ 독립과제(`cancel_reason` 컬럼 추가) → Week B 패턴 승격(필수) → Week C D1.**
+**현재 확인 시점: 2026-08-22 — Week B 전체(D1~D7 + 패턴 승격) 완료. 다음 시작점은 Week C D1 — 트랜잭션 경계 / 커밋·롤백.**
 > **D4·D5 완료 근거(2026-08-22, 데이터 유실 복구 후 재학습)**: `JpaReservationRepositoryTest`에 통합 테스트 2개를 추가했다. ① 같은 트랜잭션 안에서 같은 id를 2회 `findById()`하면 SELECT는 0번(이미 캐시), `clear()` 추가 시 SELECT 1번으로 바뀌고 `first == second`는 두 조건 모두 `true` — 1차 캐시가 값이 아니라 트랜잭션·id 기준으로 참조를 재사용함을 확인했다(`JpaReservationRepositoryTest.java:64-80`). ② `confirmed=true`로 저장한 예약을 재조회해 `cancel()`만 호출하고 `save()`는 호출하지 않았는데도 `flush()` 시점에 `UPDATE`가 자동 실행됨을 로그로 확인했다(`JpaReservationRepositoryTest.java:82-109`, dirty checking). 상세는 [Day11 기록](days/WeekB/Day11_0822/), [Day12 기록](days/WeekB/Day12_0822/).
 > **D3 완료 근거(2026-08-09)**: `Reservation` Entity 매핑, Spring Data JPA 어댑터 CRUD, JDBC Bean 후보 제거를 완료했다. 통합 테스트 2개로 신규 저장·단건 조회와 기존 ID 갱신·중복 방지를 검증했고 Hibernate 로그에서 `INSERT`·`SELECT`·`UPDATE`를 확인했다. 상세는 [Day10 진행 기록](days/WeekB/Day10_0807/progress.md).
 > **D6 시작**: Week A+B 범위 누적시험. 오답은 그 자리에서 복습큐에 등록한다.
@@ -85,7 +85,9 @@ Week A 통합 Velog — [백엔드 기본기 DAY 6 & DAY 7: 1주차 마무리 �
 - [x] D4 영속성 컨텍스트·1차 캐시·동일성 — 2026-08-22 완료 ([Day11 기록](days/WeekB/Day11_0822/))
 - [x] D5 변경 감지·flush 시점 — 2026-08-22 완료 ([Day12 기록](days/WeekB/Day12_0822/))
 - [x] D6 누적시험 A+B — 2026-08-22 완료, 8/8 통과 ([Day13 기록](days/WeekB/Day13_0822/))
-- [ ] D7 버퍼 / `ddl-auto: validate` — ①②(ddl-auto: validate 전환, CHECK 제약 부채 상환) 2026-08-22 완료([Day14 기록](days/WeekB/Day14_0822/)). **미완료: ③ 주간 독립과제(다음 세션으로 이월), Week B 패턴 승격(`CODE_PATTERNS.md`/`PATTERN_DRILLS.md` P18+ append + P10~P17 재감사, `CLAUDE.md` 필수 절차)**
+- [x] D7 버퍼 / `ddl-auto: validate` — 2026-08-22 완료: ①②(ddl-auto: validate 전환, CHECK 제약 부채 상환) + ③독립과제(`cancel_reason` 컬럼, V3 마이그레이션+Entity+Service+Controller 전 계층 관통) ([Day14 기록](days/WeekB/Day14_0822/)). **패턴 승격 완료** — `CODE_PATTERNS.md`에 P18~P21 append, P10~P17 근거 줄번호 재감사(P13·P16·P17·P11 정정), `PATTERN_DRILLS.md`에 묶음 7(D18~D21, Loan 도메인) 추가.
+
+Week B 전체 완료. 다음은 Week C D1 — 트랜잭션 경계 / 커밋·롤백.
 
 #### Week C — 트랜잭션·프록시·성능
 

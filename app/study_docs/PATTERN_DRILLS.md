@@ -4,7 +4,7 @@
 >
 > 1. **먼저 쓴다. 자료는 나중에 본다.** 막혀도 최소 1분은 버틴다. 못 떠올려 낑낑댄 시간이 기억을 만든다.
 > 2. **다 쓴 뒤에** `CODE_PATTERNS.md` 또는 `src/`와 대조한다. **정답은 이 파일에 없다.**
-> 3. **하루 한 묶음이면 충분하다.** 10분짜리다. 한 번에 다 하지 않는다. (묶음 1~3 = Week A, 묶음 4~6 = Week B)
+> 3. **하루 한 묶음이면 충분하다.** 10분짜리다. 한 번에 다 하지 않는다. (묶음 1~3 = Week A, 묶음 4~7 = Week B)
 > 4. 틀린 항목은 표시해두고 **다음날 그것만 다시** 쓴다.
 
 **도메인이 예약이 아니다.** 도서 대출(`Loan`)로 낸다 — 예약 코드를 복사하면 안 되고, **구조를 옮겨 써야** 하기 때문이다.
@@ -518,6 +518,134 @@ class JpaLoanRepositoryTest {
 
 ---
 
+# 묶음 7 — 영속성 컨텍스트와 부채 상환 (D18~D21)
+
+## D18. 1차 캐시 (↔ P18)
+
+```java
+@Test
+void repeatedFindByIdWithinSameTransactionReturnsSameInstance() {
+    Loan loan = new Loan("자료구조", "민지");
+    Loan saved = repository.save(loan);
+    entityManager.____________();                        // (1) 대기 중인 INSERT를 DB로 내보낸다
+    Long id = saved.getId();
+
+    entityManager.____________();                         // (2) 1차 캐시를 비운다
+
+    Loan first = repository.findById(id).____________();  // (3) Optional을 풀어내는 메서드
+    Loan second = repository.findById(id).orElseThrow();
+
+    assert____________(first, second);                    // (4) 값이 아니라 참조를 비교
+}
+```
+
+**판정 문제**
+
+| # | 상황 | SELECT 횟수 | `first == second`? |
+|---|---|---|---|
+| ⓐ | (2)를 지우고 바로 두 번 조회 | | |
+| ⓑ | 위 코드 그대로(`clear()` 있음) | | |
+
+**추가 질문:** ⓐ에서 SELECT가 예상보다 적게 나가는 이유를, `save()`가 반환한 객체의 상태와 연결해서 설명하시오.
+
+---
+
+## D19. 변경 감지 — Dirty Checking (↔ P19)
+
+```java
+@Test
+void modifyingManagedLoanWithoutExplicitSaveStillPersistsOnFlush() {
+    Loan loan = new Loan("자료구조", "민지");
+    loan.____________();                                  // (1) 로드 스냅샷을 무엇으로 만들지 먼저 판단해서 채우기
+    Loan saved = repository.save(loan);
+    entityManager.flush();
+    Long id = saved.getId();
+    Loan managed = repository.findById(id).orElseThrow();
+
+    managed.____________();                               // (2) save() 호출 없이 상태만 바꾼다
+
+    entityManager.____________();                          // (3) 이 시점에 dirty checking이 UPDATE를 만든다
+
+    entityManager.clear();
+    Loan reloaded = repository.findById(id).orElseThrow();
+
+    assert____________(reloaded.____________());           // (4)
+}
+```
+
+**판정 문제** — 아래 두 시나리오는 "아무것도 증명 못 하는 테스트"다. 각각 왜인지 쓰시오.
+
+| 시나리오 | 왜 증명이 안 되나 |
+|---|---|
+| ⓐ (1)을 안 부르고 저장 → (2)만 호출 | |
+| ⓑ (1)과 (2)가 서로 반대 효과라 최종값이 로드 시점과 같아짐 | |
+
+**추가 질문:** dirty checking이 비교하는 두 값은 정확히 무엇과 무엇인가?
+
+---
+
+## D20. `CHECK` 제약 (↔ P20)
+
+```sql
+-- V2__add_loan_check_constraints.sql
+ALTER TABLE loan
+    ____ CONSTRAINT book_title CHECK (____________);       -- (1) 키워드 + 조건식
+
+ALTER TABLE loan
+    ADD CONSTRAINT borrower_name CHECK (____________);     -- (2)
+```
+
+**판정 문제** — 아래 세 시도는 각각 왜 안 되는지 쓰시오.
+
+| 시도 | 왜 안 되나 |
+|---|---|
+| `ALTER TABLE loan(ADD CONSTRAINT ... CHECK (...))` | |
+| `ADD CONSTRAINT book_title CHECK NOT BLANK` | |
+| `ADD CONSTRAINT book_title CHECK <> ''` | |
+
+```java
+@Test
+void checkConstraintRejectsEmptyBookTitle() {
+    assert____________(____________________.class, () -> {   // (1) assert 메서드 + 예외 타입
+        entityManager.createNativeQuery(
+                "INSERT INTO loan (book_title, borrower_name, returned) VALUES ('', ?, false)")
+                .setParameter(1, "민지")
+                .____________();                              // (2)
+        entityManager.flush();
+    });
+}
+```
+
+**추가 질문:** `ddl-auto: validate`가 이 `CHECK` 제약이 실제로 있는지까지 검사해주는가? 검사한다면 무엇을 보는지, 안 한다면 왜 못 잡는지 설명하시오.
+
+---
+
+## D21. 메서드 시그니처 변경의 파급 (↔ P21)
+
+**판정 문제** — `Loan`의 `returnBook()`을 `returnBook(String condition)`(반납 시 도서 상태)으로 바꾼다고 하자. 아래 각 위치가 컴파일되는지(O/X)와, 안 된다면 어떤 메시지가 뜰지 쓰시오.
+
+| # | 위치 | 코드 | O/X | 메시지(예상) |
+|---|---|---|---|---|
+| ① | `LoanService` | `loan.returnBook();` (그대로) | | |
+| ② | `LoanController` | `loanService.giveBack(id);` (그대로) | | |
+| ③ | 기존 테스트 | `saved.returnBook();` (그대로) | | |
+
+```java
+// LoanController — condition을 어디서 받을지 결정해서 채우시오
+@PostMapping("/loans/return/{id}")
+public String giveBack(@PathVariable @Positive(message = "...") Long id,
+                        @____________ @____________(message = "...") String condition) {   // (1)(2)
+    ...
+}
+```
+
+**추가 질문**
+- `condition`을 `@PathVariable`로 선언했는데 URL에 `{condition}` 자리가 없다면 무슨 일이 나는가?
+- 문자열이 비어있지 않은지 검사하는 애노테이션과 숫자가 양수인지 검사하는 애노테이션을 혼동하면, 그건 컴파일 오류인가 런타임 오류인가?
+- 시그니처를 바꾸는 대신 오버로드를 택했다면, 어떤 도메인 규칙일 때 그 선택이 더 나은가?
+
+---
+
 # 독립 과제 — 0층부터 (자료 안 보고)
 
 드릴을 다 채운 뒤에 한다. **실제 코드로 작성하고, 판정 기준을 통과해야 완료다.**
@@ -578,6 +706,7 @@ class JpaLoanRepositoryTest {
 | 4 | Week B · D10~D11 (Flyway·제약) | | | | |
 | 5 | Week B · D12~D14 (JDBC·매핑·환경격리) | | | | |
 | 6 | Week B · D15~D17 (JPA 어댑터·Entity·통합 테스트) | | | | |
+| 7 | Week B · D18~D21 (1차 캐시·변경 감지·CHECK·시그니처 파급) | | | | |
 | 과제 A | 목록 조회 0층부터 | | | | |
 | 과제 B | 새 도메인 예외 → 409 | | | | |
 | 과제 C | DTO 제약 추가 | | | | |

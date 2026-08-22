@@ -9,6 +9,7 @@ public class Reservation{
     private String roomName;
     private String requesterName;
     private boolean confirmed;
+    private String cancelReason;
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -25,7 +26,7 @@ public class Reservation{
         this.confirmed = true;
     }
 
-    public void cancel() { this.confirmed = false; }
+    public void cancel(String cancelReason) { this.confirmed = false; this.cancelReason = cancelReason;}
 
     public String getRoomName(){
         return roomName;
@@ -50,6 +51,8 @@ public class Reservation{
     protected Reservation(){
 
     }
+
+    public String getCancelReason() { return cancelReason; }
 }
 
 /*

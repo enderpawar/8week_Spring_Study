@@ -50,7 +50,7 @@ class ReservationControllerHttpTest {
 
     @Test
     void cancelReturns404WhenReservationDoesNotExist() throws Exception {
-        mockMvc.perform(post("/reservations/cancel/{id}", 999_999L))
+        mockMvc.perform(post("/reservations/cancel/{id}", 999_999L).param("cancelReason","테스트 사유"))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.error")
                         .value("예약을 찾을 수 없습니다. (id: 999999)"));
@@ -58,7 +58,7 @@ class ReservationControllerHttpTest {
 
     @Test
     void cancelReturns400WhenIdIsNotPositive() throws Exception {
-        mockMvc.perform(post("/reservations/cancel/{id}", 0L))
+        mockMvc.perform(post("/reservations/cancel/{id}", 0L).param("cancelReason","테스트사유2"))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.errors[0]")
                         .value("예약 번호는 1 이상이어야 합니다"));

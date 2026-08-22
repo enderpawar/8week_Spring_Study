@@ -47,7 +47,8 @@ class JpaReservationRepositoryTest {
         Reservation saved = repository.save(reservation);
         entityManager.flush();
 
-        saved.cancel();
+        String cancelReason = "일정이 맞지 않습니다.";
+        saved.cancel(cancelReason);
         repository.save(saved);
         entityManager.flush();
         entityManager.clear();
@@ -95,9 +96,9 @@ class JpaReservationRepositoryTest {
 
 
 
-
+        String cancelReason = "일정이 맞지 않습니다.";
         // 3. save()는 절대 호출하지 않고, 상태만 바꾼다
-        managed.cancel();   // 예: cancel()
+        managed.cancel(cancelReason);   // 예: cancel()
 
         // 4. 여기서 명시적으로 flush를 호출해 변경 감지를 강제로 트리거
         entityManager.flush();
@@ -118,5 +119,24 @@ class JpaReservationRepositoryTest {
                     .executeUpdate();
             entityManager.flush();
         });
+    }
+    @Test
+    void checkCancelReason(){
+        Reservation reservation = new Reservation("B101","노은주");
+        reservation.cancel("임시 이유1");
+
+        Reservation saved = repository.save(reservation);
+        entityManager.flush();
+        Long id = saved.getId();
+        Reservation managed = repository.findById(id).orElseThrow();
+
+        managed.cancel("임시 이유2");
+
+        entityManager.flush();
+
+        entityManager.clear();
+        Reservation reloaded = repository.findById(id).orElseThrow();
+
+        assertEquals(reloaded.getCancelReason(),saved.getCancelReason());
     }
 }

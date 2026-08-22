@@ -581,7 +581,7 @@ runtimeOnly("com.h2database:h2")             // 실행할 때만 필요
 
 - **`NOT NULL`이 검사하는 건 "값이 있는가" 하나뿐이다.** `''`는 값이 없는 게 아니라 **길이 0인 값이 있는 것**이다.
 - 앱 검증은 **UX**(친절한 400 메시지), DB 제약은 **무결성**(모든 경로 차단). 중복이 아니라 **계층별 방어**다.
-- `''`까지 DB에서 막으려면 `CHECK` 제약이 필요하다 → 기술부채 등록됨(Week B D7).
+- `''`까지 DB에서 막으려면 `CHECK` 제약이 필요하다 — Week B D7에서 `V2__add_name_check_constraints.sql`로 해결(P18 참고).
 
 **[❌ 흔한 실수]**
 
@@ -591,7 +591,7 @@ runtimeOnly("com.h2database:h2")             // 실행할 때만 필요
 | PK가 1, 2, 5처럼 띄엄띄엄한 걸 버그로 봄 | 정상이다. **실패·롤백된 INSERT도 번호를 소비하고 되돌리지 않는다.** 되돌리려면 채번을 직렬화해야 해서 동시 INSERT가 전부 대기한다. `AUTO_INCREMENT`는 "연속"이 아니라 **"겹치지 않음"만** 보장 (D08) |
 | 소문자로 만든 테이블을 소문자로 조회 | `table_name='reservation'` → **0행.** 따옴표 없는 SQL 식별자는 **대문자로 접힌다.** 그래서 `RESERVATION`과 `"flyway_schema_history"`가 한 DB에 공존한다 (D08) |
 
-**[근거]** `V1__init.sql` · 기술부채.md「나중에 고칠 것」의 `CHECK` 항목
+**[근거]** `V1__init.sql` · 기술부채.md「해결 기록」Day14 항목(`CHECK` 제약으로 해결)
 
 ---
 
@@ -705,7 +705,7 @@ while (rs.next()) { result.add(mapRow(rs)); }
 | `mapRow` **안에서** `rs.next()`를 부름 | 행이 **하나 걸러 하나씩 사라진다.** 컴파일도 되고 예외도 안 나는 종류의 버그 (D09) |
 | 컬럼명에 따옴표를 안 씀 | `rs.getString(room_name)` → `cannot find symbol`. 컬럼명은 **문자열**이다 |
 
-**[근거]** `repository/JdbcReservationRepository.java:98-110`
+**[근거]** `repository/JdbcReservationRepository.java:92-104`
 
 ---
 
@@ -890,7 +890,9 @@ classDiagram
 | `@Id`를 `assignId()` 위에 붙임 | `@Id` 위치는 접근 방식까지 결정한다. `assignId`는 식별자 getter가 아니므로 필드 `id`로 옮겼다 (D10 진행 기록) |
 | `protected Reservation()}`로 입력 | `{`가 빠진 파싱 오류로 의미 분석 전에 컴파일이 멈췄다 (D10 진행 기록) |
 
-**[근거]** `src/main/java/com/example/studyroom/domain/Reservation.java:7` · `src/main/java/com/example/studyroom/domain/Reservation.java:13` · `src/main/java/com/example/studyroom/domain/Reservation.java:50` · `study_docs/days/WeekB/Day10_0807/explain-log.md:7`
+**[근거]** `src/main/java/com/example/studyroom/domain/Reservation.java:7`(`@Entity`) · `src/main/java/com/example/studyroom/domain/Reservation.java:14`(`@Id`) · `src/main/java/com/example/studyroom/domain/Reservation.java:51`(`protected Reservation()`) · `study_docs/days/WeekB/Day10_0807/explain-log.md:7`
+
+> 감사 기록(2026-08-22): Day14 독립과제로 `cancelReason` 필드가 추가되며 줄번호가 한 칸씩 밀렸다(기존 13→14, 50→51). 골격 코드 자체(생성자 2개·`@Id`·`protected` 기본 생성자 구조)는 그대로 유효해 다시 뽑지 않고 줄번호만 정정했다.
 
 ---
 
@@ -974,7 +976,201 @@ sequenceDiagram
 |---|---|
 | 전체 행 수를 무조건 `1`로 단언 | 단독 실행은 통과했지만 전체 12개 실행에서 다른 통합 테스트의 행 때문에 실패했다. `countBeforeSave + 1`과 같은 ID 1행 검사로 교정했다 (D10 자동 검증) |
 
-**[근거]** `src/test/java/com/example/studyroom/repository/JpaReservationRepositoryTest.java:45` · `src/test/java/com/example/studyroom/repository/JpaReservationRepositoryTest.java:62` · `study_docs/days/WeekB/Day10_0807/explain-log.md:72`
+**[근거]** `src/test/java/com/example/studyroom/repository/JpaReservationRepositoryTest.java:42-64`(`savingExistingReservationUpdatesWithoutAddingDuplicate`) · `study_docs/days/WeekB/Day10_0807/explain-log.md:72`
+
+> 감사 기록(2026-08-22): Day14 독립과제로 이 파일에 `cancelReason` 관련 줄이 추가되며 원래 가리키던 단일 줄번호(45·62)가 밀렸다. 메서드 전체 범위로 다시 지정했다.
+
+---
+
+## P18. 1차 캐시 — 같은 트랜잭션에서 같은 참조
+
+**[언제]** 같은 id를 한 트랜잭션 안에서 여러 번 조회할 때, SQL이 몇 번 나가고 참조가 같은지 확인해야 할 때.
+
+**[골격]**
+
+```java
+@Test
+void repeatedFindByIdWithinSameTransactionReturnsSameInstance() {
+    Reservation reservation = new Reservation("B101", "Jinwoo");
+    Reservation saved = repository.save(reservation);
+    entityManager.flush();
+    Long id = saved.getId();
+
+    entityManager.clear();                                        // ① 1차 캐시를 비운다
+
+    Reservation first = repository.findById(id).orElseThrow();    // ② DB에서 SELECT — 캐시에 올라감
+    Reservation second = repository.findById(id).orElseThrow();   // ③ 캐시에서 바로 반환, SQL 없음
+
+    assertSame(first, second);                                    // ④ 값이 아니라 참조가 같다
+}
+```
+
+**[판단]**
+- `save()`가 반환한 객체는 그 순간부터 이미 영속성 컨텍스트(1차 캐시)에 올라가 있다. `clear()` 없이 바로 조회하면 **첫 조회조차** SELECT가 0번 나간다 — "매번 새로 SELECT"가 아니다.
+- `clear()`는 1차 캐시(영속성 컨텍스트 전체)를 비운다. 그 다음 첫 조회만 SELECT를 발생시키고, 두 번째부터는 다시 캐시에서 반환된다.
+- `assertSame`은 값이 아니라 **같은 자바 객체(참조)**인지 검사한다. `assertEquals`와는 다른 것을 증명한다.
+
+**[❌ 흔한 실수]**
+
+| 실수 | 실제로 터진 것 |
+|---|---|
+| `save()` 직후 `clear()` 없이 2회 조회하면 SELECT가 1번 나갈 거라 예측 | 실제는 **0번**. `save()`가 반환한 객체가 이미 캐시에 있어 첫 조회부터 캐시 히트였다 (D11 실험 1) |
+
+**[근거]** `src/test/java/com/example/studyroom/repository/JpaReservationRepositoryTest.java:66-82`
+
+---
+
+## P19. 변경 감지(Dirty Checking) — `save()` 없이 `UPDATE`
+
+**[언제]** 관리 중인 Entity의 필드만 바꾸고 flush 시점에 자동으로 DB에 반영되는지 확인할 때.
+
+**[골격]**
+
+```java
+@Test
+void modifyingManagedEntityWithoutExplicitSaveStillPersistsOnFlush() {
+    Reservation reservation = new Reservation("B202", "노은주");
+    reservation.confirm();                                        // ① DB엔 처음부터 true로 저장
+    Reservation saved = repository.save(reservation);
+    entityManager.flush();
+    Long id = saved.getId();
+    Reservation managed = repository.findById(id).orElseThrow();  // ② 로드 스냅샷 = true
+
+    managed.cancel(cancelReason);                                 // ③ save() 호출 없음! 필드만 변경 → false
+
+    entityManager.flush();                                        // ④ 여기서 dirty checking이 UPDATE를 만든다
+
+    entityManager.clear();
+    Reservation reloaded = repository.findById(id).orElseThrow();
+
+    assertFalse(reloaded.isConfirmed());                          // ⑤ DB에 실제로 반영됐는지 재조회로 확인
+}
+```
+
+**[판단]**
+- Hibernate는 flush 시점에 관리 중인 모든 Entity에 대해 **로드 시점 스냅샷**과 **현재 값**을 비교한다(dirty checking). 다르면 `UPDATE`를 자동 생성한다 — `save()`는 이 비교의 필수 조건이 아니다.
+- 비교 대상은 "로드된 시점의 값"이지 "지금 값"이 아니다. 로드 후 값을 여러 번 바꿔도 **최종값이 로드 시점과 같으면** dirty로 안 잡힐 수 있다.
+- 이 실험이 성립하려면 ①의 DB 저장값과 ③의 변경값이 실제로 달라야 한다. 같은 값으로 왔다갔다 하면 아무것도 증명 못 하는 테스트가 된다.
+
+**[❌ 흔한 실수]**
+
+| 실수 | 실제로 터진 것 |
+|---|---|
+| `confirm()` 없이 저장(로드 스냅샷 `false`) → `cancel()`(→`false`) | 값이 안 바뀌어 dirty checking이 실제로 작동했는지 증명 못 함 (D12 시행착오 1) |
+| 로드 후 `confirm()`(→`true`) → 곧바로 `cancel()`(→`false`) | 로드 스냅샷(`false`)과 최종값(`false`)이 같아져 역시 증명 못 함 (D12 시행착오 2) |
+| "커밋될 것 같아요, dirty checking 때문에" — 결과 예측은 맞혔지만 **무엇을 언제 비교하는지**는 답 못함 | 근거는 실행 로그를 보고서야 정리됨 (D12) |
+
+**[근거]** `src/test/java/com/example/studyroom/repository/JpaReservationRepositoryTest.java:84-111`
+
+---
+
+## P20. `CHECK` 제약 — `NOT NULL`이 못 막는 구멍 메우기
+
+**[언제]** `NOT NULL`이 빈 문자열을 통과시키는 걸 막아야 할 때(P11의 연장선). 이미 적용된 마이그레이션은 `V1`이므로 새 버전을 쌓는다(P10 규칙).
+
+**[골격]**
+
+```sql
+-- V2__add_name_check_constraints.sql
+ALTER TABLE reservation
+    ADD CONSTRAINT room_name CHECK (room_name <> '');
+
+ALTER TABLE reservation
+    ADD CONSTRAINT requester_name CHECK (requester_name <> '');
+```
+
+```yaml
+# application.yml
+spring:
+  jpa:
+    hibernate:
+      ddl-auto: validate   # Hibernate는 스키마를 안 만든다. Entity·스키마 불일치만 검사하고 기동을 막는다
+```
+
+```java
+@Test
+void checkConstraintRejectsEmptyRoomName() {
+    assertThrows(PersistenceException.class, () -> {
+        entityManager.createNativeQuery(
+                        "INSERT INTO reservation (room_name, requester_name, confirmed) VALUES ('', ?, false)")
+                .setParameter(1, "jinwoo")
+                .executeUpdate();
+        entityManager.flush();
+    });
+}
+```
+
+**[판단]**
+- `ALTER TABLE ADD ...`는 `CREATE TABLE`처럼 여러 항목을 괄호로 묶지 않는다. 한 문장에 하나씩 이어 쓴다.
+- `CHECK` 뒤 조건식은 **비교 대상(컬럼)을 반드시 포함**해야 한다(`컬럼 <> '값'`). 연산자만 있고 컬럼이 빠지면 문법 오류다.
+- `@NotBlank`(자바 애노테이션)와 SQL의 `CHECK`는 다른 층의 다른 문법이다 — `NOT BLANK` 같은 SQL 키워드는 없다.
+- `entityManager.createNativeQuery()`로 Bean Validation을 완전히 우회하면, DB 제약만 순수하게 테스트할 수 있다.
+- `ddl-auto: validate`는 Entity·컬럼 존재/타입 불일치만 검사한다. `CHECK` 같은 제약까지 검사하지는 않는다.
+
+**[❌ 흔한 실수]**
+
+| 실수 | 실제로 터진 것 |
+|---|---|
+| `ADD CONSTRAINT room_name CHECK NOT BLANK` | 문법 오류. `NOT BLANK`는 자바 애노테이션이지 SQL 키워드가 아니다 (D14) |
+| `ADD CONSTRAINT room_name CHECK <> ''` | 문법 오류. 비교 대상(컬럼) 없이 연산자만 씀 (D14) |
+| `ALTER TABLE reservation( ... )`처럼 전체를 괄호로 묶음 | `CREATE TABLE` 문법과 혼동. `ALTER TABLE`은 괄호로 묶지 않는다 (D14) |
+
+**[근거]** `src/main/resources/db/migration/V2__add_name_check_constraints.sql` · `src/main/resources/application.yml:10` · `src/test/java/com/example/studyroom/repository/JpaReservationRepositoryTest.java:113-122`
+
+---
+
+## P21. 메서드 시그니처 변경의 파급 — 컴파일러로 호출부 추적하기
+
+**[언제]** 기존 메서드(특히 Domain 메서드)의 시그니처를 바꿀 때. 계층을 손으로 다 기억하지 않아도 컴파일러가 호출부를 하나씩 알려준다.
+
+**[골격]**
+
+```java
+// Domain — 시그니처 자체를 바꾸는 쪽을 선택 (오버로드 아님)
+public void cancel(String cancelReason) {
+    this.confirmed = false;
+    this.cancelReason = cancelReason;
+}
+```
+
+```java
+// Service — Domain 시그니처를 따라 같이 바뀐다
+public Reservation cancel(Long id, String cancelReason) {
+    Reservation reservation = reservationRepository.findById(id)
+            .orElseThrow(() -> new ReservationNotFoundException(id));
+    reservation.cancel(cancelReason);
+    reservationRepository.save(reservation);
+    return reservation;
+}
+```
+
+```java
+// Controller — 새 값을 어디서 받을지 결정해야 한다 (여기선 쿼리 파라미터)
+@PostMapping("/reservations/cancel/{id}")
+public String cancel(@PathVariable @Positive(message = "...") Long id,
+                      @RequestParam @NotBlank(message = "...") String cancelReason) {
+    Reservation reservation = reservationService.cancel(id, cancelReason);
+    ...
+}
+```
+
+**[판단]**
+- Domain 메서드 시그니처를 바꾸면 그 메서드를 호출하는 **모든 곳(main + test)**이 컴파일 에러로 드러난다. "어디서 쓰이는지 다 기억해야 하나?"의 답은 "아니다, 컴파일러가 하나씩 짚어준다"다.
+- 새 파라미터를 어디서 받을지(경로 변수/쿼리 파라미터/요청 바디)는 값의 성격으로 정한다. `id`처럼 리소스를 식별하는 값은 경로, `cancelReason`처럼 부가 정보는 쿼리 파라미터나 바디가 자연스럽다.
+- `@PathVariable`은 URL 템플릿(`{...}`)에 실제 대응 자리가 있어야 한다. 자리 없이 붙이면 매핑이 안 된다(P1의 D04 실수와 같은 종류).
+- `@Positive`는 숫자 전용이다. 문자열의 "비어있지 않음"은 `@NotBlank`로 검사한다.
+- 시그니처를 바꾸는 대신 **오버로드**(메서드 추가)하는 선택지도 있다. 트레이드오프는 "일관성(항상 사유를 요구)" vs "하위 호환(기존 호출부 안 건드림)"이다 — 여기서는 "취소엔 항상 사유가 있어야 한다"는 도메인 판단으로 시그니처 변경을 선택했다.
+
+**[❌ 흔한 실수]**
+
+| 실수 | 실제로 터진 것 |
+|---|---|
+| Domain의 `cancel()` 시그니처만 바꾸고 Service 호출부는 그대로 둠 | `cannot be applied to given types: required String, found no arguments` — 컴파일 에러로 즉시 드러남 (D14) |
+| `cancelReason`을 `@PathVariable`로 선언했는데 URL엔 `{id}` 하나뿐 | 매핑 실패. URL 템플릿과 파라미터 목록이 대응해야 한다 (D14) |
+| `@Positive`를 `String cancelReason`에 붙임 | 타입 불일치 — `@Positive`는 숫자용 제약이다 (D14) |
+| 새로 필수가 된 쿼리 파라미터를 Controller 통합 테스트가 안 보냄 | `MissingServletRequestParameterException` 계열로 400 — 테스트가 기대하던 것과 **다른 이유**의 400이라 실패 (D14) |
+
+**[근거]** `src/main/java/com/example/studyroom/domain/Reservation.java:29` · `src/main/java/com/example/studyroom/service/ReservationService.java:22-28` · `src/main/java/com/example/studyroom/controller/ReservationController.java:29-34` · `src/test/java/com/example/studyroom/controller/ReservationControllerHttpTest.java:51-66`
 
 ---
 
@@ -988,10 +1184,14 @@ sequenceDiagram
 5. Entity      @Entity + @Id + @GeneratedValue + 기본 생성자         (P16)
 6. 구현        JDBC(직접) 또는 Spring Data 어댑터(위임)             (P12·P13·P15)
 7. 검증        flush·clear 뒤 상대 행 수와 동일 ID 개수 확인         (P17)
-8. 설정        ddl-auto: none — Hibernate는 스키마를 안 건드린다     (P16)
+8. 영속성 컨텍스트  1차 캐시는 같은 트랜잭션·같은 id면 같은 참조     (P18)
+9. 변경 감지    save() 없이 flush 시점에 자동 UPDATE(dirty checking) (P19)
+10. 부채 상환   NOT NULL이 못 막는 빈 문자열은 CHECK로               (P20)
+11. 설정 확정   ddl-auto: none → validate — Entity·스키마 불일치도 검사 (P16·P20)
+12. 파급 추적   Domain 메서드 시그니처를 바꾸면 컴파일러가 호출부를 찾아준다 (P21)
 ```
 
-**스키마의 주인은 하나여야 한다.** Flyway와 `ddl-auto`가 동시에 스키마를 만들면 장부와 실제가 어긋난다.
+**스키마의 주인은 하나여야 한다.** Flyway와 `ddl-auto`가 동시에 스키마를 만들면 장부와 실제가 어긋난다. **`ddl-auto`는 Week B 안에서도 `none`(D3~D6, Hibernate는 아무것도 안 함) → `validate`(D7, 불일치를 감시)로 단계가 바뀐다** — 스키마를 만드는 권한은 끝까지 Flyway에만 있다.
 
 ---
 
