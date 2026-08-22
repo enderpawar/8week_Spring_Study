@@ -569,7 +569,7 @@ void modifyingManagedLoanWithoutExplicitSaveStillPersistsOnFlush() {
     entityManager.clear();
     Loan reloaded = repository.findById(id).orElseThrow();
 
-    assert____________(reloaded.____________());           // (4)
+    assert____________(reloaded.isReturned());             // (4) (1)·(2)에 무엇을 넣었는지에 달렸다
 }
 ```
 
@@ -589,7 +589,7 @@ void modifyingManagedLoanWithoutExplicitSaveStillPersistsOnFlush() {
 ```sql
 -- V2__add_loan_check_constraints.sql
 ALTER TABLE loan
-    ____ CONSTRAINT book_title CHECK (____________);       -- (1) 키워드 + 조건식
+    ADD CONSTRAINT book_title CHECK (____________);        -- (1) 조건식
 
 ALTER TABLE loan
     ADD CONSTRAINT borrower_name CHECK (____________);     -- (2)
@@ -599,18 +599,18 @@ ALTER TABLE loan
 
 | 시도 | 왜 안 되나 |
 |---|---|
-| `ALTER TABLE loan(ADD CONSTRAINT ... CHECK (...))` | |
+| `ALTER TABLE loan(ADD CONSTRAINT ... CHECK (...))` — 전체를 괄호로 묶음 | |
 | `ADD CONSTRAINT book_title CHECK NOT BLANK` | |
-| `ADD CONSTRAINT book_title CHECK <> ''` | |
+| 조건식에 비교 대상 컬럼 없이 연산자와 빈 문자열만 씀 | |
 
 ```java
 @Test
 void checkConstraintRejectsEmptyBookTitle() {
-    assert____________(____________________.class, () -> {   // (1) assert 메서드 + 예외 타입
+    assert____________(____________________.class, () -> {   // (3) assert 메서드 + 예외 타입
         entityManager.createNativeQuery(
                 "INSERT INTO loan (book_title, borrower_name, returned) VALUES ('', ?, false)")
                 .setParameter(1, "민지")
-                .____________();                              // (2)
+                .executeUpdate();
         entityManager.flush();
     });
 }
