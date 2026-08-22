@@ -1,0 +1,116 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 860 730" width="860" height="730" font-family="system-ui, -apple-system, 'Segoe UI', 'Malgun Gothic', 'Apple SD Gothic Neo', sans-serif">
+  <rect x="0" y="0" width="860" height="730" fill="#ffffff"/>
+  <defs>
+    <marker id="call" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#334155"/>
+    </marker>
+    <marker id="ret" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10" fill="none" stroke="#334155" stroke-width="1.2"/>
+    </marker>
+  </defs>
+
+  <text x="30" y="28" font-size="12" fill="#475569">시퀀스 다이어그램 — 한 트랜잭션 안에서 같은 id를 두 번 조회할 때 SQL이 나가는 시점</text>
+
+  <!-- participants -->
+  <rect x="40" y="46" width="112" height="40" fill="#ffffff" stroke="#334155" stroke-width="1.3"/>
+  <text x="96" y="71" font-size="13" font-weight="600" fill="#0f172a" text-anchor="middle">테스트</text>
+
+  <rect x="212" y="46" width="156" height="40" fill="#ffffff" stroke="#334155" stroke-width="1.3"/>
+  <text x="290" y="71" font-size="13" font-weight="600" fill="#0f172a" text-anchor="middle">Repository</text>
+
+  <rect x="424" y="46" width="192" height="40" fill="#ffffff" stroke="#334155" stroke-width="1.3"/>
+  <text x="520" y="71" font-size="13" font-weight="600" fill="#0f172a" text-anchor="middle">영속성 컨텍스트</text>
+
+  <rect x="704" y="46" width="112" height="40" fill="#ffffff" stroke="#334155" stroke-width="1.3"/>
+  <text x="760" y="71" font-size="13" font-weight="600" fill="#0f172a" text-anchor="middle">H2</text>
+
+  <!-- lifelines -->
+  <line x1="96"  y1="86" x2="96"  y2="704" stroke="#334155" stroke-width="1" stroke-dasharray="4 4"/>
+  <line x1="290" y1="86" x2="290" y2="704" stroke="#334155" stroke-width="1" stroke-dasharray="4 4"/>
+  <line x1="520" y1="86" x2="520" y2="704" stroke="#334155" stroke-width="1" stroke-dasharray="4 4"/>
+  <line x1="760" y1="86" x2="760" y2="704" stroke="#334155" stroke-width="1" stroke-dasharray="4 4"/>
+
+  <!-- preamble activations -->
+  <rect x="286" y="106" width="8" height="42" fill="#ffffff" stroke="#334155" stroke-width="1.1"/>
+  <rect x="516" y="132" width="8" height="80" fill="#ffffff" stroke="#334155" stroke-width="1.1"/>
+
+  <!-- preamble messages -->
+  <line x1="96" y1="110" x2="284" y2="110" stroke="#334155" stroke-width="1.3" marker-end="url(#call)"/>
+  <text x="190" y="104" font-size="11.5" fill="#334155" text-anchor="middle" font-family="ui-monospace, Consolas, monospace">save(reservation)</text>
+
+  <line x1="294" y1="140" x2="514" y2="140" stroke="#334155" stroke-width="1.3" marker-end="url(#call)"/>
+  <text x="404" y="134" font-size="11.5" fill="#475569" text-anchor="middle">영속 상태로 등록</text>
+
+  <line x1="96" y1="176" x2="514" y2="176" stroke="#334155" stroke-width="1.3" marker-end="url(#call)"/>
+  <text x="410" y="170" font-size="11.5" fill="#334155" text-anchor="middle" font-family="ui-monospace, Consolas, monospace">flush()</text>
+
+  <line x1="524" y1="204" x2="754" y2="204" stroke="#334155" stroke-width="1.3" marker-end="url(#call)"/>
+  <text x="639" y="198" font-size="11.5" fill="#334155" text-anchor="middle" font-family="ui-monospace, Consolas, monospace">INSERT</text>
+
+  <!-- alt frame -->
+  <rect x="56" y="228" width="774" height="458" fill="none" stroke="#334155" stroke-width="1.2"/>
+  <path d="M 56 228 L 132 228 L 132 244 L 120 256 L 56 256 z" fill="#ffffff" stroke="#334155" stroke-width="1.2"/>
+  <text x="76" y="247" font-size="12" font-weight="600" fill="#0f172a">alt</text>
+
+  <text x="148" y="248" font-size="12" fill="#0f172a" font-weight="600">[clear() 호출 안 함]</text>
+
+  <!-- fragment 1 activations -->
+  <rect x="286" y="278" width="8" height="34" fill="#ffffff" stroke="#334155" stroke-width="1.1"/>
+  <rect x="286" y="358" width="8" height="34" fill="#ffffff" stroke="#334155" stroke-width="1.1"/>
+  <rect x="516" y="292" width="8" height="20" fill="#ffffff" stroke="#334155" stroke-width="1.1"/>
+  <rect x="516" y="372" width="8" height="20" fill="#ffffff" stroke="#334155" stroke-width="1.1"/>
+
+  <line x1="96" y1="282" x2="284" y2="282" stroke="#334155" stroke-width="1.3" marker-end="url(#call)"/>
+  <text x="190" y="276" font-size="11.5" fill="#334155" text-anchor="middle" font-family="ui-monospace, Consolas, monospace">findById(id)</text>
+
+  <line x1="294" y1="302" x2="514" y2="302" stroke="#334155" stroke-width="1.3" marker-end="url(#call)"/>
+  <text x="404" y="296" font-size="11.5" fill="#475569" text-anchor="middle">캐시 조회</text>
+
+  <line x1="514" y1="330" x2="296" y2="330" stroke="#334155" stroke-width="1.2" stroke-dasharray="5 4" marker-end="url(#ret)"/>
+  <text x="405" y="324" font-size="11.5" fill="#475569" text-anchor="middle">인스턴스 r</text>
+
+  <line x1="96" y1="362" x2="284" y2="362" stroke="#334155" stroke-width="1.3" marker-end="url(#call)"/>
+  <text x="190" y="356" font-size="11.5" fill="#334155" text-anchor="middle" font-family="ui-monospace, Consolas, monospace">findById(id)</text>
+
+  <line x1="294" y1="382" x2="514" y2="382" stroke="#334155" stroke-width="1.3" marker-end="url(#call)"/>
+  <text x="404" y="376" font-size="11.5" fill="#475569" text-anchor="middle">캐시 조회</text>
+
+  <line x1="514" y1="410" x2="296" y2="410" stroke="#334155" stroke-width="1.2" stroke-dasharray="5 4" marker-end="url(#ret)"/>
+  <text x="405" y="404" font-size="11.5" fill="#475569" text-anchor="middle">인스턴스 r</text>
+
+  <!-- divider -->
+  <line x1="56" y1="436" x2="830" y2="436" stroke="#334155" stroke-width="1.1" stroke-dasharray="6 4"/>
+  <text x="148" y="458" font-size="12" fill="#0f172a" font-weight="600">[clear() 호출]</text>
+
+  <!-- fragment 2 activations -->
+  <rect x="516" y="480" width="8" height="20" fill="#ffffff" stroke="#334155" stroke-width="1.1"/>
+  <rect x="286" y="516" width="8" height="90" fill="#ffffff" stroke="#334155" stroke-width="1.1"/>
+  <rect x="516" y="530" width="8" height="66" fill="#ffffff" stroke="#334155" stroke-width="1.1"/>
+  <rect x="756" y="552" width="8" height="26" fill="#ffffff" stroke="#334155" stroke-width="1.1"/>
+  <rect x="286" y="622" width="8" height="58" fill="#ffffff" stroke="#334155" stroke-width="1.1"/>
+  <rect x="516" y="636" width="8" height="24" fill="#ffffff" stroke="#334155" stroke-width="1.1"/>
+
+  <line x1="96" y1="490" x2="514" y2="490" stroke="#334155" stroke-width="1.3" marker-end="url(#call)"/>
+  <text x="300" y="484" font-size="11.5" fill="#334155" text-anchor="middle" font-family="ui-monospace, Consolas, monospace">clear()</text>
+
+  <line x1="96" y1="520" x2="284" y2="520" stroke="#334155" stroke-width="1.3" marker-end="url(#call)"/>
+  <text x="190" y="514" font-size="11.5" fill="#334155" text-anchor="middle" font-family="ui-monospace, Consolas, monospace">findById(id)</text>
+
+  <line x1="294" y1="540" x2="514" y2="540" stroke="#334155" stroke-width="1.3" marker-end="url(#call)"/>
+  <text x="404" y="534" font-size="11.5" fill="#475569" text-anchor="middle">캐시 조회</text>
+
+  <line x1="524" y1="562" x2="754" y2="562" stroke="#334155" stroke-width="1.3" marker-end="url(#call)"/>
+  <text x="639" y="556" font-size="11.5" fill="#334155" text-anchor="middle" font-family="ui-monospace, Consolas, monospace">SELECT</text>
+
+  <line x1="754" y1="588" x2="526" y2="588" stroke="#334155" stroke-width="1.2" stroke-dasharray="5 4" marker-end="url(#ret)"/>
+  <text x="640" y="582" font-size="11.5" fill="#475569" text-anchor="middle">행 1건</text>
+
+  <line x1="96" y1="626" x2="284" y2="626" stroke="#334155" stroke-width="1.3" marker-end="url(#call)"/>
+  <text x="190" y="620" font-size="11.5" fill="#334155" text-anchor="middle" font-family="ui-monospace, Consolas, monospace">findById(id)</text>
+
+  <line x1="294" y1="646" x2="514" y2="646" stroke="#334155" stroke-width="1.3" marker-end="url(#call)"/>
+  <text x="404" y="640" font-size="11.5" fill="#475569" text-anchor="middle">캐시 조회</text>
+
+  <line x1="514" y1="674" x2="296" y2="674" stroke="#334155" stroke-width="1.2" stroke-dasharray="5 4" marker-end="url(#ret)"/>
+  <text x="405" y="668" font-size="11.5" fill="#475569" text-anchor="middle">인스턴스 r</text>
+</svg>
