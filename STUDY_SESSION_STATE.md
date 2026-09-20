@@ -15,9 +15,10 @@
 - Week B D1~D5·D7 필수 개념 재복습: 완료
 - Week B D6 누적시험: 기존 공식 완료 기록 유지
 - Week C D1 트랜잭션 경계·커밋·롤백: 완료
-- Week C D2 Spring AOP 프록시·self-invocation: 다음 시작점
+- Week C D2 Spring AOP 프록시·self-invocation: 완료
+- Week C D3 트랜잭션 전파: 다음 시작점
 
-이 기록은 재복습 세션의 상태다. `app/study_docs/FUNDAMENTALS_ROADMAP.md`의 공식 완료 체크 상태는 변경하지 않았다.
+이 기록은 재복습 이후 Week C 학습까지 이어지는 세션 상태이며, `app/study_docs/FUNDAMENTALS_ROADMAP.md`의 공식 완료 체크 상태와 동기화한다.
 
 ## 오늘 다시 연결한 내용
 
@@ -75,14 +76,24 @@
 - 테스트용 트랜잭션 Bean에서 강제 `flush()` 뒤 `RuntimeException`을 발생시켜 `UPDATE` 후 rollback을 확인했다.
 - `readOnly=true`를 쓰기 권한 제어로 오해했으나, 조회 의도·최적화 힌트이며 절대적인 쓰기 차단을 보장하지 않는다고 교정했다.
 
+## Week C D2에서 확인한 내용
+
+- `ReservationService` Bean의 실제 타입이 `ReservationService$$SpringCGLIB$$0`임을 확인했다.
+- `getBean()`은 임시 객체 생성이 아니라 컨테이너가 준비한 같은 Singleton 프록시의 조회다.
+- 외부 `inner()` 호출은 프록시를 통과해 트랜잭션 활성, `outer()`의 self-invocation은 프록시를 우회해 비활성임을 확인했다.
+- `transactionalOuter()`에서는 바깥 경계가 트랜잭션을 먼저 시작하므로 내부 `inner()`가 활성 상태에서 실행됐다.
+- Service·프록시는 ApplicationContext, JPA Entity는 영속성 컨텍스트의 관리 대상이다.
+
 ## 다음 기기에서 시작할 지점
 
-Week C D2 Spring AOP 프록시에서 시작한다. 외부 호출은 프록시를 통과하지만 같은 객체 내부의 self-invocation은 프록시를 우회하는 차이를 예측→실행한다.
+Week C D3 트랜잭션 전파에서 시작한다. 기본 `REQUIRED`가 기존 트랜잭션에 참여하는 흐름과 `REQUIRES_NEW`가 별도 트랜잭션·커넥션을 요구하는 차이를 예측→실행한다.
 
 ## 검증 상태
 
 - `ReservationService.cancel()`에 `@Transactional`을 적용하고 명시적 `save()`를 제거했다.
 - `ReservationServiceTransactionTest`에서 commit·rollback 통합 테스트를 추가했다.
+- Spring AOP 프록시 판별 테스트와 self-invocation 호출 경로 테스트 3개를 추가했다.
+- 전체 테스트 22개, failures 0, errors 0을 확인했다.
 - IntelliJ 연결 Gradle 프로젝트 JVM을 `temurin-24`로 고정했다.
 - Gradle 8.14.5가 Java 24.0.2로 기동됨을 확인했다.
 - 1차 캐시 동일성 테스트를 실행해 `BUILD SUCCESSFUL`, INSERT 1회·SELECT 1회를 확인했다.

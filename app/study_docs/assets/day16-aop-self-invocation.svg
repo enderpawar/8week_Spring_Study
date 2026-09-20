@@ -1,0 +1,70 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="860" height="640" viewBox="0 0 860 640">
+  <defs>
+    <marker id="arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+      <path d="M0,0 L8,4 L0,8 Z" fill="#334155"/>
+    </marker>
+    <marker id="redArrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+      <path d="M0,0 L8,4 L0,8 Z" fill="#dc2626"/>
+    </marker>
+    <style>
+      .title { font: 700 26px system-ui, 'Segoe UI', 'Malgun Gothic', sans-serif; fill: #0f172a; }
+      .subtitle { font: 14px system-ui, 'Segoe UI', 'Malgun Gothic', sans-serif; fill: #475569; }
+      .panel { font: 700 17px system-ui, 'Segoe UI', 'Malgun Gothic', sans-serif; fill: #0f172a; }
+      .label { font: 600 14px system-ui, 'Segoe UI', 'Malgun Gothic', sans-serif; fill: #0f172a; }
+      .small { font: 13px system-ui, 'Segoe UI', 'Malgun Gothic', sans-serif; fill: #334155; }
+      .code { font: 13px ui-monospace, 'Cascadia Code', Consolas, monospace; fill: #0f172a; }
+      .line { stroke: #334155; stroke-width: 2; fill: none; marker-end: url(#arrow); }
+      .redline { stroke: #dc2626; stroke-width: 2; stroke-dasharray: 6 5; fill: none; marker-end: url(#redArrow); }
+    </style>
+  </defs>
+  <rect width="860" height="640" fill="#ffffff"/>
+  <text x="430" y="40" text-anchor="middle" class="title">Spring AOP 프록시와 self-invocation</text>
+  <text x="430" y="66" text-anchor="middle" class="subtitle">같은 inner() 메서드의 호출 경로에 따른 트랜잭션 활성 상태</text>
+
+  <rect x="55" y="86" width="160" height="54" rx="10" fill="#f8fafc" stroke="#64748b" stroke-width="2"/>
+  <text x="135" y="118" text-anchor="middle" class="label">호출자</text>
+  <rect x="350" y="86" width="160" height="54" rx="10" fill="#dcfce7" stroke="#16a34a" stroke-width="2"/>
+  <text x="430" y="108" text-anchor="middle" class="label">Spring AOP 프록시</text>
+  <text x="430" y="127" text-anchor="middle" class="small">TransactionInterceptor</text>
+  <rect x="645" y="86" width="160" height="54" rx="10" fill="#dbeafe" stroke="#2563eb" stroke-width="2"/>
+  <text x="725" y="108" text-anchor="middle" class="label">실제 Service 객체</text>
+  <text x="725" y="127" text-anchor="middle" class="small">target</text>
+
+  <rect x="35" y="164" width="790" height="126" rx="14" fill="#f0fdf4" stroke="#16a34a"/>
+  <text x="60" y="193" class="panel">외부 inner() 호출</text>
+  <text x="60" y="217" class="code">service.inner()</text>
+  <path d="M215 224 L350 224" class="line"/>
+  <text x="282" y="214" text-anchor="middle" class="small">Bean 호출</text>
+  <path d="M510 224 L645 224" class="line"/>
+  <text x="578" y="202" text-anchor="middle" class="small">@Transactional 확인</text>
+  <text x="578" y="218" text-anchor="middle" class="small">트랜잭션 시작</text>
+  <rect x="647" y="242" width="156" height="30" rx="15" fill="#bbf7d0"/>
+  <text x="725" y="262" text-anchor="middle" class="code">active = true</text>
+
+  <rect x="35" y="306" width="790" height="140" rx="14" fill="#fff7ed" stroke="#ea580c"/>
+  <text x="60" y="335" class="panel">비트랜잭션 outer()의 자기 호출</text>
+  <text x="60" y="359" class="code">service.outer()</text>
+  <path d="M215 366 L350 366" class="line"/>
+  <path d="M510 366 L645 366" class="line"/>
+  <text x="578" y="350" text-anchor="middle" class="small">outer()에 트랜잭션 없음</text>
+  <path d="M760 374 C810 384, 810 400, 760 410" class="redline"/>
+  <text x="700" y="389" text-anchor="middle" class="small">this.inner()</text>
+  <text x="700" y="406" text-anchor="middle" class="small">프록시 재진입 없음</text>
+  <rect x="647" y="414" width="156" height="26" rx="13" fill="#fed7aa"/>
+  <text x="725" y="432" text-anchor="middle" class="code">active = false</text>
+
+  <rect x="35" y="462" width="790" height="140" rx="14" fill="#eff6ff" stroke="#2563eb"/>
+  <text x="60" y="491" class="panel">트랜잭션 outer()의 자기 호출</text>
+  <text x="60" y="515" class="code">service.transactionalOuter()</text>
+  <path d="M264 522 L350 522" class="line"/>
+  <path d="M510 522 L645 522" class="line"/>
+  <text x="578" y="500" text-anchor="middle" class="small">바깥 경계에서</text>
+  <text x="578" y="516" text-anchor="middle" class="small">트랜잭션 시작</text>
+  <path d="M760 530 C810 540, 810 556, 760 566" class="redline"/>
+  <text x="700" y="545" text-anchor="middle" class="small">this.inner()</text>
+  <text x="700" y="562" text-anchor="middle" class="small">프록시는 우회</text>
+  <rect x="647" y="570" width="156" height="26" rx="13" fill="#bfdbfe"/>
+  <text x="725" y="588" text-anchor="middle" class="code">active = true</text>
+
+  <text x="430" y="626" text-anchor="middle" class="label">내부 호출의 애노테이션 적용이 아니라 바깥 트랜잭션 경계의 효과</text>
+</svg>
