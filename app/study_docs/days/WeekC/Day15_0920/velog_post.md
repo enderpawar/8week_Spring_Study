@@ -6,7 +6,7 @@ Week B에서는 영속성 컨텍스트와 변경 감지를 관찰하기 위해 `
 
 ## 1. 개념 설명
 
-| 용어 | 한줄뜻 | 코드 모습 |
+| 용어 | 한줄뜻 | 현재 프로젝트 적용 지점 |
 |---|---|---|
 | 트랜잭션 경계 | 여러 DB 작업을 전부 성공하거나 전부 취소할 하나의 단위로 묶은 범위 | `ReservationService.cancel()`의 `@Transactional` |
 | commit | 트랜잭션의 변경을 최종 확정하는 동작 | 서비스 메서드 정상 반환 뒤 DB에 취소 상태 유지 |
@@ -31,7 +31,6 @@ Week B에서는 영속성 컨텍스트와 변경 감지를 관찰하기 위해 `
 
 `@Transactional` 하나가 ACID 전체를 자동으로 해결한다는 뜻은 아니다. 어떤 격리 수준을 쓸지, DB 제약으로 어떤 일관성을 지킬지, 여러 트랜잭션의 충돌을 어떻게 다룰지는 별도 판단이 필요하다. 오늘 실험으로 확인한 범위는 Service 경계의 원자성과 commit·rollback이다.
 
-![정상 반환 경로는 상태 변경과 UPDATE 이후 commit되고, 예외 발생 경로는 UPDATE를 강제 flush한 뒤 rollback되어 기존 값이 복원되는 흐름](../../../assets/day15-transaction-boundary.png)
 
 ### 정상 반환 경로의 commit 과정
 
