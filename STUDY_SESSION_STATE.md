@@ -1,6 +1,6 @@
 # 학습 세션 재개 상태
 
-최종 갱신: 2026-09-19
+최종 갱신: 2026-09-20
 
 ## 세션 목적
 
@@ -12,9 +12,10 @@
 
 - Week A D1~D5 재복습: 완료
 - Week A 마무리 연결 문제: 통과
-- Week B D1 Flyway·DB 제약 재복습: 완료
-- Week B D2 순수 JDBC: 진행 중
-- Week C: 아직 시작하지 않음
+- Week B D1~D5·D7 필수 개념 재복습: 완료
+- Week B D6 누적시험: 기존 공식 완료 기록 유지
+- Week C D1 트랜잭션 경계·커밋·롤백: 완료
+- Week C D2 Spring AOP 프록시·self-invocation: 다음 시작점
 
 이 기록은 재복습 세션의 상태다. `app/study_docs/FUNDAMENTALS_ROADMAP.md`의 공식 완료 체크 상태는 변경하지 않았다.
 
@@ -46,6 +47,17 @@
 - JPA를 사용해도 커넥션 풀은 사라지지 않는다.
 - `ResultSet.next()`는 다음 행으로 커서를 이동하고, `getXxx()`는 현재 행의 값을 읽는다.
 
+### Week B D2~D5·D7 — JDBC에서 JPA, 영속성
+
+- try-with-resources는 `AutoCloseable` 자원을 정상·예외 경로 모두에서 자동으로 닫는다.
+- `PreparedStatement`는 SQL 구조와 사용자 값을 분리하여 입력을 SQL 문법이 아닌 데이터로 처리한다.
+- JPA는 ORM 표준 명세, Hibernate는 구현체, Spring Data JPA는 Repository 편의 계층이다.
+- 신규 Entity의 `Long id`는 저장 전 `null`이고 `IDENTITY` INSERT 뒤 DB 생성값이 들어간다.
+- 조회 결과 없음은 `null`이 아니라 `Optional.empty()`다.
+- 같은 트랜잭션의 1차 캐시는 `(Entity 타입, id)`를 키로 같은 객체 참조를 반환한다.
+- 관리 상태 Entity를 변경하면 `flush()` 때 변경 감지가 UPDATE를 만들며, flush는 commit이 아니다.
+- `ddl-auto: validate`는 Entity와 DB 스키마의 일치만 검사하고 스키마 변경은 Flyway가 담당한다.
+
 ## 실제 오답과 교정
 
 1. 실제 ID 조회 책임을 Service라고 답했다.
@@ -56,24 +68,23 @@
 
 세부 최초 답변과 교정 기록은 `app/study_docs/reviews/2026-09-19-week-ab-refresh.md`에 있다.
 
+## Week C D1에서 확인한 내용
+
+- `ReservationService.cancel()` 전체에 `@Transactional`을 적용하고 명시적 `save()`를 제거했다.
+- 정상 반환 경로에서 변경 감지 `UPDATE`와 commit 후 재조회 값을 확인했다.
+- 테스트용 트랜잭션 Bean에서 강제 `flush()` 뒤 `RuntimeException`을 발생시켜 `UPDATE` 후 rollback을 확인했다.
+- `readOnly=true`를 쓰기 권한 제어로 오해했으나, 조회 의도·최적화 힌트이며 절대적인 쓰기 차단을 보장하지 않는다고 교정했다.
+
 ## 다음 기기에서 시작할 지점
 
-로드맵과 이 파일을 읽은 뒤 아래 문제부터 재개한다.
-
-> 여러 행을 읽는 `while (rs.next())` 안에서 `mapRow(rs)`를 호출한다. 만약 `mapRow(rs)` 내부에서도 다시 `rs.next()`를 호출하면 어떤 문제가 생기는가?
-
-이 문제를 교정한 뒤 Week B D2의 아래 내용을 이어간다.
-
-1. `try-with-resources`와 커넥션 누수
-2. JDBC가 직접 수행하는 SQL·파라미터 바인딩·행→객체 매핑
-3. JPA / Hibernate / Spring Data JPA의 차이
-4. JDBC 대비 JPA가 추상화하는 것
-
-그다음 Week B D3 Entity 매핑 → D4 영속성 컨텍스트·1차 캐시 → D5 변경 감지 순서로 복습한다.
+Week C D2 Spring AOP 프록시에서 시작한다. 외부 호출은 프록시를 통과하지만 같은 객체 내부의 self-invocation은 프록시를 우회하는 차이를 예측→실행한다.
 
 ## 검증 상태
 
-- 이번 세션에서는 코드를 수정하지 않았다.
-- 빌드와 테스트는 실행하지 않았다.
+- `ReservationService.cancel()`에 `@Transactional`을 적용하고 명시적 `save()`를 제거했다.
+- `ReservationServiceTransactionTest`에서 commit·rollback 통합 테스트를 추가했다.
+- IntelliJ 연결 Gradle 프로젝트 JVM을 `temurin-24`로 고정했다.
+- Gradle 8.14.5가 Java 24.0.2로 기동됨을 확인했다.
+- 1차 캐시 동일성 테스트를 실행해 `BUILD SUCCESSFUL`, INSERT 1회·SELECT 1회를 확인했다.
 - 공식 로드맵 체크박스와 복습큐는 변경하지 않았다.
 

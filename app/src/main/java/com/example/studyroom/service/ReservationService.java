@@ -4,6 +4,7 @@ import com.example.studyroom.domain.Reservation;
 import com.example.studyroom.exception.ReservationNotFoundException;
 import com.example.studyroom.repository.ReservationRepository;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class ReservationService{
@@ -19,11 +20,18 @@ public class ReservationService{
         reservation.confirm(); // 예약 상태를 변경하고
         return reservationRepository.save(reservation); // reservationRepository의 save 메서드 인자값으로 service가 상태를 변경한 reservation 값을 넘겨준다.
     }
+
+    @Transactional //트랜잭션 경계 : 조회 -> 상태변경 -> DB에 반영  이 작업들이 원자성을 반영하도록,
+    // 전부 성공하거나 전부 취소하는 하나의 단위로 묶는 범위
+
     public Reservation cancel(Long id,String cancelReason){
         Reservation reservation = reservationRepository.findById(id)
-                .orElseThrow(() -> new ReservationNotFoundException(id));
-        reservation.cancel(cancelReason);
-        reservationRepository.save(reservation);
+                .orElseThrow(() -> new ReservationNotFoundException(id)); // 1. 예약이 있는지 없는지 조회
+
+        reservation.cancel(cancelReason); //2. 취소 상태로 변경
+        // reservationRepository.save(reservation); //3. DB에 반영 -> @Transactional 사용시 안써도 됨.
+        // 조회된 엔티티가 영속 상태라 변경 감지를 처리한다.
+
         return reservation;
     }
 }
