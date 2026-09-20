@@ -1,0 +1,67 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="860" height="620" viewBox="0 0 860 620">
+  <defs>
+    <marker id="arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+      <path d="M0,0 L8,4 L0,8 Z" fill="#334155"/>
+    </marker>
+    <style>
+      .title { font: 700 26px system-ui, 'Segoe UI', 'Malgun Gothic', sans-serif; fill: #0f172a; }
+      .subtitle { font: 600 18px system-ui, 'Segoe UI', 'Malgun Gothic', sans-serif; fill: #334155; }
+      .label { font: 600 15px system-ui, 'Segoe UI', 'Malgun Gothic', sans-serif; fill: #0f172a; }
+      .small { font: 14px system-ui, 'Segoe UI', 'Malgun Gothic', sans-serif; fill: #334155; }
+      .code { font: 13px ui-monospace, 'Cascadia Code', Consolas, monospace; fill: #0f172a; }
+      .line { stroke: #334155; stroke-width: 2; fill: none; marker-end: url(#arrow); }
+      .dash { stroke: #64748b; stroke-width: 1.5; stroke-dasharray: 6 6; }
+    </style>
+  </defs>
+  <rect width="860" height="620" fill="#ffffff"/>
+  <text x="430" y="42" text-anchor="middle" class="title">트랜잭션 경계의 commit·rollback 흐름</text>
+  <text x="430" y="68" text-anchor="middle" class="small">ReservationService.cancel()과 강제 flush 롤백 테스트의 실행 순서</text>
+  <rect x="35" y="92" width="385" height="470" rx="16" fill="#f0fdf4" stroke="#16a34a" stroke-width="2"/>
+  <rect x="440" y="92" width="385" height="470" rx="16" fill="#fff7ed" stroke="#ea580c" stroke-width="2"/>
+  <text x="227" y="126" text-anchor="middle" class="subtitle">정상 반환 경로</text>
+  <text x="632" y="126" text-anchor="middle" class="subtitle">예외 발생 경로</text>
+
+  <rect x="88" y="150" width="278" height="52" rx="9" fill="#ffffff" stroke="#334155"/>
+  <text x="227" y="173" text-anchor="middle" class="label">트랜잭션 시작</text>
+  <text x="227" y="191" text-anchor="middle" class="code">@Transactional cancel()</text>
+  <path d="M227 202 L227 230" class="line"/>
+  <rect x="88" y="230" width="278" height="52" rx="9" fill="#ffffff" stroke="#334155"/>
+  <text x="227" y="253" text-anchor="middle" class="label">Entity 조회와 관리</text>
+  <text x="227" y="271" text-anchor="middle" class="code">SELECT → managed Reservation</text>
+  <path d="M227 282 L227 310" class="line"/>
+  <rect x="88" y="310" width="278" height="52" rx="9" fill="#ffffff" stroke="#334155"/>
+  <text x="227" y="333" text-anchor="middle" class="label">상태 변경</text>
+  <text x="227" y="351" text-anchor="middle" class="code">confirmed=false, cancelReason</text>
+  <path d="M227 362 L227 390" class="line"/>
+  <rect x="88" y="390" width="278" height="52" rx="9" fill="#ffffff" stroke="#334155"/>
+  <text x="227" y="413" text-anchor="middle" class="label">flush와 SQL 전송</text>
+  <text x="227" y="431" text-anchor="middle" class="code">UPDATE reservation</text>
+  <path d="M227 442 L227 470" class="line"/>
+  <rect x="88" y="470" width="278" height="62" rx="9" fill="#dcfce7" stroke="#16a34a" stroke-width="2"/>
+  <text x="227" y="496" text-anchor="middle" class="label">commit</text>
+  <text x="227" y="517" text-anchor="middle" class="code">false / "일정 변경" 유지</text>
+
+  <rect x="493" y="150" width="278" height="52" rx="9" fill="#ffffff" stroke="#334155"/>
+  <text x="632" y="173" text-anchor="middle" class="label">트랜잭션 시작</text>
+  <text x="632" y="191" text-anchor="middle" class="code">cancelThenFail()</text>
+  <path d="M632 202 L632 230" class="line"/>
+  <rect x="493" y="230" width="278" height="52" rx="9" fill="#ffffff" stroke="#334155"/>
+  <text x="632" y="253" text-anchor="middle" class="label">Entity 조회와 상태 변경</text>
+  <text x="632" y="271" text-anchor="middle" class="code">SELECT → cancel("강제 실패")</text>
+  <path d="M632 282 L632 310" class="line"/>
+  <rect x="493" y="310" width="278" height="52" rx="9" fill="#ffffff" stroke="#334155"/>
+  <text x="632" y="333" text-anchor="middle" class="label">강제 flush</text>
+  <text x="632" y="351" text-anchor="middle" class="code">UPDATE reservation</text>
+  <path d="M632 362 L632 390" class="line"/>
+  <rect x="493" y="390" width="278" height="52" rx="9" fill="#ffedd5" stroke="#ea580c"/>
+  <text x="632" y="413" text-anchor="middle" class="label">RuntimeException</text>
+  <text x="632" y="431" text-anchor="middle" class="code">commit 이전의 실패</text>
+  <path d="M632 442 L632 470" class="line"/>
+  <rect x="493" y="470" width="278" height="62" rx="9" fill="#fee2e2" stroke="#dc2626" stroke-width="2"/>
+  <text x="632" y="496" text-anchor="middle" class="label">rollback</text>
+  <text x="632" y="517" text-anchor="middle" class="code">true / null 복원</text>
+
+  <line x1="430" y1="105" x2="430" y2="550" class="dash"/>
+  <rect x="232" y="575" width="396" height="30" rx="15" fill="#e2e8f0"/>
+  <text x="430" y="596" text-anchor="middle" class="label">flush = SQL 전송 · commit = 최종 확정</text>
+</svg>

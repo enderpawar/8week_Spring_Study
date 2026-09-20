@@ -31,6 +31,18 @@ Follow the format defined in `study_docs/FUNDAMENTALS_ROADMAP.md`:
 - Never fabricate measurements, test results, deployment status, retrospectives, learner answers, or design alternatives that were not considered.
 - Never overwrite content marked `[직접 작성]`.
 
+## Technical writing headings — mandatory for Codex
+
+Before Codex creates or edits any Velog post or concept article, read **`study_docs/VELOg_POST_TEMPLATE.md` in full** and apply its writing and quality-gate rules. The current template takes precedence over the style of older posts.
+
+Every H1, H2, H3, and H4 in Velog posts, concept articles, and learner-facing concept notes must be a **noun phrase styled like a textbook table of contents**. This is an absolute rule. Do not use interrogative or narrative headings containing forms such as `왜`, `어떻게`, `무엇인가`, `~인가`, `~일까`, `~하는가`, `~되는가`, `~한다`, or `~아니다`.
+
+Even in a Q&A section, keep the heading nominal, such as `Q1. flush와 commit의 역할 구분`, and place the actual question as a sentence in the body. Before finishing a writing task, search all headings and remove any non-nominal form.
+
+Concept sections must not stop at a terminology table. Explain **motivation → execution sequence → distinction from similar concepts → guarantees and limitations → connection to current project code**, using verified examples and counterexamples from the repository.
+
+For every Velog or Full concept post, evaluate visual support before completion. When the topic contains execution flow, branching, hierarchy, component relationships, comparison, or state change, include at least one relevant visual. Search official documentation first and verify the image directly; if no official visual matches the repository's actual flow, create and render a repository-owned SVG plus PNG. Never use decorative stock art, unverified search thumbnails, or unattributed blog images.
+
 ## Guided learning mode
 
 When the learner says `오늘 학습 시작`, `DayN 시작`, `week N 시작`, `week N 공부 시작`, or otherwise asks to study interactively:
