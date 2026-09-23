@@ -14,7 +14,13 @@ Day10에서 `Reservation`을 Entity로 매핑하고 Spring Data JPA 어댑터로
 | `entityManager.clear()` | 영속성 컨텍스트(1차 캐시 포함)를 통째로 비움 | 호출 뒤 같은 id를 조회하면 SELECT가 다시 나감 |
 | 참조 동일성 | 두 참조가 메모리상 같은 인스턴스를 가리키는 관계 | `assertSame(first, second)` |
 
-### Persistence Context의 필요성
+`EntityManager`가 Entity를 돌려줄 때 영속성 컨텍스트가 어디에 있고, 캐시에 없을 때 DB까지 어떤 경로로 내려가는지를 먼저 한 장으로 보면 다음과 같다. 이 프로젝트는 2차 캐시를 켜지 않았으므로 아래쪽 Second-Level Cache 경로는 건너뛰고 `Loader`가 바로 H2에 SELECT를 보낸다.
+
+![Hibernate의 Entity 로딩 구조. EntityManager는 Persistence Context에서 Entity를 받는다. 컨텍스트에 없으면 DefaultLoadEventListener가 Loader를 통해 DB에서 행을 읽어 Object[] 형태의 loaded state로 바꾸고, 2차 캐시가 켜져 있으면 CachedDomainDataAccess를 통해 2차 캐시에서 먼저 Object[]를 가져온다. 리스너는 만든 Entity와 Object[] loaded state(변경 감지용 스냅샷)를 함께 Persistence Context에 넣고, EntityManager가 그 Entity를 반환한다.](https://raw.githubusercontent.com/enderpawar/8week_Spring_Study/master/app/study_docs/assets/day11-overview-first-level-cache-loading.png)
+
+*출처: [The JPA and Hibernate first-level cache](https://vladmihalcea.com/jpa-hibernate-first-level-cache/) — Vlad Mihalcea. 저작권은 원저작자에게 있습니다.*
+
+### 1) Persistence Context의 필요성
 
 Day09의 `JdbcReservationRepository.findById()`는 호출될 때마다 SELECT를 실행하고, `mapRow()` 안에서 `new Reservation(...)`으로 객체를 새로 만들었다. 같은 `id`를 두 번 조회하면 값은 같지만 서로 다른 인스턴스 두 개가 생긴다.
 
@@ -25,7 +31,7 @@ Day09의 `JdbcReservationRepository.findById()`는 호출될 때마다 SELECT를
 
 JPA는 이 문제를 조회 결과를 트랜잭션 동안 붙잡아두는 공간으로 푼다. 그 공간이 영속성 컨텍스트다. 같은 트랜잭션에서 같은 행을 가리키는 Java 객체를 **하나로 유지**하는 것이 이 장치의 첫 번째 역할이다.
 
-### Persistence Context의 범위
+### 2) Persistence Context의 범위
 
 영속성 컨텍스트는 전역 저장소가 아니다. Spring 환경에서 Repository와 테스트가 주입받는 `EntityManager`는 현재 트랜잭션에 묶인 컨텍스트로 연결된다.
 
@@ -43,7 +49,7 @@ JPA는 이 문제를 조회 결과를 트랜잭션 동안 붙잡아두는 공간
 
 > **정리.** 영속성 컨텍스트 하나는 트랜잭션 하나에 대응한다. 오늘 관찰한 모든 캐시 동작은 한 테스트 메서드 안에서만 성립한다.
 
-### First-Level Cache의 조회 순서
+### 3) First-Level Cache의 조회 순서
 
 1차 캐시는 영속성 컨텍스트 안의 식별자 맵이다. 키는 `(Entity 타입, id)`이고 값은 관리 중인 인스턴스다.
 
@@ -63,7 +69,7 @@ JPA는 이 문제를 조회 결과를 트랜잭션 동안 붙잡아두는 공간
 
 캐시에 없을 때만 SELECT가 나간다는 점도 중요하다. 첫 조회가 반드시 DB로 간다는 보장은 없다. 첫 조회 시점에 이미 캐시에 들어 있으면 SELECT는 0번이다.
 
-### Managed State의 시작 시점
+### 4) Managed State의 시작 시점
 
 오늘 가장 크게 빗나간 예측이 여기서 나왔다. 나는 `save()` 뒤 같은 `id`를 두 번 조회하면 "첫 조회는 DB, 두 번째는 캐시"라고 봤다. 실제 로그에는 `insert` 한 줄뿐이었다.
 
@@ -79,14 +85,13 @@ Entity가 관리 상태가 되는 경로는 조회만이 아니다. `save()`로 
 
 Hibernate 공식 문서는 Entity 인스턴스가 영속성 컨텍스트에 대해 가질 수 있는 상태와 그 전이를 다음처럼 그린다.
 
-![Hibernate 엔티티 상태 전이도. Transient 상태의 인스턴스는 persist()로 Persistent(관리) 상태가 되고, remove()로 다시 Transient로 돌아간다. Persistent 상태에서 evict(), clear(), close()를 호출하면 Detached 상태로 넘어간다.](../../../assets/day11-web-hibernate-entity-lifecycle.png)
-<!-- velog 업로드: 이 줄 위 이미지 자리에 app/study_docs/assets/day11-web-hibernate-entity-lifecycle.png 파일을 드래그해 교체 -->
+![Hibernate 엔티티 상태 전이도. Transient 상태의 인스턴스는 persist()로 Persistent(관리) 상태가 되고, remove()로 다시 Transient로 돌아간다. Persistent 상태에서 evict(), clear(), close()를 호출하면 Detached 상태로 넘어간다.](https://raw.githubusercontent.com/enderpawar/8week_Spring_Study/master/app/study_docs/assets/day11-web-hibernate-entity-lifecycle.png)
 
 *출처: [A Short Guide to Hibernate 7 — 5.1. Persistence contexts](https://docs.hibernate.org/orm/7.4/introduction/html_single/Hibernate_Introduction.html#persistence-contexts) — Hibernate ORM 7 문서, Apache License 2.0*
 
 한 가지는 구분해 둔다. `Reservation`의 `id`는 `GenerationType.IDENTITY`로 DB가 만든다. 오늘 로그는 `INSERT`가 `save()` 줄과 `flush()` 줄 중 어디서 나갔는지 나눠 보지 않았다. 아래 그림의 `INSERT` 위치는 "늦어도 `flush()`까지"로 읽는다.
 
-### `clear()`와 `flush()`의 구분
+### 5) `clear()`와 `flush()`의 구분
 
 두 메서드는 Day10부터 테스트에 함께 있었지만 하는 일은 반대 방향에 가깝다.
 
@@ -110,10 +115,9 @@ select r1_0.id, r1_0.confirmed, r1_0.requester_name, r1_0.room_name from reserva
 
 > **정리.** `flush()`는 내보내고 남긴다. `clear()`는 내보내지 않고 비운다. 테스트에서 `flush()` → `clear()` 순서를 쓰는 이유는 "DB에 쓴 다음, 캐시가 아니라 DB에서 다시 읽기" 위해서다.
 
-![시퀀스 다이어그램. 테스트가 save(reservation)를 호출하면 Repository가 영속성 컨텍스트에 영속 상태로 등록하고, flush() 시점에 컨텍스트가 H2로 INSERT를 보낸다. 이후 alt 프레임이 두 갈래로 갈린다. clear()를 호출하지 않은 갈래에서는 findById(id) 두 번이 모두 캐시 조회에서 끝나고 인스턴스 r을 돌려주며, H2 생명선에는 화살표가 하나도 닿지 않는다. clear()를 호출한 갈래에서는 첫 findById(id)만 컨텍스트가 H2로 SELECT를 보내 행 1건을 받아오고, 두 번째 findById(id)는 다시 캐시 조회에서 끝나 같은 인스턴스 r을 돌려준다.](../../../assets/day11-first-level-cache.png)
-<!-- velog 업로드: 이 줄 위 이미지 자리에 app/study_docs/assets/day11-first-level-cache.png 파일을 드래그해 교체 -->
+![시퀀스 다이어그램. 테스트가 save(reservation)를 호출하면 Repository가 영속성 컨텍스트에 영속 상태로 등록하고, flush() 시점에 컨텍스트가 H2로 INSERT를 보낸다. 이후 alt 프레임이 두 갈래로 갈린다. clear()를 호출하지 않은 갈래에서는 findById(id) 두 번이 모두 캐시 조회에서 끝나고 인스턴스 r을 돌려주며, H2 생명선에는 화살표가 하나도 닿지 않는다. clear()를 호출한 갈래에서는 첫 findById(id)만 컨텍스트가 H2로 SELECT를 보내 행 1건을 받아오고, 두 번째 findById(id)는 다시 캐시 조회에서 끝나 같은 인스턴스 r을 돌려준다.](https://raw.githubusercontent.com/enderpawar/8week_Spring_Study/master/app/study_docs/assets/day11-first-level-cache.png)
 
-### Reference Equality와 Value Equality
+### 6) Reference Equality와 Value Equality
 
 Java에는 "같다"가 두 가지 있다. `==`는 두 참조가 같은 인스턴스를 가리키는지(동일성), `equals()`는 두 객체가 같은 값으로 취급되는지(동등성)를 본다. JUnit의 `assertSame`은 전자, `assertEquals`는 후자를 검사한다.
 
@@ -128,7 +132,7 @@ Java에는 "같다"가 두 가지 있다. `==`는 두 참조가 같은 인스턴
 
 > **정리.** 1차 캐시는 값이 아니라 (타입, id)로 같은 인스턴스를 돌려준다. 이것을 증명하는 단언은 `assertSame`이다.
 
-### 보장 범위와 한계
+### 7) 보장 범위와 한계
 
 오늘 관찰로 말할 수 있는 것과 없는 것을 나눈다.
 
@@ -138,7 +142,7 @@ Java에는 "같다"가 두 가지 있다. `==`는 두 참조가 같은 인스턴
 
 "1차 캐시가 SELECT를 줄인다"도 조건부다. `findById()`처럼 id로 찾는 조회가 캐시를 먼저 보는 것을 확인했을 뿐, `findAll()` 같은 다른 조회 경로의 SQL 횟수는 세지 않았다.
 
-### 현재 코드 연결
+### 8) 현재 코드 연결
 
 - 실험 코드: `JpaReservationRepositoryTest.repeatedFindByIdWithinSameTransactionReturnsSameInstance()`
 - 컨텍스트 조작 도구: 같은 테스트 클래스에 주입한 `EntityManager entityManager`
@@ -151,7 +155,7 @@ Java에는 "같다"가 두 가지 있다. `==`는 두 참조가 같은 인스턴
 
 ## 2. 코드 구현
 
-### 같은 `id` 2회 조회의 동일성 테스트
+### 1) 같은 `id` 2회 조회의 동일성 테스트
 
 ```java
 Reservation reservation = new Reservation("B101", "Jinwoo");
@@ -173,7 +177,7 @@ assertSame(first, second);
 
 `flush()`를 먼저 부른 이유도 있다. `clear()`가 대기 중인 `INSERT`를 버리지 않도록 DB로 먼저 내보내고, 그다음에 캐시를 비웠다.
 
-### 자동 검증 결과
+### 2) 자동 검증 결과
 
 | 조건 | SELECT 횟수 | `assertSame(first, second)` |
 |---|---|---|
@@ -184,7 +188,7 @@ assertSame(first, second);
 
 ## 3. 스스로 답한 질문
 
-### Q1. `save()` 직후 조회의 SELECT 횟수
+### 1) `save()` 직후 조회의 SELECT 횟수
 
 **질문.** `save()` 직후, `clear()` 없이 같은 `id`로 `findById()`를 두 번 부르면 SELECT는 몇 번 나가는가?
 
@@ -194,7 +198,7 @@ assertSame(first, second);
 
 교정한 기준은 "SELECT 여부는 몇 번째 조회인지가 아니라 **그 시점에 캐시에 있는지**로 정해진다"이다. 이 기준으로 `clear()`를 넣은 실험 2를 다시 예측했고, 결과가 그대로 일치했다.
 
-### Q2. Entity의 `final` 필드와 빈 기본 생성자
+### 2) Entity의 `final` 필드와 빈 기본 생성자
 
 **질문.** Entity 필드를 `final`로 두고 빈 `protected` 기본 생성자를 함께 두면 어떻게 되는가?
 

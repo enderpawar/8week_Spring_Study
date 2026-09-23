@@ -21,7 +21,13 @@ Day4에서 `InMemoryReservationRepository`가 예약을 `ArrayList`에 담게 �
 
 표의 앞 여섯 줄은 스키마를 **누가, 어떤 기록을 근거로** 바꾸는지에 대한 것이고, 뒤 네 줄은 그렇게 만든 스키마가 자바 코드와 **어디서 어긋나는지**에 대한 것이다.
 
-### 스키마 파일 관리의 필요성
+오늘 다룬 Flyway가 `db/migration`의 버전 파일을 스키마 히스토리 장부와 대조해 아직 적용되지 않은 버전만 순서대로 실행하는 전체 흐름을 먼저 한 장으로 보면 다음과 같다.
+
+![왼쪽 Migrations 폴더에 V1__CreatingBaseTables.sql, V2__ConstraintsAndFKs.sql, V3__AddIndexes.sql, V4__ViewsAndFunctions.sql 네 파일이 있다. Flyway가 Execute 화살표로 Current version V2 데이터베이스에 적용하고, 점선을 따라 New Version V4 데이터베이스가 된다. V2 위의 Schema History table에는 V1·V2가 SUCCESS, V3·V4가 PENDING으로 적혀 있고, V4 위의 표에는 V1~V4가 모두 SUCCESS로 기록돼 있다.](https://raw.githubusercontent.com/enderpawar/8week_Spring_Study/master/app/study_docs/assets/day08-overview-flyway-migrate.png)
+
+*출처: [The Flyway Migrate Command Explained Simply](https://www.red-gate.com/hub/product-learning/flyway/the-flyway-migrate-command-explained-simply/) — Phil Factor, Redgate Hub Product Learning. 저작권은 원저작자에게 있습니다. Copyright © Red Gate Software Limited. All rights reserved.*
+
+### 1) 스키마 파일 관리의 필요성
 
 지금까지 예약은 `ArrayList`에 있었다. 테이블로 옮기면 데이터는 재시작을 넘어 남지만, 대신 테이블 구조 자체가 새로운 관리 대상이 된다.
 
@@ -33,14 +39,13 @@ H2 콘솔에서 `CREATE TABLE`을 손으로 한 번 실행해도 테이블은 �
 
 Flyway 공식 문서는 같은 소프트웨어와 DB가 개발자 PC, CI, 테스트, 운영 환경마다 한 벌씩 따로 존재하는 상황을 다음처럼 그린다.
 
-![개발자 두 명의 PC(Axel's Machine, Christian's Machine)에 각각 Shiny Soft와 Shiny DB가 있고, 두 PC에서 Continuous Integration 환경으로 화살표가 모인 뒤 Test, Production 환경으로 이어진다. 네 종류의 환경마다 소프트웨어와 DB가 한 벌씩 따로 있다.](../../../assets/day08-web-flyway-environments.png)
-<!-- velog 업로드: 이 줄 위 이미지 자리에 app/study_docs/assets/day08-web-flyway-environments.png 파일을 드래그해 교체 -->
+![개발자 두 명의 PC(Axel's Machine, Christian's Machine)에 각각 Shiny Soft와 Shiny DB가 있고, 두 PC에서 Continuous Integration 환경으로 화살표가 모인 뒤 Test, Production 환경으로 이어진다. 네 종류의 환경마다 소프트웨어와 DB가 한 벌씩 따로 있다.](https://raw.githubusercontent.com/enderpawar/8week_Spring_Study/master/app/study_docs/assets/day08-web-flyway-environments.png)
 
 *출처: [Why database migrations — Redgate Flyway Documentation](https://documentation.red-gate.com/fd/why-database-migrations-184127574.html) — Copyright 1999 - 2026 Red Gate Software Ltd. All rights reserved.*
 
 마이그레이션은 스키마 변경을 **파일 하나, 버전 하나**로 고정한다. 스키마의 원본은 DB 파일이 아니라 저장소에 커밋된 SQL이다. 그래서 `.gitignore`에도 `app/data/`를 추가하면서 "스키마 원본은 V1__init.sql이지 DB 파일이 아니다"라는 주석을 남겼다.
 
-### Flyway의 기동 시 동작 순서
+### 2) Flyway의 기동 시 동작 순서
 
 Flyway는 SQL을 만들지도, 어디선가 옮겨오지도 않는다. 내가 손으로 쓴 파일을 실행하고 그 사실을 DB 안의 장부에 기록할 뿐이다. 이번 설정에서는 `spring.flyway.enabled: true`이고, Spring Boot가 애플리케이션 컨텍스트를 띄우는 도중에 Flyway 마이그레이션을 실행한다.
 
@@ -59,14 +64,13 @@ Spring Boot 컨텍스트 기동
 
 두 번째 분기는 Day09 재기동 때 `No migration necessary`로, 세 번째 분기는 오늘의 체크섬 실험으로 확인했다.
 
-![시퀀스 다이어그램. 참여자는 Spring Boot 컨텍스트 기동, Flyway, H2 파일 DB의 flyway_schema_history, db/migration의 V1__init.sql이다. Spring Boot가 migrate()를 호출하면 Flyway는 V<버전>__<설명>.sql 파일을 스캔해 V1__init.sql을 받고, 파일 전체의 체크섬을 계산한 뒤 장부를 조회해 적용 이력을 받는다. alt 프레임의 첫 경우인 장부에 V1이 없는 첫 기동에서는 장부 테이블 생성, CREATE TABLE reservation 실행, success = TRUE 이력 기록 후 version "1 - init"을 돌려준다. 둘째 경우인 파일 체크섬과 장부 체크섬이 같으면 V1을 건너뛰고 No migration necessary를 돌려준다. 셋째 경우인 체크섬이 다르면 붉은 경로로 FlywayValidateException이 전달되고 기동이 실패한다.](../../../assets/day08-flyway-startup.png)
-<!-- velog 업로드: 이 줄 위 이미지 자리에 app/study_docs/assets/day08-flyway-startup.png 파일을 드래그해 교체 -->
+![시퀀스 다이어그램. 참여자는 Spring Boot 컨텍스트 기동, Flyway, H2 파일 DB의 flyway_schema_history, db/migration의 V1__init.sql이다. Spring Boot가 migrate()를 호출하면 Flyway는 V<버전>__<설명>.sql 파일을 스캔해 V1__init.sql을 받고, 파일 전체의 체크섬을 계산한 뒤 장부를 조회해 적용 이력을 받는다. alt 프레임의 첫 경우인 장부에 V1이 없는 첫 기동에서는 장부 테이블 생성, CREATE TABLE reservation 실행, success = TRUE 이력 기록 후 version "1 - init"을 돌려준다. 둘째 경우인 파일 체크섬과 장부 체크섬이 같으면 V1을 건너뛰고 No migration necessary를 돌려준다. 셋째 경우인 체크섬이 다르면 붉은 경로로 FlywayValidateException이 전달되고 기동이 실패한다.](https://raw.githubusercontent.com/enderpawar/8week_Spring_Study/master/app/study_docs/assets/day08-flyway-startup.png)
 
 같은 SQL이 두 번 돌지 않고, 빈 DB든 쓰던 DB든 결국 같은 상태에 도달하고, 이미 적용된 파일이 바뀌면 기동이 멈춘다. 세 성질은 모두 장부 하나에서 나온다.
 
 > **정리.** Flyway는 SQL을 이해하는 도구가 아니라, "어느 파일을 어떤 내용으로 적용했는가"를 DB 안에 기록하고 매 기동마다 대조하는 도구다.
 
-### Checksum 검증과 Migration 불변 규칙
+### 3) Checksum 검증과 Migration 불변 규칙
 
 Flyway 공식 문서는 SQL 마이그레이션을 실행할 때 체크섬(CRC32)을 장부에 저장하고, 로컬 파일의 체크섬이 여전히 같은지 검사한다고 설명한다. 비교 대상은 SQL의 의미가 아니라 파일 내용에서 계산한 값이다.
 
@@ -84,7 +88,7 @@ CS 관점에서 체크섬은 "내용이 같은가"를 값 하나로 빠르게 �
 
 > **정리.** 적용된 마이그레이션은 불변이다. 바꾸고 싶으면 파일을 고치지 말고 다음 버전을 추가한다.
 
-### 실패한 Migration의 장부 기록
+### 4) 실패한 Migration의 장부 기록
 
 첫 기동은 SQL 문법 오류로 실패했다. 그런데 실패한 시도도 장부에 남았다.
 
@@ -96,7 +100,7 @@ installed_rank | version | description | success
 
 `success = FALSE` 행이 남아 있으면 다음 기동이 다시 막힌다. 불확정 상태에서 진행하지 않는 fail-fast 동작이다. 운영이라면 `flyway repair`로 실패 기록을 정리해야 하지만, 데이터가 한 행도 없는 개발 DB라서 DB 파일을 지우고 처음부터 돌렸다. `flyway repair`는 실행해보지 않았다.
 
-### 스키마 원본의 방향 — Flyway와 `ddl-auto`
+### 5) 스키마 원본의 방향 — Flyway와 `ddl-auto`
 
 Hibernate의 `ddl-auto`는 Entity 클래스를 보고 테이블을 만들거나 검사하는 옵션이다. 이 방식에서는 자바가 원본이고 DB가 결과물이다.
 
@@ -107,7 +111,7 @@ Flyway를 쓰면 방향이 반대다. SQL 파일이 원본이고, 자바 Entity�
 | Flyway 마이그레이션 | `db/migration/*.sql` | `flyway_schema_history` |
 | Hibernate `ddl-auto` 생성 | `@Entity` 클래스 | 별도 버전 기록 없음 |
 
-### Integrity Constraint와 애플리케이션 검증의 층 구분
+### 6) Integrity Constraint와 애플리케이션 검증의 층 구분
 
 `V1__init.sql`의 `NOT NULL`은 Day3의 `@NotBlank`와 비슷해 보인다. 하지만 검사하는 주체, 시점, 대상이 모두 다르다.
 
@@ -131,7 +135,7 @@ H2 콘솔의 직접 INSERT ─────────────────�
 
 > **정리.** 규칙을 볼 때는 "누가, 언제, 어떤 경로를 검사하는가"를 먼저 묻는다. `final`은 컴파일러가 컴파일 시점에, `@NotBlank`는 Spring이 요청 바인딩 시점에, `NOT NULL`은 DB가 행 저장 시점에 검사한다.
 
-### `AUTO_INCREMENT`와 번호 소실
+### 7) `AUTO_INCREMENT`와 번호 소실
 
 `AUTO_INCREMENT`는 `InMemoryReservationRepository`의 `nextId++`가 하던 일을 DB로 옮긴 것이다. 하지만 두 장치가 보장하는 것은 같지 않았다.
 
@@ -141,7 +145,7 @@ H2 콘솔에서 `NULL`을 넣은 INSERT가 거부된 뒤, 다음 INSERT로 들�
 
 같은 실험에서 `confirmed`를 INSERT에 넣지 않았는데 `DEFAULT FALSE`가 채워지는 것도 확인했다.
 
-### Identifier 대소문자 접힘과 Naming Strategy
+### 8) Identifier 대소문자 접힘과 Naming Strategy
 
 최종 상태를 조회하니 한 DB 안에 대문자 테이블과 소문자 테이블이 함께 있었다.
 
@@ -155,7 +159,7 @@ flyway_schema_history       ← Flyway가 따옴표로 감싸 소문자 유지
 
 자바 쪽 이름과의 경계도 있다. 자바는 `requesterName`처럼 camelCase를 쓰고, 컬럼은 `requester_name`처럼 snake_case로 만들었다. Hibernate의 기본 네이밍 전략은 camelCase를 단어 단위로 나눠 snake_case로 바꾼다. 단순 소문자화가 아니므로, 컬럼을 camelCase로 만들어 두면 이후 Entity 매핑에서 이름이 맞지 않는다. 이 매핑은 Day10에서 실제 SQL 로그로 확인했다.
 
-### Flyway 실행 전제 — DataSource와 의존성
+### 9) Flyway 실행 전제 — DataSource와 의존성
 
 Flyway가 마이그레이션을 실행하려면 DB 커넥션이 필요하다. 그래서 JPA보다 먼저 `spring-boot-starter-jdbc`를 추가했다. jdbc 스타터와 H2 드라이버가 classpath에 있으면 Spring Boot가 `application.yml`의 URL로 DataSource를 자동 구성하고, 기본 커넥션 풀인 HikariCP가 함께 올라온다.
 
@@ -173,7 +177,7 @@ Flyway가 마이그레이션을 실행하려면 DB 커넥션이 필요하다. �
 
 ## 2. 코드 구현
 
-### `reservation` — 자바 필드 4개와 컬럼 4개
+### 1) `reservation` — 자바 필드 4개와 컬럼 4개
 
 ```sql
 CREATE TABLE reservation (
@@ -189,7 +193,7 @@ CREATE TABLE reservation (
 
 `VARCHAR`의 길이는 저장 공간이 아니라 계약으로 봤다. 이보다 긴 값은 잘못된 데이터라고 선언하는 쪽이 나중에 원인을 찾기 쉽다고 판단해서 방 이름 100, 사람 이름 50으로 뒀다. H2는 이 타입을 표준명인 `CHARACTER VARYING`으로 보고했다.
 
-### `#` 주석의 파싱 실패
+### 2) `#` 주석의 파싱 실패
 
 처음에는 같은 주석을 `#`으로 달았다. `MODE=MySQL`을 켜뒀으니 MySQL 방언인 `#`도 받아줄 거라고 봤는데 파싱 단계에서 멈췄다.
 
@@ -201,7 +205,7 @@ Message : Syntax error in SQL statement
 
 `[*]`가 파서가 막힌 지점이다. 표준 SQL 주석인 `--`로 바꾸자 적용됐다. 호환 모드는 동작 일부를 맞춰줄 뿐 파서까지 MySQL로 바꾸지는 않는다.
 
-### 자동 검증 결과
+### 3) 자동 검증 결과
 
 | 확인 | 방법 | 결과 |
 |---|---|---|
@@ -215,7 +219,7 @@ H2 콘솔 조회와 INSERT 실험은 수동 확인이고 자동 테스트로 고
 
 ## 3. 스스로 답한 질문
 
-### Q1. 적용된 Migration에 추가한 주석 한 줄의 영향
+### 1) 적용된 Migration에 추가한 주석 한 줄의 영향
 
 **질문.** 주석 한 줄은 SQL 동작에 영향이 없는데, 이미 적용된 `V1__init.sql`에 추가하면 무슨 일이 생기는가?
 
@@ -231,7 +235,7 @@ FlywayValidateException:
 
 깨진 테스트 6개에 `reservationServiceBeanIsSingleton`, `reserveReturns400ForBlankBodyFields`처럼 SQL과 무관한 것이 섞여 있었던 것도 같은 이야기다. Flyway가 멈추면 Spring 컨텍스트 자체가 뜨지 못하므로 그 위에 얹힌 테스트가 전부 함께 죽는다. 재발 방지 규칙은 하나다. 적용된 파일은 고치지 않고 `V2`를 새로 쌓는다.
 
-### Q2. `@NotBlank`와 `NOT NULL`의 검사 범위
+### 2) `@NotBlank`와 `NOT NULL`의 검사 범위
 
 **질문.** `@NotBlank`가 있는데 `NOT NULL`을 또 거는 건 중복이 아닌가? `NOT NULL` 컬럼에 `''`를 넣으면 막히는가?
 
@@ -249,7 +253,7 @@ INSERT INTO reservation (room_name, requester_name) VALUES ('', '이진우');
 
 빈 문자열은 들어갔고 `CHAR_LENGTH(room_name) = 0`이었다. 반대로 `@NotBlank`는 `''`를 막지만 HTTP를 거치지 않은 이 INSERT는 보지도 못했다. 교정된 기준은 둘이 중복이 아니라 **못 막는 구멍이 서로 다르다**는 것이다.
 
-### Q3. `final` 필드와 DB 값 변경
+### 3) `final` 필드와 DB 값 변경
 
 **질문.** `final String roomName`은 DB에 저장된 값을 못 바꾸게 막는가? 앱이 꺼진 상태에서 H2 콘솔의 `UPDATE`는 (A) 컴파일 에러 (B) 런타임 예외 (C) 그냥 바뀐다 중 무엇인가?
 
@@ -262,9 +266,9 @@ UPDATE reservation SET room_name = 'B202';
 
 그냥 바뀌었다. `Reservation.java`는 컴파일도 실행도 되지 않았으니 `final`이 개입할 지점이 없었다. `final`은 JVM 메모리 안 변수의 재대입만 검사하는 규칙이고, 디스크에 있는 행은 검사 대상이 아니다. DB에서 "한 번 쓰면 못 바꿈"을 강제하려면 트리거나 권한 같은 별개의 DB 장치가 필요하고, 이 트랙의 범위 밖이다.
 
-재발 방지로 "이 규칙을 강제하는 주체가 누구이고 언제 검사하는가"를 먼저 묻기로 했다. 이 질문은 Q2의 `@NotBlank`와 `NOT NULL`에도 그대로 통했다.
+재발 방지로 "이 규칙을 강제하는 주체가 누구이고 언제 검사하는가"를 먼저 묻기로 했다. 이 질문은 3절 2)의 `@NotBlank`와 `NOT NULL`에도 그대로 통했다.
 
-### Q4. camelCase 필드의 컬럼 이름
+### 4) camelCase 필드의 컬럼 이름
 
 **질문.** `requesterName` 필드가 컬럼이 될 때 어떤 이름이 되고, 그 이유는 무엇인가?
 

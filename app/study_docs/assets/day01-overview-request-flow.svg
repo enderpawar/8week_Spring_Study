@@ -1,0 +1,107 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 560" width="900" height="560" font-family="system-ui, -apple-system, 'Segoe UI', 'Malgun Gothic', 'Apple SD Gothic Neo', sans-serif">
+  <rect x="0" y="0" width="900" height="560" fill="#ffffff"/>
+  <defs>
+    <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#334155"/>
+    </marker>
+    <marker id="e" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#b91c1c"/>
+    </marker>
+    <style>
+      .grp { fill: #f8fafc; stroke: #94a3b8; stroke-width: 1.2; stroke-dasharray: 5 4; }
+      .glabel { font-size: 13px; font-weight: 700; fill: #475569; }
+      .box { fill: #ffffff; stroke: #334155; stroke-width: 1.4; }
+      .t { font-size: 13px; font-weight: 700; fill: #0f172a; }
+      .s { font-size: 11px; fill: #475569; }
+      .m { font-size: 11px; fill: #334155; font-family: ui-monospace, 'Cascadia Code', Consolas, monospace; }
+      .ln { stroke: #334155; stroke-width: 1.5; fill: none; marker-end: url(#a); }
+      .er { stroke: #b91c1c; stroke-width: 1.5; fill: none; stroke-dasharray: 6 4; marker-end: url(#e); }
+      .num { fill: #334155; }
+      .numt { font-size: 11px; font-weight: 700; fill: #ffffff; }
+    </style>
+  </defs>
+
+  <text x="30" y="28" font-size="12" fill="#475569">전체 흐름 — GET /hello가 응답이 되기까지 (Spring Boot 3.5 · 내장 Tomcat 10.1)</text>
+
+  <!-- Client -->
+  <rect x="30" y="210" width="110" height="90" rx="10" class="box"/>
+  <text x="85" y="250" text-anchor="middle" class="t">Client</text>
+  <text x="85" y="270" text-anchor="middle" class="m">curl.exe -i</text>
+
+  <!-- Tomcat group -->
+  <rect x="180" y="48" width="690" height="112" rx="12" class="grp"/>
+  <text x="196" y="70" class="glabel">내장 Tomcat</text>
+  <rect x="200" y="84" width="280" height="62" rx="8" class="box"/>
+  <circle cx="220" cy="104" r="9" class="num"/><text x="220" y="108" text-anchor="middle" class="numt">1</text>
+  <text x="236" y="109" class="t">Connector (Coyote)</text>
+  <text x="236" y="131" class="s">HTTP 요청 줄 · 헤더 파싱</text>
+  <rect x="560" y="84" width="280" height="62" rx="8" class="box"/>
+  <circle cx="580" cy="104" r="9" class="num"/><text x="580" y="108" text-anchor="middle" class="numt">2</text>
+  <text x="596" y="109" class="t">Filter Chain</text>
+  <text x="596" y="131" class="s">요청 전후 공통 처리</text>
+  <line x1="480" y1="115" x2="556" y2="115" class="ln"/>
+
+  <!-- Spring MVC group -->
+  <rect x="180" y="198" width="690" height="150" rx="12" class="grp"/>
+  <text x="196" y="220" class="glabel">Spring MVC</text>
+
+  <rect x="200" y="238" width="118" height="84" rx="8" class="box"/>
+  <circle cx="216" cy="254" r="9" class="num"/><text x="216" y="258" text-anchor="middle" class="numt">3</text>
+  <text x="259" y="280" text-anchor="middle" class="t">Dispatcher</text>
+  <text x="259" y="296" text-anchor="middle" class="t">Servlet</text>
+  <text x="259" y="314" text-anchor="middle" class="s">요청 중계</text>
+
+  <rect x="333" y="238" width="118" height="84" rx="8" class="box"/>
+  <circle cx="349" cy="254" r="9" class="num"/><text x="349" y="258" text-anchor="middle" class="numt">4</text>
+  <text x="392" y="280" text-anchor="middle" class="t">Handler</text>
+  <text x="392" y="296" text-anchor="middle" class="t">Mapping</text>
+  <text x="392" y="314" text-anchor="middle" class="m">/hello → hello()</text>
+
+  <rect x="466" y="238" width="118" height="84" rx="8" class="box"/>
+  <circle cx="482" cy="254" r="9" class="num"/><text x="482" y="258" text-anchor="middle" class="numt">5</text>
+  <text x="525" y="280" text-anchor="middle" class="t">Handler</text>
+  <text x="525" y="296" text-anchor="middle" class="t">Adapter</text>
+  <text x="525" y="314" text-anchor="middle" class="s">메서드 호출</text>
+
+  <rect x="599" y="238" width="118" height="84" rx="8" class="box"/>
+  <circle cx="615" cy="254" r="9" class="num"/><text x="615" y="258" text-anchor="middle" class="numt">6</text>
+  <text x="658" y="280" text-anchor="middle" class="t">Hello</text>
+  <text x="658" y="296" text-anchor="middle" class="t">Controller</text>
+  <text x="658" y="314" text-anchor="middle" class="m">hello()</text>
+
+  <rect x="732" y="238" width="118" height="84" rx="8" class="box"/>
+  <circle cx="748" cy="254" r="9" class="num"/><text x="748" y="258" text-anchor="middle" class="numt">7</text>
+  <text x="791" y="280" text-anchor="middle" class="t">HttpMessage</text>
+  <text x="791" y="296" text-anchor="middle" class="t">Converter</text>
+  <text x="791" y="314" text-anchor="middle" class="s">String → 본문</text>
+
+  <line x1="318" y1="280" x2="329" y2="280" class="ln"/>
+  <line x1="451" y1="280" x2="462" y2="280" class="ln"/>
+  <line x1="584" y1="280" x2="595" y2="280" class="ln"/>
+  <line x1="717" y1="280" x2="728" y2="280" class="ln"/>
+
+  <!-- Client -> Tomcat -->
+  <path d="M 140 235 H 160 V 115 H 196" class="ln"/>
+  <text x="154" y="186" text-anchor="end" class="m">GET /hello</text>
+  <!-- Filter -> DispatcherServlet -->
+  <path d="M 700 146 V 180 H 296 V 234" class="ln"/>
+
+  <!-- 404 branch -->
+  <line x1="392" y1="322" x2="392" y2="391" class="er"/>
+  <text x="400" y="364" font-size="11" fill="#b91c1c">매핑 없음 (/nope)</text>
+  <rect x="333" y="395" width="118" height="56" rx="8" fill="#ffffff" stroke="#b91c1c" stroke-width="1.4"/>
+  <text x="392" y="418" text-anchor="middle" font-size="13" font-weight="700" fill="#b91c1c">404 Not Found</text>
+  <text x="392" y="438" text-anchor="middle" font-size="11" fill="#b91c1c">Controller 미도달</text>
+  <path d="M 333 423 H 120 V 304" class="er"/>
+
+  <!-- 200 response -->
+  <line x1="791" y1="322" x2="791" y2="391" class="ln"/>
+  <rect x="716" y="395" width="150" height="56" rx="8" class="box"/>
+  <text x="791" y="418" text-anchor="middle" class="t">200 OK</text>
+  <text x="791" y="438" text-anchor="middle" class="m">"Hello,StudyRoom!"</text>
+  <path d="M 791 451 V 500 H 60 V 304" class="ln"/>
+  <text x="470" y="494" text-anchor="middle" class="s">응답 = 상태줄(상태코드) · 헤더 · 본문</text>
+
+  <!-- footnote -->
+  <text x="30" y="540" font-size="12" fill="#475569">①②는 Tomcat, ③~⑦은 Spring MVC가 처리한다. 상태코드는 기본값 200이거나 ResponseEntity로 직접 지정한다(/bye → 201).</text>
+</svg>

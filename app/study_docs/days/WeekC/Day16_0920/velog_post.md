@@ -15,7 +15,13 @@ Day15에서는 `ReservationService.cancel()`에 `@Transactional`을 붙이고 co
 | self-invocation | 같은 객체 안에서 자기 메서드를 직접 호출하는 형태 | `outer()`의 `return inner()` |
 | CGLIB 프록시 | 원본 클래스를 상속한 동적 하위 클래스 프록시 | `AopUtils.isCglibProxy(service)` |
 
-### 애노테이션과 실행 주체의 분리
+오늘 다룬 두 호출 경로를 한 장으로 보면, 왼쪽은 target 내부의 `this` 호출이 `TransactionInterceptor`를 건너뛰는 self-invocation이고 오른쪽은 외부 호출이 프록시와 `TransactionInterceptor`를 거쳐 실제 target의 `@Transactional` 메서드로 위임되는 경로다.
+
+![두 호출 경로 비교 그림. 왼쪽 PizzaService 상자에서는 ① 외부 호출이 eatPizza로 들어온 뒤 ② 같은 객체 안의 @Transactional pizza를 직접 호출하며 TransactionInterceptor를 거치지 않는다. 오른쪽 PizzaService (Proxy) 상자에서는 ① 호출이 프록시로 들어오고 ② TransactionInterceptor로 넘어간 뒤 ③ @Transactional pizza가 실행된다.](https://raw.githubusercontent.com/enderpawar/8week_Spring_Study/master/app/study_docs/assets/day16-overview-proxy-self-invocation.png)
+
+*출처: [Spring Transactional Rollback Deep Dive](https://hyperconnect.github.io/2025/02/10/spring-transactional-rollback.html) — JunHee Kim, Hyperconnect Tech Blog. 저작권은 원저작자에게 있습니다.*
+
+### 1) 애노테이션과 실행 주체의 분리
 
 `@Transactional`은 트랜잭션을 시작하는 실행 코드가 아니다. 이 애노테이션은 해당 메서드에 필요한 트랜잭션 속성을 표시한다. 실제 시작·commit·rollback은 Spring의 트랜잭션 부가 기능이 담당한다.
 
@@ -31,14 +37,13 @@ Controller 또는 테스트
 
 Spring 공식 문서는 호출 코드가 먼저 프록시의 메서드를 호출하고, 프록시가 그다음 실제 객체의 메서드를 호출하는 구조를 다음처럼 그린다.
 
-![호출 코드(Calling code)가 pojo.foo()를 호출하면 요청이 먼저 Proxy 안으로 들어가 프록시의 foo()가 실행되고, 그다음 Proxy가 감싼 Plain Object의 foo()가 실행된 뒤 결과가 호출 코드로 돌아가는 구조](../../../assets/day16-web-aop-proxy-call.png)
-<!-- velog 업로드: 이 줄 위 이미지 자리에 app/study_docs/assets/day16-web-aop-proxy-call.png 파일을 드래그해 교체 -->
+![호출 코드(Calling code)가 pojo.foo()를 호출하면 요청이 먼저 Proxy 안으로 들어가 프록시의 foo()가 실행되고, 그다음 Proxy가 감싼 Plain Object의 foo()가 실행된 뒤 결과가 호출 코드로 돌아가는 구조](https://raw.githubusercontent.com/enderpawar/8week_Spring_Study/master/app/study_docs/assets/day16-web-aop-proxy-call.png)
 
 *출처: [Proxying Mechanisms — Understanding AOP Proxies, Spring Framework Reference](https://docs.spring.io/spring-framework/reference/core/aop/proxying.html#aop-understanding-aop-proxies) — Copyright © 2005 - Broadcom. All Rights Reserved. (문서 사본은 무료 배포와 저작권 고지 유지 조건으로 허용)*
 
 이 구조는 비즈니스 메서드 안에 트랜잭션 시작과 종료 코드를 직접 넣지 않고도 공통 처리를 적용한다. AOP의 관심사 분리는 여기서 드러난다. 예약 취소 코드는 예약 규칙에 집중하고, 트랜잭션 처리는 프록시와 interceptor가 맡는다.
 
-### Bean 조회와 Proxy 생성 시점
+### 2) Bean 조회와 Proxy 생성 시점
 
 처음에는 `getBean()`이 임시 프록시 객체를 만든다고 생각했다. 실제 순서는 반대다. 프록시는 컨테이너의 Bean 생성·후처리 과정에서 준비되고, `getBean()`은 이미 관리 중인 Bean을 조회한다.
 
@@ -59,7 +64,7 @@ ApplicationContext 초기화
 com.example.studyroom.service.ReservationService$$SpringCGLIB$$0
 ```
 
-### 외부 호출과 self-invocation의 경로 차이
+### 3) 외부 호출과 self-invocation의 경로 차이
 
 프록시는 자기 앞을 통과하는 호출만 가로챌 수 있다. 외부 코드가 프록시 참조의 `inner()`를 호출하면 트랜잭션 부가 기능이 동작한다.
 
@@ -81,17 +86,15 @@ com.example.studyroom.service.ReservationService$$SpringCGLIB$$0
 
 Spring 공식 문서는 프록시 없이 객체 참조를 직접 호출하는 경로를 다음처럼 그린다. target 안의 `this.inner()`도 이렇게 프록시 없는 객체 참조 호출이다.
 
-![호출 코드(Calling code)가 pojo.foo()를 호출하면 중간 객체 없이 Plain Object의 foo()가 바로 실행되고 결과가 호출 코드로 돌아가는 직접 참조 호출 구조](../../../assets/day16-web-aop-plain-pojo-call.png)
-<!-- velog 업로드: 이 줄 위 이미지 자리에 app/study_docs/assets/day16-web-aop-plain-pojo-call.png 파일을 드래그해 교체 -->
+![호출 코드(Calling code)가 pojo.foo()를 호출하면 중간 객체 없이 Plain Object의 foo()가 바로 실행되고 결과가 호출 코드로 돌아가는 직접 참조 호출 구조](https://raw.githubusercontent.com/enderpawar/8week_Spring_Study/master/app/study_docs/assets/day16-web-aop-plain-pojo-call.png)
 
 *출처: [Proxying Mechanisms — Understanding AOP Proxies, Spring Framework Reference](https://docs.spring.io/spring-framework/reference/core/aop/proxying.html#aop-understanding-aop-proxies) — Copyright © 2005 - Broadcom. All Rights Reserved. (문서 사본은 무료 배포와 저작권 고지 유지 조건으로 허용)*
 
 `inner()`의 애노테이션이 삭제되거나 Bean 등록이 실패한 것이 아니다. 호출이 애노테이션을 해석하고 부가 기능을 적용하는 프록시 경로를 지나지 않은 것이 원인이다.
 
-![시퀀스 다이어그램. 참여자는 테스트, Spring AOP 프록시(TransactionInterceptor), SelfInvocationService target이다. 세 프레임이 위에서 아래로 놓인다. 첫 프레임에서 테스트가 service.inner()를 호출하면 프록시가 @Transactional을 확인해 트랜잭션을 시작하고 target.inner()에 위임한다. isActualTransactionActive()는 true를 돌려주고 프록시가 트랜잭션을 종료한 뒤 active = true를 반환한다. 둘째 프레임에서 service.outer()는 애노테이션이 없어 프록시가 그대로 위임한다. target 안의 this.inner()는 프록시로 다시 들어가지 않으므로 isActualTransactionActive()가 false이고, 테스트는 active = false를 받는다. 셋째 프레임에서 service.transactionalOuter()는 프록시가 트랜잭션을 먼저 시작한다. 내부 this.inner()는 프록시를 우회하지만 이미 열린 트랜잭션 안이므로 true이고, 테스트는 active = true를 받는다. 하단 주석은 세 번째 true가 inner()의 애노테이션 효과가 아니라 바깥 경계의 효과라고 설명한다.](../../../assets/day16-aop-self-invocation.png)
-<!-- velog 업로드: 이 줄 위 이미지 자리에 app/study_docs/assets/day16-aop-self-invocation.png 파일을 드래그해 교체 -->
+![시퀀스 다이어그램. 참여자는 테스트, Spring AOP 프록시(TransactionInterceptor), SelfInvocationService target이다. 세 프레임이 위에서 아래로 놓인다. 첫 프레임에서 테스트가 service.inner()를 호출하면 프록시가 @Transactional을 확인해 트랜잭션을 시작하고 target.inner()에 위임한다. isActualTransactionActive()는 true를 돌려주고 프록시가 트랜잭션을 종료한 뒤 active = true를 반환한다. 둘째 프레임에서 service.outer()는 애노테이션이 없어 프록시가 그대로 위임한다. target 안의 this.inner()는 프록시로 다시 들어가지 않으므로 isActualTransactionActive()가 false이고, 테스트는 active = false를 받는다. 셋째 프레임에서 service.transactionalOuter()는 프록시가 트랜잭션을 먼저 시작한다. 내부 this.inner()는 프록시를 우회하지만 이미 열린 트랜잭션 안이므로 true이고, 테스트는 active = true를 받는다. 하단 주석은 세 번째 true가 inner()의 애노테이션 효과가 아니라 바깥 경계의 효과라고 설명한다.](https://raw.githubusercontent.com/enderpawar/8week_Spring_Study/master/app/study_docs/assets/day16-aop-self-invocation.png)
 
-### 바깥 비즈니스 메서드의 Transaction Boundary
+### 4) 바깥 비즈니스 메서드의 Transaction Boundary
 
 self-invocation 문제를 피하는 첫 번째 기준은 트랜잭션 경계를 외부에서 호출되는 비즈니스 메서드에 두는 것이다. 테스트에서는 `transactionalOuter()`에 애노테이션을 붙였다.
 
@@ -109,7 +112,7 @@ service.transactionalOuter()
 
 업무 경계와 내부 기능을 서로 다른 Spring Bean으로 분리하는 방법도 있다. Bean A가 Bean B의 트랜잭션 메서드를 호출하면 호출이 Bean B의 프록시를 통과할 수 있다. 다만 이번 실험에서는 바깥 경계 배치까지만 코드로 검증했고, Bean 분리는 실행하지 않았다.
 
-### ApplicationContext와 Persistence Context의 관리 대상
+### 5) ApplicationContext와 Persistence Context의 관리 대상
 
 트랜잭션이 시작된 뒤 “현재 객체가 영속성 컨텍스트에 올라간다”는 표현도 구분이 필요하다. `SelfInvocationService`, `ReservationService`, Repository, AOP 프록시는 Spring Bean이며 ApplicationContext가 관리한다.
 
@@ -131,7 +134,7 @@ ApplicationContext → Service, Repository, AOP 프록시
 
 ## 2. 코드 구현
 
-### ReservationService Bean의 Proxy 판별
+### 1) ReservationService Bean의 Proxy 판별
 
 ```java
 ReservationService service =
@@ -144,7 +147,7 @@ assertNotEquals(ReservationService.class, service.getClass());
 
 타입 이름에 `SpringCGLIB`이 포함됐다는 문자열 관찰만으로 끝내지 않았다. Spring이 제공하는 `AopUtils`로 AOP 프록시와 CGLIB 프록시 여부를 각각 검사하고, 실제 클래스가 원본 클래스와 다른지도 확인했다.
 
-### 세 호출 경로의 트랜잭션 활성 상태
+### 2) 세 호출 경로의 트랜잭션 활성 상태
 
 ```java
 public boolean outer() {
@@ -167,7 +170,7 @@ public boolean transactionalOuter() {
 
 최초 작성에서는 `transactionalOuter()`의 애노테이션을 빠뜨렸다. `assertTrue`는 `expected true but was false`로 실패했고, 애노테이션을 추가한 뒤에만 통과했다. 메서드 이름에 `transactional`을 넣거나 의도만 적는 것으로는 트랜잭션이 만들어지지 않는다는 증거가 됐다.
 
-### 자동 검증 결과
+### 3) 자동 검증 결과
 
 | 검증 항목 | 테스트 | 결과 |
 |---|---|---|
@@ -179,7 +182,7 @@ public boolean transactionalOuter() {
 
 ## 3. 스스로 답한 질문
 
-### Q1. `getBean()`과 Proxy 생성 시점의 구분
+### 1) `getBean()`과 Proxy 생성 시점의 구분
 
 **질문.** `getBean(ReservationService.class)`이 호출될 때마다 임시 프록시가 생성되는가?
 
@@ -187,7 +190,7 @@ public boolean transactionalOuter() {
 
 프록시는 Bean 생성·후처리 과정에서 준비된다. `getBean()`은 컨테이너가 관리 중인 같은 프록시를 조회한다. 따라서 두 번 조회한 참조는 `assertSame`을 통과한다.
 
-### Q2. self-invocation의 트랜잭션 비활성 원인
+### 2) self-invocation의 트랜잭션 비활성 원인
 
 **질문.** `outer()` 내부의 `inner()`에서 트랜잭션이 비활성인 이유가 `inner()`의 Bean 미등록인가?
 
@@ -195,7 +198,7 @@ public boolean transactionalOuter() {
 
 실제 Bean은 `SelfInvocationService` 객체 전체다. 외부 호출은 그 Bean 앞의 프록시를 지나지만, target 내부의 `this.inner()` 호출은 프록시로 되돌아가지 않는다. 트랜잭션 비활성의 원인은 Bean 등록이 아니라 호출 경로다.
 
-### Q3. 트랜잭션과 Persistence Context의 객체 관리 범위
+### 3) 트랜잭션과 Persistence Context의 객체 관리 범위
 
 **질문.** 트랜잭션이 시작되면 현재 Service 객체가 영속성 컨텍스트에 등록되는가?
 

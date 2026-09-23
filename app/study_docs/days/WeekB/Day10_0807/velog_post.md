@@ -21,7 +21,13 @@ Day9에 만든 `JdbcReservationRepository`는 `save()`에 INSERT만 있어서, �
 
 표의 앞 세 줄은 **누가 SQL을 만드는가**의 층위이고, 가운데는 **객체와 행을 잇는 규칙**, 마지막 두 줄은 **기존 경계와 스키마 소유권을 지키는 장치**다.
 
-### JDBC 반복 코드와 ORM의 필요성
+Repository 호출 한 번이 Spring Data JPA → JPA(명세) → Hibernate(구현) → JDBC를 차례로 지나 DB에 닿는 전체 층 구조를 먼저 한 장으로 보면 다음과 같다.
+
+![계층도. 맨 위 Application에서 두 경로가 내려온다. 초록 화살표 "Repository 사용"은 Spring Data JPA(Repository) 층으로, 빨간 화살표 "Raw JPA 사용(e.g. EntityManager 사용)"은 그 아래 JPA 층으로 바로 들어간다. Spring Data JPA와 JPA는 초록 테두리로 함께 묶여 있고, JPA 아래에 Hibernate, 그 아래에 JDBC가 쌓이며, JDBC가 맨 아래 Relational Database와 양방향으로 연결된다.](https://raw.githubusercontent.com/enderpawar/8week_Spring_Study/master/app/study_docs/assets/day10-overview-jpa-stack.png)
+
+*출처: [JPA, Hibernate, 그리고 Spring Data JPA의 차이점](https://suhwan.dev/2019/02/24/jpa-vs-hibernate-vs-spring-data-jpa/) — suhwan.dev. 저작권은 원저작자에게 있습니다.*
+
+### 1) JDBC 반복 코드와 ORM의 필요성
 
 Day9의 JDBC 구현에서 `store.add()` 한 줄은 SQL 작성, 자원 개폐, 파라미터 바인딩, 키 회수, 예외 변환, 행→객체 매핑으로 흩어졌다. 그중 비즈니스 로직은 한 줄도 없었다.
 
@@ -29,7 +35,7 @@ Day9의 JDBC 구현에서 `store.add()` 한 줄은 SQL 작성, 자원 개폐, �
 
 ORM(객체-관계 매핑)은 이 왕복 규칙을 애노테이션으로 한 번 선언하고, SQL 생성과 행→객체 변환을 구현체에 맡기는 방식이다. 로드맵의 표현대로 JPA는 커넥션 풀을 없애는 것이 아니라 **직접 관리와 매핑을 추상화**한다. DB 왕복 자체는 그대로 일어난다.
 
-### JPA·Hibernate·Spring Data JPA의 층 구분
+### 2) JPA·Hibernate·Spring Data JPA의 층 구분
 
 세 이름은 같은 층이 아니다. JPA는 규칙만 정하고 실행하지 않는다. 그 규칙대로 SQL을 만들어 보내는 것은 Hibernate다. Spring Data JPA는 그 위에서 Repository 구현을 대신 만들어준다.
 
@@ -41,16 +47,9 @@ ORM(객체-관계 매핑)은 이 왕복 규칙을 애노테이션으로 한 번 
 
 Day9의 구조와 나란히 놓으면 이해가 쉽다. JDBC는 표준 인터페이스이고 H2 드라이버가 구현이었다. JPA와 Hibernate도 같은 명세↔구현 관계이고, 그 위에 편의층이 하나 더 얹혀 있다.
 
-Hibernate 공식 문서는 데이터 접근 계층이 JPA API를 거쳐 Hibernate와 JDBC를 지나 DB에 닿는 층 구조를 다음처럼 그린다.
-
-![계층도. 맨 위 Data Access Layer가 Java Persistence API와 Hibernate Native API 두 입구를 호출하고, 두 API는 모두 그 아래의 Hibernate 한 층 위에 놓인다. Hibernate는 JDBC 위에서 동작하고, JDBC가 맨 아래 Relational Database로 연결된다.](../../../assets/day10-web-hibernate-data-access-layers.png)
-<!-- velog 업로드: 이 줄 위 이미지 자리에 app/study_docs/assets/day10-web-hibernate-data-access-layers.png 파일을 드래그해 교체 -->
-
-*출처: [Hibernate ORM 6.6 User Guide — Architecture](https://docs.jboss.org/hibernate/orm/6.6/userguide/html_single/Hibernate_User_Guide.html#architecture) — © Red Hat, Inc., Hibernate ORM 문서 (6.x LGPL 2.1, 7.x 문서의 동일 그림은 Apache License 2.0)*
-
 Day9 잔여 과제였던 `JdbcTemplate`/`JdbcClient`는 여기서 한 줄로 정리했다. 둘 다 반복 코드를 줄여주지만 SQL과 `RowMapper`는 여전히 개발자가 쓰는 "SQL은 내가 쓴다"의 세계다. JPA는 SQL 생성까지 구현체에 맡긴다는 점이 다르다. 두 도구를 코드로 비교하지는 않았다.
 
-### Entity 매핑 규칙과 IDENTITY 전략
+### 3) Entity 매핑 규칙과 IDENTITY 전략
 
 `Reservation`에 `@Entity`, 필드의 `@Id`, `@GeneratedValue(strategy = GenerationType.IDENTITY)`를 붙였다. 이 상태로 새 예약을 저장하자 Hibernate가 다음 SQL을 보냈다.
 
@@ -72,11 +71,11 @@ findById(id) 호출
 
 Day9의 `mapRow`가 `new` → `assignId()` → `confirm()` 세 단계로 캡슐화된 생성자를 우회하던 일이 통째로 사라진 이유가 이것이다. 대신 `confirm()`·`cancel()`로만 상태를 바꾸게 해둔 규칙을 Hibernate는 지나가지 않는다는 뜻이기도 하다. 필드 접근은 도메인 메서드를 호출하지 않는다.
 
-기본 생성자는 `protected`로 뒀다. Hibernate에는 객체를 만들 진입점을 주면서, 애플리케이션 코드가 방 이름도 신청자도 없는 예약을 `new Reservation()`으로 아무 데서나 만들지는 못하게 하는 선택이다. 이 생성자를 추가하면서 `final` 필드와 충돌한 과정은 3절 Q1에 적었다.
+기본 생성자는 `protected`로 뒀다. Hibernate에는 객체를 만들 진입점을 주면서, 애플리케이션 코드가 방 이름도 신청자도 없는 예약을 `new Reservation()`으로 아무 데서나 만들지는 못하게 하는 선택이다. 이 생성자를 추가하면서 `final` 필드와 충돌한 과정은 3절 1)에 적었다.
 
 > **정리.** `@Entity`와 `@Id`는 SQL을 쓰는 코드가 아니라, Hibernate가 SQL을 만들 때 읽는 규칙이다. `@Id`를 필드에 두면 Hibernate는 생성자와 메서드를 거치지 않고 필드에 직접 값을 넣는다.
 
-### 비어 있는 Repository 인터페이스의 런타임 구현
+### 4) 비어 있는 Repository 인터페이스의 런타임 구현
 
 오늘 추가한 파일 중 하나는 본문이 비어 있다.
 
@@ -97,10 +96,9 @@ public interface SpringDataReservationRepository extends JpaRepository<Reservati
 
 `JpaRepository<Reservation, Long>`의 두 타입 인자는 어떤 Entity를, 어떤 타입의 id로 다루는지를 알려준다. 구현 객체의 내부 구조는 오늘 열어보지 않았고, 기동 로그와 테스트 통과까지만 확인했다.
 
-![클래스 다이어그램. ReservationService가 «interface» ReservationRepository를 생성자 주입으로 참조하고, «@Repository» JpaReservationRepository가 그 인터페이스를 «realize»한다. JpaReservationRepository는 delegate 필드로 «interface» SpringDataReservationRepository를 주입받고, 그 인터페이스는 오퍼레이션 칸이 비어 있는 채로 JpaRepository<Reservation, Long>를 상속한다. 왼쪽 아래의 «@Entity» Reservation은 roomName·requesterName·confirmed·id가 모두 private이고 id에 «@Id, IDENTITY»가 붙어 있으며, 생성자 Reservation()은 protected다. 노트는 Spring Data가 기동 시 이 인터페이스를 찾아 구현 객체를 만들어 Bean으로 등록한다는 것과 기동 로그의 "Found 1 JPA repository interface."를 가리킨다.](../../../assets/day10-jpa-adapter.png)
-<!-- velog 업로드: 이 줄 위 이미지 자리에 app/study_docs/assets/day10-jpa-adapter.png 파일을 드래그해 교체 -->
+![클래스 다이어그램. ReservationService가 «interface» ReservationRepository를 생성자 주입으로 참조하고, «@Repository» JpaReservationRepository가 그 인터페이스를 «realize»한다. JpaReservationRepository는 delegate 필드로 «interface» SpringDataReservationRepository를 주입받고, 그 인터페이스는 오퍼레이션 칸이 비어 있는 채로 JpaRepository<Reservation, Long>를 상속한다. 왼쪽 아래의 «@Entity» Reservation은 roomName·requesterName·confirmed·id가 모두 private이고 id에 «@Id, IDENTITY»가 붙어 있으며, 생성자 Reservation()은 protected다. 노트는 Spring Data가 기동 시 이 인터페이스를 찾아 구현 객체를 만들어 Bean으로 등록한다는 것과 기동 로그의 "Found 1 JPA repository interface."를 가리킨다.](https://raw.githubusercontent.com/enderpawar/8week_Spring_Study/master/app/study_docs/assets/day10-jpa-adapter.png)
 
-### 어댑터와 의존성 방향
+### 5) 어댑터와 의존성 방향
 
 Spring Data 인터페이스를 `ReservationService`에 바로 주입할 수도 있었다. 하지만 그러면 Service가 `JpaRepository`라는 저장 기술의 타입을 알게 된다.
 
@@ -115,7 +113,7 @@ Spring Data 인터페이스를 `ReservationService`에 바로 주입할 수도 �
 
 > **정리.** 저장 기술을 바꿔도 Service가 그대로인 것은 Service가 구체 클래스가 아니라 `ReservationRepository` 인터페이스에 의존하기 때문이다.
 
-### `save()`의 신규·갱신 분기와 SQL 관찰
+### 6) `save()`의 신규·갱신 분기와 SQL 관찰
 
 Day9의 결함은 `save()`에 갱신 분기가 없던 것이었다. Spring Data의 `save()`는 이 분기를 스스로 수행한다. 오늘 관찰한 범위는 다음과 같다.
 
@@ -131,7 +129,7 @@ Day9의 결함은 `save()`에 갱신 분기가 없던 것이었다. Spring Data�
 
 실제 취소 흐름은 `findById` → `cancel()` → `save()`이고, 이 시점 `ReservationService`에는 `@Transactional`이 없다. 테스트 클래스에는 붙어 있으니 두 경우의 조건이 같지 않다. 이 차이가 SQL 횟수를 바꾸는지는 측정하지 않았다(미검증).
 
-### 스키마의 주인 — Flyway와 `ddl-auto: none`
+### 7) 스키마의 주인 — Flyway와 `ddl-auto: none`
 
 `spring.jpa.hibernate.ddl-auto: none`으로 두어 Hibernate가 테이블을 만들거나 고치지 못하게 했다. 스키마의 주인은 Day8에 만든 Flyway `V1__init.sql`이다.
 
@@ -152,7 +150,7 @@ DB는 `jdbc:h2:file:./data/studyroom`처럼 파일에 남고, Flyway 장부까�
 
 `none`은 Entity와 스키마가 어긋나도 기동에서 잡아주지 않는다는 한계가 있다. Hibernate가 변경은 하지 않고 일치 여부만 검사하는 `validate`로 올리는 일은 Week B D7에 배정했다.
 
-### 테스트의 `flush()`와 다음 Day의 경계
+### 8) 테스트의 `flush()`와 다음 Day의 경계
 
 테스트에서는 `save()` 뒤에 `EntityManager.flush()`를 명시했다. `save()`를 호출한 줄과 SQL이 실제로 나가는 시점이 다를 수 있는데, 오늘은 그 이유를 설명할 수 없었다. 그래서 검증 지점을 고정하려고 SQL을 강제로 밀어낸 것이다.
 
@@ -167,7 +165,7 @@ DB는 `jdbc:h2:file:./data/studyroom`처럼 파일에 남고, Flyway 장부까�
 
 ## 2. 코드 구현
 
-### `Reservation` — 애노테이션 세 개와 기본 생성자
+### 1) `Reservation` — 애노테이션 세 개와 기본 생성자
 
 ```java
 @Entity
@@ -187,7 +185,7 @@ public class Reservation {
 
 도메인 생성자 `Reservation(roomName, requesterName)`과 `confirm()`·`cancel()`은 그대로 두고, 두 문자열 필드의 `final`을 떼고 JPA용 기본 생성자를 추가했다.
 
-### 어댑터 — 구현만 교체하고 Service는 유지
+### 2) 어댑터 — 구현만 교체하고 Service는 유지
 
 ```java
 @Repository
@@ -204,13 +202,13 @@ public class JpaReservationRepository implements ReservationRepository {
 
 어댑터 하나를 두는 값으로 Day4에 정한 경계를 유지했다. `build.gradle.kts`에는 `spring-boot-starter-data-jpa`를 추가하되 `starter-jdbc`는 Day9 대조군을 위해 남겼다.
 
-### 기존 ID 저장의 중복 행 검증
+### 3) 기존 ID 저장의 중복 행 검증
 
 `savingExistingReservationUpdatesWithoutAddingDuplicate()`는 새 예약을 저장·`flush()`한 뒤 같은 객체를 `cancel()`해 다시 저장·`flush()`하고, `clear()` 후 `findAll()`로 결과를 확인한다. 저장 전보다 전체 행 수가 한 건만 늘었는지, 같은 id의 행이 하나인지, 그 행의 `confirmed`가 `false`인지를 검사한다.
 
 Day9 JDBC 구현은 같은 흐름에서 무조건 INSERT하여 복제 행을 만들었다. JPA 어댑터에서는 두 번 저장해도 행이 한 건만 늘었고 기존 id의 상태가 갱신됐다.
 
-### 자동 검증 결과
+### 4) 자동 검증 결과
 
 | 확인한 것 | 방법 | 결과 |
 |---|---|---|
@@ -222,7 +220,7 @@ Day9 JDBC 구현은 같은 흐름에서 무조건 INSERT하여 복제 행을 만
 
 ## 3. 스스로 답한 질문
 
-### Q1. `final` 필드와 빈 기본 생성자의 컴파일 조건
+### 1) `final` 필드와 빈 기본 생성자의 컴파일 조건
 
 **질문.** `roomName`, `requesterName`이 `final`인 상태에서 인자 없는 `protected Reservation() {}`를 추가하면 컴파일되는가?
 
@@ -236,7 +234,7 @@ Reservation.java:13: error: variable roomName might not have been initialized
 
 두 필드의 `final`을 떼고 기본 생성자를 `protected`로 뒀다. 이번 주에 `final`로 틀린 게 처음이 아니다. Day8에는 필드가 `final`이면 DB 값이 안 바뀔 거라고 봤다가 `UPDATE`가 그냥 실행되는 걸 봤다. `final`은 자바 변수의 재대입을 컴파일 시점에 막는 장치일 뿐, 그 바깥에는 권한이 없다.
 
-### Q2. `@Transactional` 테스트의 전체 실행 실패
+### 2) `@Transactional` 테스트의 전체 실행 실패
 
 **질문.** 단독으로 돌릴 때는 통과하던 테스트가 `clean test` 전체 실행에서만 실패한 이유는 무엇인가?
 

@@ -15,7 +15,7 @@ Day2에서 만든 `POST /reservations`는 `roomName`이 빈 문자열로 들어�
 | `@RestControllerAdvice` | 특정 컨트롤러를 지정하지 않고 전역 예외를 처리하는 컴포넌트 선언 | `GlobalExceptionHandler` |
 | `ExceptionHandlerExceptionResolver` | 예외 발생 시 `DispatcherServlet`이 위임하는 리졸버. advice Bean을 전역 후보로 수집 | 프레임워크 내부 동작(작성 코드 없음) |
 
-### Input Validation의 필요성과 위치
+### 1) Input Validation의 필요성과 위치
 
 Day2의 `reserve()`는 받은 값을 확인하지 않고 곧바로 `new Reservation(...)`을 호출했다. `roomName`이 `""`여도 방 이름이 빈 `Reservation`이 만들어지고 예약 완료 문자열이 돌아가는 구조였다.
 
@@ -23,7 +23,7 @@ Day2의 `reserve()`는 받은 값을 확인하지 않고 곧바로 `new Reservat
 
 CS 개념으로는 **계약(contract)의 사전조건(precondition) 검사**다. "이 API를 호출하려면 방 이름과 예약자 이름이 비어 있지 않아야 한다"는 조건을 코드로 선언하고, 어긴 요청은 처리하지 않고 돌려보낸다. 사전조건 위반은 요청한 쪽의 책임이므로 4xx 계열인 `400 Bad Request`가 맞다.
 
-### 규칙 선언과 검증 실행의 분리
+### 2) 규칙 선언과 검증 실행의 분리
 
 검증에는 두 애노테이션이 관여하고, 둘의 역할은 다르다.
 
@@ -41,7 +41,7 @@ CS 개념으로는 **계약(contract)의 사전조건(precondition) 검사**다.
 
 > **정리.** `@NotBlank`는 규칙을 적고, `@Valid`는 그 규칙을 돌린다. 같은 DTO라도 `@Valid`가 없는 경로에서는 검증이 일어나지 않는다.
 
-### 검증 실패의 예외 전환 순서
+### 3) 검증 실패의 예외 전환 순서
 
 `@Valid`를 붙이면서 소스에 "아마 "" 로 해버리면 @Valid 유효성 검사 들어가서 400 BadRequest 뜨지 않을까"라고 예측을 적었다. 결과는 400이었다. 중요한 것은 **어느 시점에 멈추는가**다.
 
@@ -60,12 +60,11 @@ CS 개념으로는 **계약(contract)의 사전조건(precondition) 검사**다.
 
 예외는 메서드 본문이 실행되기 **전에** 던져진다. 따라서 `new Reservation(...)`도 `confirm()`도 실행되지 않는다. 잘못된 값은 도메인 객체로 옮겨가지 못하고 계층 초입에서 끊긴다.
 
-![시퀀스 다이어그램. 클라이언트가 roomName이 빈 문자열인 JSON을 POST하면 DispatcherServlet이 자기 자신에게 @RequestBody 변환과 @Valid 검사를 수행한다. alt 프레임의 첫 분기(검증 통과)에서는 ReservationController.reserve()가 호출되고 200 OK가 돌아간다. 두 번째 분기(검증 실패, MethodArgumentNotValidException)에서는 GlobalExceptionHandler.handleValidation()이 호출돼 400과 roomName 키만 담긴 Map이 반환되는데, 이 분기에서 ReservationController 생명선은 한 번도 닿지 않는다.](../../../assets/day03-validation-flow.png)
-<!-- velog 업로드: 이 줄 위 이미지 자리에 app/study_docs/assets/day03-validation-flow.png 파일을 드래그해 교체 -->
+![시퀀스 다이어그램. 클라이언트가 roomName이 빈 문자열인 JSON을 POST하면 DispatcherServlet이 자기 자신에게 @RequestBody 변환과 @Valid 검사를 수행한다. alt 프레임의 첫 분기(검증 통과)에서는 ReservationController.reserve()가 호출되고 200 OK가 돌아간다. 두 번째 분기(검증 실패, MethodArgumentNotValidException)에서는 GlobalExceptionHandler.handleValidation()이 호출돼 400과 roomName 키만 담긴 Map이 반환되는데, 이 분기에서 ReservationController 생명선은 한 번도 닿지 않는다.](https://raw.githubusercontent.com/enderpawar/8week_Spring_Study/master/app/study_docs/assets/day03-validation-flow.png)
 
 그림은 변환과 검증을 `DispatcherServlet`의 자기 호출로 묶어 단순화했다. 실제로는 `DispatcherServlet`이 호출하는 인수 처리 단계에서 일어나며, 그 내부 클래스는 오늘 열어보지 않았다.
 
-### `BindingResult`와 `FieldError` 목록
+### 4) `BindingResult`와 `FieldError` 목록
 
 응답 바디에는 `roomName` 하나만 나왔다. `requesterName`도 어떤 형태로든 나올 거라는 예측과 달랐다.
 
@@ -84,7 +83,7 @@ forEach → errors.put("roomName", "방 이름은 비어있을 수 없습니다"
 
 > **정리.** `getFieldErrors()`는 실패한 필드의 목록이다. 비어 있는 결과를 보면 "지워졌나"보다 "애초에 들어갔나"를 먼저 확인한다.
 
-### Global Exception Handler의 수집과 선택
+### 5) Global Exception Handler의 수집과 선택
 
 `GlobalExceptionHandler` 안에는 `ReservationController`를 가리키는 표시가 하나도 없다. 그런데도 그 컨트롤러의 검증 실패를 잡는다. 이것이 오늘 배운 "전역"의 실체다.
 
@@ -112,7 +111,7 @@ Bean 등록은 필요조건일 뿐이다. 특정 애노테이션과 특정 리�
 
 CS 개념으로는 **관심사 분리**다. 예외를 응답으로 바꾸는 일은 여러 컨트롤러에 반복되는 공통 관심사(cross-cutting concern)라, 한 클래스로 모으면 각 컨트롤러는 정상 흐름에만 집중할 수 있다.
 
-### 예상하지 못한 예외의 응답 한계
+### 6) 예상하지 못한 예외의 응답 한계
 
 `handleUnexpected()`는 `ex.getMessage()`를 그대로 500 응답 본문에 싣는다. 예상하지 못한 예외의 메시지에는 내부 구현 정보가 들어 있을 수 있어, 그대로 클라이언트에 노출된다.
 
@@ -127,7 +126,7 @@ CS 개념으로는 **관심사 분리**다. 예외를 응답으로 바꾸는 일
 
 ## 2. 코드 구현
 
-### DTO의 규칙 선언과 컨트롤러의 실행 지시
+### 1) DTO의 규칙 선언과 컨트롤러의 실행 지시
 
 ```java
 public record ReservationRequest(
@@ -142,7 +141,7 @@ public String reserve(@RequestBody @Valid ReservationRequest request) { ... }
 
 규칙은 DTO에, 실행 지시는 컨트롤러 파라미터에 뒀다. 같은 파일의 `cancel()`은 `@Valid` 없이 남아 있다.
 
-### 어떤 컨트롤러도 가리키지 않는 예외 처리 클래스
+### 2) 어떤 컨트롤러도 가리키지 않는 예외 처리 클래스
 
 ```java
 @RestControllerAdvice
@@ -164,7 +163,7 @@ public class GlobalExceptionHandler {
 
 앞의 둘은 입력 실수다. 타입 이름 중간의 공백은 토큰을 둘로 갈라 "`)` or `,` expected" 에러를 만든다. 세 번째는 규칙 문제였다. 클래스를 닫은 뒤는 파일 최상위라 class·interface·enum·record만 올 수 있고, 메서드 선언이 놓일 자리가 아니다.
 
-### 자동 검증 결과
+### 3) 자동 검증 결과
 
 앱을 재시작한 뒤 `roomName`은 빈 문자열, `requesterName`은 `"김민준"`으로 `POST /reservations`를 호출했다.
 
@@ -178,7 +177,7 @@ public class GlobalExceptionHandler {
 
 ## 3. 스스로 답한 질문
 
-### Q1. 응답 바디에서 빠진 `requesterName`
+### 1) 응답 바디에서 빠진 `requesterName`
 
 **질문.** `roomName`만 비우고 `requesterName`은 정상값을 보냈을 때, 응답 바디에 `requesterName`이 왜 나타나지 않았을까?
 
@@ -188,7 +187,7 @@ public class GlobalExceptionHandler {
 
 재발 방지 기준은 **비어 있는 결과를 봤을 때 "지워졌나"보다 "애초에 들어갔나"를 먼저 확인하는 것**이다. 덮어쓰기는 한 필드에 위반이 여러 개일 때 실제로 생길 수 있지만, 오늘 현상의 원인은 아니었다.
 
-### Q2. 컨트롤러를 지정하지 않은 Global Exception Handling
+### 2) 컨트롤러를 지정하지 않은 Global Exception Handling
 
 **질문.** `GlobalExceptionHandler`는 `ReservationController`를 어디에도 지정하지 않는데, 어떻게 그 예외까지 잡는가?
 
@@ -196,7 +195,7 @@ public class GlobalExceptionHandler {
 
 교정된 답은 특별 취급의 주체를 짚는다. `DispatcherServlet`이 예외를 만나면 `ExceptionHandlerExceptionResolver`에 위임하고, 이 리졸버는 **`@ControllerAdvice` 계열 애노테이션이 붙은 Bean만** 전역 후보로 수집해 두었다가 예외 타입이 맞는 `@ExceptionHandler` 메서드를 실행한다.
 
-### Q3. 검증 실패 요청의 컨트롤러 본문 도달 여부
+### 3) 검증 실패 요청의 컨트롤러 본문 도달 여부
 
 **질문.** `roomName`이 빈 문자열로 들어오면 요청이 컨트롤러 메서드 본문까지 도달하는가?
 

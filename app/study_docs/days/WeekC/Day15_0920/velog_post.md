@@ -14,7 +14,7 @@ Week B에서는 영속성 컨텍스트와 변경 감지를 관찰하기 위해 `
 | flush | 영속성 컨텍스트의 변경을 SQL로 DB에 보내는 동작 | `entityManager.flush()`에서 `UPDATE` 출력 |
 | `readOnly=true` | 조회 전용 의도를 전달하는 트랜잭션 힌트 | 조회 Service 메서드에 적용 가능 |
 
-### Service 계층의 Transaction Boundary
+### 1) Service 계층의 Transaction Boundary
 
 예약 취소는 SQL 한 줄의 이름이 아니다. 애플리케이션이 보장해야 하는 하나의 업무 흐름이다.
 
@@ -29,8 +29,7 @@ Week B에서는 영속성 컨텍스트와 변경 감지를 관찰하기 위해 `
 
 Spring 공식 문서는 `@Transactional` 메서드 호출에서 트랜잭션이 진입 시 시작되고, 반환 시 commit 또는 rollback되는 경로를 다음처럼 그린다.
 
-![Spring 선언적 트랜잭션 호출 흐름도. Caller가 대상 객체가 아니라 AOP Proxy를 호출하고, 호출은 Transaction Advisor와 Custom Advisor(s)를 거쳐 Target Method에 도달한다. Transaction Advisor에서 들어갈 때 트랜잭션이 생성되고 나올 때 commit 또는 rollback되며, 비즈니스 로직 실행 뒤 제어는 인터셉터 체인을 거꾸로 거쳐 Caller에게 결과를 돌려준다.](../../../assets/day15-web-declarative-transaction-proxy.png)
-<!-- velog 업로드: 이 줄 위 이미지 자리에 app/study_docs/assets/day15-web-declarative-transaction-proxy.png 파일을 드래그해 교체 -->
+![Spring 선언적 트랜잭션 호출 흐름도. Caller가 대상 객체가 아니라 AOP Proxy를 호출하고, 호출은 Transaction Advisor와 Custom Advisor(s)를 거쳐 Target Method에 도달한다. Transaction Advisor에서 들어갈 때 트랜잭션이 생성되고 나올 때 commit 또는 rollback되며, 비즈니스 로직 실행 뒤 제어는 인터셉터 체인을 거꾸로 거쳐 Caller에게 결과를 돌려준다.](https://raw.githubusercontent.com/enderpawar/8week_Spring_Study/master/app/study_docs/assets/day15-web-declarative-transaction-proxy.png)
 
 *출처: [Understanding the Spring Framework's Declarative Transaction Implementation — Spring Framework Reference](https://docs.spring.io/spring-framework/reference/data-access/transaction/declarative/tx-decl-explained.html) — Copyright © 2005 - Broadcom. All Rights Reserved. (문서 사본은 무료 배포와 저작권 고지 유지 조건으로 허용)*
 
@@ -39,7 +38,7 @@ Spring 공식 문서는 `@Transactional` 메서드 호출에서 트랜잭션이 
 `@Transactional` 하나가 ACID 전체를 자동으로 해결한다는 뜻은 아니다. 어떤 격리 수준을 쓸지, DB 제약으로 어떤 일관성을 지킬지, 여러 트랜잭션의 충돌을 어떻게 다룰지는 별도 판단이 필요하다. 오늘 실험으로 확인한 범위는 Service 경계의 원자성과 commit·rollback이다.
 
 
-### 정상 반환 경로의 commit 과정
+### 2) 정상 반환 경로의 commit 과정
 
 `cancel()`에 진입하면 트랜잭션과 영속성 컨텍스트가 해당 호출 범위에서 유지된다. `findById()`가 반환한 `Reservation`은 단순한 값 복사본이 아니라 Hibernate가 관리하는 영속 Entity다.
 
@@ -58,7 +57,7 @@ Spring 공식 문서는 `@Transactional` 메서드 호출에서 트랜잭션이 
 
 여기서 `@Transactional`이 변경된 객체를 영속성 컨텍스트에 새로 넣는다고 이해하면 순서가 뒤집힌다. Entity가 관리 대상이 되는 직접적인 계기는 트랜잭션 안의 조회이고, 애노테이션은 그 관리 범위가 Service 메서드 전체에 유지되도록 트랜잭션 경계를 만든다.
 
-### flush와 commit의 역할 구분
+### 3) flush와 commit의 역할 구분
 
 `flush()`는 영속성 컨텍스트와 DB 사이의 동기화다. 변경 감지 결과인 `UPDATE`를 DB로 보내지만, 트랜잭션을 끝내거나 변경을 최종 확정하지 않는다.
 
@@ -72,7 +71,7 @@ flush 전 rollback         → 변경 SQL 자체가 전송되지 않을 수 있�
 
 SQL 로그에 `UPDATE`가 보였다는 사실만으로 commit됐다고 결론 내릴 수 없는 이유다. 로그는 DB에 SQL이 전달됐음을 보여주지만, 그 트랜잭션이 나중에 확정됐는지 취소됐는지까지 한 줄의 `UPDATE`가 말해주지는 않는다.
 
-### RuntimeException 발생 경로의 rollback 과정
+### 4) RuntimeException 발생 경로의 rollback 과정
 
 테스트에서는 관리 중인 Entity를 변경한 뒤 `RuntimeException`을 트랜잭션 경계 밖으로 전달했다. Spring의 기본 rollback 규칙에서는 이 예외로 정상 반환 경로가 중단되고 commit 대신 rollback이 선택된다.
 
@@ -82,10 +81,9 @@ SQL 로그에 `UPDATE`가 보였다는 사실만으로 commit됐다고 결론 �
 
 오늘 사용한 기본 규칙은 모든 Java 예외에 똑같이 적용되는 규칙이 아니다. 별도 설정이 없다면 `RuntimeException`과 `Error`는 rollback 대상이지만 checked exception은 기본적으로 그렇지 않다. 이 글에서는 실제로 실행한 `RuntimeException` 경로까지만 검증했다.
 
-![시퀀스 다이어그램. 참여자는 테스트, @Transactional Service, 영속성 컨텍스트, H2이다. alt 프레임이 두 갈래로 갈린다. 정상 반환 갈래에서는 테스트가 cancel(id, reason)을 호출하고, Service가 findById(id)로 영속성 컨텍스트를 거쳐 H2에 SELECT를 보내 행 1건과 스냅샷을 얻는다. Service가 reservation.cancel(reason)으로 메모리 객체를 바꾼 뒤 정상 반환하면 flush의 변경 감지로 UPDATE가 전송되고 COMMIT된다. 새 트랜잭션의 재조회 SELECT는 confirmed=false와 "일정 변경"을 돌려준다. RuntimeException 갈래에서는 cancelThenFail(id)가 같은 조회와 cancel("강제 실패") 뒤 entityManager.flush()로 UPDATE를 보낸다. 이어서 RuntimeException을 던지자 ROLLBACK되고 예외가 테스트로 전달된다. 재조회 SELECT는 confirmed=true와 null을 돌려준다. 하단 주석은 두 경로 모두 UPDATE가 전송되었고 최종 상태를 가르는 것은 COMMIT과 ROLLBACK이라고 설명한다.](../../../assets/day15-transaction-boundary.png)
-<!-- velog 업로드: 이 줄 위 이미지 자리에 app/study_docs/assets/day15-transaction-boundary.png 파일을 드래그해 교체 -->
+![시퀀스 다이어그램. 참여자는 테스트, @Transactional Service, 영속성 컨텍스트, H2이다. alt 프레임이 두 갈래로 갈린다. 정상 반환 갈래에서는 테스트가 cancel(id, reason)을 호출하고, Service가 findById(id)로 영속성 컨텍스트를 거쳐 H2에 SELECT를 보내 행 1건과 스냅샷을 얻는다. Service가 reservation.cancel(reason)으로 메모리 객체를 바꾼 뒤 정상 반환하면 flush의 변경 감지로 UPDATE가 전송되고 COMMIT된다. 새 트랜잭션의 재조회 SELECT는 confirmed=false와 "일정 변경"을 돌려준다. RuntimeException 갈래에서는 cancelThenFail(id)가 같은 조회와 cancel("강제 실패") 뒤 entityManager.flush()로 UPDATE를 보낸다. 이어서 RuntimeException을 던지자 ROLLBACK되고 예외가 테스트로 전달된다. 재조회 SELECT는 confirmed=true와 null을 돌려준다. 하단 주석은 두 경로 모두 UPDATE가 전송되었고 최종 상태를 가르는 것은 COMMIT과 ROLLBACK이라고 설명한다.](https://raw.githubusercontent.com/enderpawar/8week_Spring_Study/master/app/study_docs/assets/day15-transaction-boundary.png)
 
-### `readOnly=true`의 역할과 보장 범위
+### 5) `readOnly=true`의 역할과 보장 범위
 
 조회 Service에는 `@Transactional(readOnly = true)`로 “이 작업은 조회 전용”이라는 의도를 표현할 수 있다. Spring과 JPA 구현체는 이 정보를 flush 방식과 변경 감지 비용을 조정하는 최적화 힌트로 활용할 수 있다.
 
@@ -102,7 +100,7 @@ SQL 로그에 `UPDATE`가 보였다는 사실만으로 commit됐다고 결론 �
 
 ## 2. 코드 구현
 
-### `cancel()` — 업무 흐름 전체의 Transaction Boundary
+### 1) `cancel()` — 업무 흐름 전체의 Transaction Boundary
 
 ```java
 @Transactional
@@ -120,7 +118,7 @@ public Reservation cancel(Long id, String cancelReason) {
 
 애노테이션을 Repository에 더 붙이는 대신 Service에 둔 이유는 경계의 의미 때문이다. Repository는 저장과 조회라는 데이터 접근을 수행하지만, “예약을 취소한다”는 작업의 시작과 끝을 아는 곳은 Service다.
 
-### 강제 flush 이후의 rollback 대조 실험
+### 2) 강제 flush 이후의 rollback 대조 실험
 
 ```java
 @Transactional
@@ -140,7 +138,7 @@ public void cancelThenFail(Long id) {
 
 실패 메서드를 호출할 때는 `assertThrows`로 예외 발생을 검증했다. 그다음 새 조회 결과에 `assertTrue(found.isConfirmed())`와 `assertNull(found.getCancelReason())`를 적용해 rollback의 결과를 확인했다. “예외가 났다”만으로 rollback을 증명하지 않고, DB 최종 상태까지 검사한 것이다.
 
-### 자동 검증 결과
+### 3) 자동 검증 결과
 
 | 확인 항목 | 자동 검증 | 결과 |
 |---|---|---|
@@ -152,7 +150,7 @@ public void cancelThenFail(Long id) {
 
 ## 3. 스스로 답한 질문
 
-### Q1. 롤백 테스트의 UPDATE 미출력 원인
+### 1) 롤백 테스트의 UPDATE 미출력 원인
 
 **질문.** 롤백 테스트에서 처음에는 왜 `UPDATE`가 출력되지 않았는가?
 
@@ -162,7 +160,7 @@ public void cancelThenFail(Long id) {
 
 원인을 다시 판단할 때는 스키마보다 실행 순서를 먼저 본다. 상태 변경, flush, 예외, commit 중 어디까지 도달했는지를 확인하면 같은 혼동을 줄일 수 있다.
 
-### Q2. 명시적 flush 이후의 UPDATE와 rollback
+### 2) 명시적 flush 이후의 UPDATE와 rollback
 
 **질문.** 직접 flush한 뒤에도 `UPDATE`가 출력되지 않는가?
 
@@ -172,7 +170,7 @@ public void cancelThenFail(Long id) {
 
 이후에는 SQL 로그에서 UPDATE를 발견하면 “반영됐다”라고 바로 말하지 않고, 트랜잭션 종료 방식과 새 조회 결과를 함께 확인한다.
 
-### Q3. `readOnly=true`와 DB 쓰기 권한의 구분
+### 3) `readOnly=true`와 DB 쓰기 권한의 구분
 
 **질문.** `readOnly=true`가 적용되면 조회 권한만 남는가?
 

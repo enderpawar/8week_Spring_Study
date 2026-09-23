@@ -16,7 +16,13 @@ Day3까지 `ReservationController`가 요청을 받는 일부터 `Reservation` �
 | Wrapper 타입 값 비교 | `Long`·`Integer`는 `==`가 아니라 `.equals()`로 값을 비교 | `r.getId().equals(id)` |
 | `@PathVariable` | URL 경로의 `{id}`를 메서드 파라미터로 매핑 | `@PostMapping("/reservations/cancel/{id}")` |
 
-### 변경 이유에 따른 계층 분리
+오늘 나눈 Controller·Service·Repository가 요청 흐름 전체에서 어디에 놓이는지 먼저 한 장으로 보면 다음과 같다. 그림의 Database 자리는 오늘 코드에서 메모리 저장소(`InMemoryReservationRepository`)가 맡고, JPA로 DB에 연결하는 단계는 이후에 다룬다.
+
+![Spring Boot 계층형 구조의 요청 흐름. 왼쪽 Client가 Controller Layer에 Request를 보내고 Response를 돌려받는다. Controller는 Service Layer와 양방향으로 주고받고, Service는 위쪽 Model과 데이터를 주고받으며 오른쪽 Repository Layer를 호출한다. Repository는 CRUD/Native Query로 Database와 통신하고, Model은 JPA로 Database 테이블에 매핑된다.](https://raw.githubusercontent.com/enderpawar/8week_Spring_Study/master/app/study_docs/assets/day04-overview-layered-architecture.gif)
+
+*출처: [Understanding Spring Boot Architecture Flow](https://medium.com/@dulanjayasandaruwan1998/understanding-spring-boot-architecture-flow-615d209b95f9) — Dulanjaya Sandaruwan (Medium). 저작권은 원저작자에게 있습니다.*
+
+### 1) 변경 이유에 따른 계층 분리
 
 Day3의 `ReservationController.reserve()`는 요청 본문을 받고, `new Reservation(...)`으로 객체를 만들고, `confirm()`으로 상태를 바꾼 뒤 응답 문자열까지 만들었다. 요청 형식이 바뀌어도, 예약 규칙이 바뀌어도, 저장 방식이 생겨도 모두 이 한 메서드를 고쳐야 하는 구조였다.
 
@@ -49,7 +55,7 @@ Controller는 경로 변수와 응답 문자열만 다룬다. "찾아서 바꾼�
 
 > **정리.** 계층은 코드의 종류가 아니라 변경 이유로 나눈다. 분리는 파급 범위를 줄일 뿐, 옮긴 로직이 맞는지는 따로 확인해야 한다.
 
-### Repository 인터페이스와 의존 방향
+### 2) Repository 인터페이스와 의존 방향
 
 Service가 `InMemoryReservationRepository`를 직접 알면, 저장 방식을 DB로 바꾸는 순간 Service 코드도 함께 고쳐야 한다. 이 전파를 끊으려고 Repository를 인터페이스로 두었다. 소스 주석에는 이렇게 적었다.
 
@@ -76,7 +82,7 @@ ReservationService ──의존──▶ «interface» ReservationRepository
 
 보장 범위도 구분해 둔다. 이 설계가 약속하는 것은 "구현체를 바꿔도 Service는 안 바뀐다"인데, 오늘은 구현체가 하나뿐이라 실제 교체는 해보지 않았다. JPA 기반 구현으로 바꾸는 Week B가 이 주장의 시험대다. 실제 구현체를 Service 생성자에 넣어주는 주체도 아직 열어보지 않았다. 소스에 `//원리는 5일 차에서 배우기..` 주석을 남기고 Day5로 미뤘다.
 
-### Domain Model의 상태와 Encapsulation
+### 3) Domain Model의 상태와 Encapsulation
 
 `Reservation`은 record가 아니라 class다. 소스 주석에 이유를 적어두었다.
 
@@ -86,7 +92,7 @@ ReservationService ──의존──▶ «interface» ReservationRepository
 
 그런데 "상태를 바꾼다"가 성립하려면 **바꿀 대상을 지목할 수 있어야 한다.** 다음 절의 식별자가 그 지목 수단이다.
 
-### Identifier와 객체 동일성
+### 4) Identifier와 객체 동일성
 
 `cancel()`을 처음 옮길 때는 `roomName`과 `requesterName`으로 예약을 가리키려 했다. 코드는 `new Reservation(roomName, requesterName)`을 만들어 `cancel()`한 뒤 저장했다.
 
@@ -119,8 +125,7 @@ cancel(1) → findById(1): store를 돌며 getId().equals(1)인 r1 반환
 | 값이 같은 객체 | 필드 값 비교 | 이름 기반 `cancel()`의 r1, r2 |
 | 같은 대상 | 식별자 비교 | `findById(1)`이 돌려준 r1 |
 
-![객체 다이어그램 두 장. 위는 이름으로 취소했을 때로, store의 [0]과 [1]이 각각 r1과 r2라는 서로 다른 Reservation 인스턴스를 가리킨다. 둘 다 roomName이 "301호"로 값은 같지만 r1은 confirmed=true, r2는 false다. 취소한 건 r2뿐이라 기존 예약 r1은 그대로다. 아래는 id로 취소한 뒤로, 인스턴스는 id=1인 r1 하나인데 store의 [0]과 [1] 두 링크가 모두 그 하나를 가리킨다. save()가 ID 유무와 무관하게 store.add()를 실행하기 때문인데, 원소 수를 세는 테스트도 findAll() 엔드포인트도 없어 실제로 그런지는 확인하지 않았다.](../../../assets/day04-identity-store.png)
-<!-- velog 업로드: 이 줄 위 이미지 자리에 app/study_docs/assets/day04-identity-store.png 파일을 드래그해 교체 -->
+![객체 다이어그램 두 장. 위는 이름으로 취소했을 때로, store의 [0]과 [1]이 각각 r1과 r2라는 서로 다른 Reservation 인스턴스를 가리킨다. 둘 다 roomName이 "301호"로 값은 같지만 r1은 confirmed=true, r2는 false다. 취소한 건 r2뿐이라 기존 예약 r1은 그대로다. 아래는 id로 취소한 뒤로, 인스턴스는 id=1인 r1 하나인데 store의 [0]과 [1] 두 링크가 모두 그 하나를 가리킨다. save()가 ID 유무와 무관하게 store.add()를 실행하기 때문인데, 원소 수를 세는 테스트도 findAll() 엔드포인트도 없어 실제로 그런지는 확인하지 않았다.](https://raw.githubusercontent.com/enderpawar/8week_Spring_Study/master/app/study_docs/assets/day04-identity-store.png)
 
 식별자 도입이 보장하는 것은 "지목한 그 객체의 상태를 바꾼다"까지다. 오늘 코드에는 두 가지 빈틈이 남았다.
 
@@ -131,7 +136,7 @@ cancel(1) → findById(1): store를 돌며 getId().equals(1)인 r1 반환
 
 > **정리.** 값이 같다는 것과 같은 대상이라는 것은 다르다. 상태를 바꾸려면 먼저 식별자로 대상을 지목해야 하고, 지목 수단이 없으면 "갱신"은 "추가"가 된다.
 
-### Reference Equality와 Value Equality
+### 5) Reference Equality와 Value Equality
 
 식별자를 넣는 순간 "id가 같은가"를 판정하는 문제가 따라왔다. `findById()`를 처음 쓸 때는 `if(r.getId() == id)`로 비교했다.
 
@@ -157,7 +162,7 @@ r.getId().equals(id)  → 두 Long이 담은 long 값이 같은가
 
 > **정리.** Wrapper의 `==`는 참조를 비교한다. 작은 값에서 통과하는 것은 캐시 덕분이고, 값 비교는 `.equals()`로 한다.
 
-### URI Template Variable과 검사 단계의 경계
+### 6) URI Template Variable과 검사 단계의 경계
 
 취소할 대상을 클라이언트가 지목하려면 id를 보낼 통로가 필요했다. URL 경로에 id를 싣고 `@PathVariable`로 받도록 했다. 경로가 자원을 식별한다는 REST의 URI 설계와 연결되는 지점이다. `reserve()` 응답에는 `예약 번호1-...`처럼 부여된 id를 노출해 다음 요청에 쓸 수 있게 했다.
 
@@ -191,7 +196,7 @@ r.getId().equals(id)  → 두 Long이 담은 long 값이 같은가
 
 ## 2. 코드 구현
 
-### `reserve()` 경로의 계층 분리
+### 1) `reserve()` 경로의 계층 분리
 
 먼저 끝낸 `reserve()` 경로다. Controller가 직접 하던 `new Reservation(...)`과 `confirm()`이 Service로 옮겨졌고, 이어서 `cancel()`을 옮긴 뒤 응답에 id를 넣었다.
 
@@ -206,7 +211,7 @@ public String reserve(@RequestBody @Valid ReservationRequest request) {
 
 `cancel()`도 같은 모양으로 옮기면 될 줄 알았다.
 
-### 이름 기반 `cancel()`의 중복 생성
+### 2) 이름 기반 `cancel()`의 중복 생성
 
 방을 하나 확정한 다음 같은 `roomName`/`requesterName`으로 취소를 호출하면, 기존 예약을 찾아 `confirmed`만 `false`로 바뀔 것이라고 예측했다. 실제로는 새 예약이 하나 더 생겼고, 원래 예약은 `confirmed: true` 그대로 남았다.
 
@@ -220,7 +225,7 @@ public Reservation cancel(String roomName, String requesterName){
 
 `findById` 없이 새 인스턴스를 만들어 저장했기 때문이다. `save()`에는 `store.add(...)`만 있었다. 1절의 "식별자와 객체 동일성"이 이 실패에서 출발했다.
 
-### Identifier 도입 과정의 컴파일 오류
+### 3) Identifier 도입 과정의 컴파일 오류
 
 `Reservation`에 `id`와 `assignId()`/`getId()`를 추가하고 `findById()`를 작성하자 컴파일 오류가 두 단계로 났다.
 
@@ -240,7 +245,7 @@ public Reservation findById(Long id) {
 
 비교는 `==`에서 `.equals()`로 바꿨다. `return null`로 문법 조건은 채웠지만, **예약이 없을 때 무엇을 할지는 여전히 정하지 않은 것**이다. 이 빈틈은 4절에 적었다.
 
-### `@PathVariable` 경로 불일치의 런타임 500
+### 4) `@PathVariable` 경로 불일치의 런타임 500
 
 `@PathVariable Long id`를 컨트롤러 파라미터에 추가했는데, `@PostMapping` 경로에는 `{id}`를 넣지 않은 채 커밋 직전까지 갔다. 컴파일이 통과했으니 정상 동작할 것이라고 예측했다. `./gradlew compileJava`와 `./gradlew test`는 둘 다 성공이었다. 앱을 띄워 요청을 보내자 결과가 달랐다.
 
@@ -251,7 +256,7 @@ POST /reservations/cancel → 500
 
 요청이 들어와 Spring이 URI에서 값을 채우려 할 때 나는 런타임 오류다. `@PostMapping("/reservations/cancel/{id}")`로 고친 뒤 정상 동작했다.
 
-### 자동 검증 결과
+### 5) 자동 검증 결과
 
 | 구분 | 방법 | 결과 |
 |---|---|---|
@@ -273,7 +278,7 @@ POST /reservations/cancel/1
 
 ## 3. 스스로 답한 질문
 
-### Q1. Repository의 책임과 구현 방식의 구분
+### 1) Repository의 책임과 구현 방식의 구분
 
 **질문.** Controller가 하던 일을 Service와 Repository로 나눴다. Repository의 책임은 무엇인가?
 
@@ -281,7 +286,7 @@ POST /reservations/cancel/1
 
 진짜 책임은 **저장소 접근을 담당하는 것**이다. 지금은 메모리에 두지만 나중에 DB로 바뀌어도 이 책임은 그대로다. 이후로는 "이 계층이 무엇을 하는가"와 "그것을 어떤 형태로 표현했는가"를 나눠서 답한다.
 
-### Q2. `findById`의 `.equals()` 비교 근거
+### 2) `findById`의 `.equals()` 비교 근거
 
 **질문.** `findById`에서 `r.getId() == id` 대신 `r.getId().equals(id)`로 고친 이유는 무엇인가?
 

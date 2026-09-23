@@ -6,7 +6,7 @@ Week B D7은 버퍼다. 새 개념을 배우기보다 한 주 동안 쌓인 설�
 
 ## 1. 버퍼 범위와 진행 방식
 
-### D7에서 처리한 항목
+### 1) D7에서 처리한 항목
 
 | 순서 | 항목 | 결과 |
 |---|---|---|
@@ -21,7 +21,7 @@ Week B D7은 버퍼다. 새 개념을 배우기보다 한 주 동안 쌓인 설�
 
 ## 2. D7 코드 적용의 개념
 
-### 용어 색인
+### 1) 용어 색인
 
 | 용어 | 한줄뜻 | 현재 프로젝트 적용 지점 |
 |---|---|---|
@@ -31,7 +31,13 @@ Week B D7은 버퍼다. 새 개념을 배우기보다 한 주 동안 쌓인 설�
 | 시그니처 변경 전파 | 메서드의 매개변수가 바뀌면 모든 호출부가 컴파일 에러로 드러남 | `cancel()` → `cancel(String)` |
 | `@RequestParam` | 쿼리 파라미터나 폼 파라미터를 메서드 인자로 받는 애노테이션 | `ReservationController.cancel()`의 `cancelReason` |
 
-### `ddl-auto` 모드와 스키마 소유권
+오늘 다룬 검증이 요청 흐름의 어느 계층에 걸리는지 먼저 한 장으로 보면 다음과 같다(이 프로젝트의 `@NotBlank`는 Presentation Layer, `NOT NULL`·`CHECK`는 Database 위치의 검증이다).
+
+![Client에서 시작해 Java 애플리케이션 안의 Presentation Layer, Business Layer, Data Access Layer를 차례로 지나 Database/Disk에 도달하는 흐름. 다섯 위치 각각에 아래쪽에서 Custom Validation 화살표가 올라와, 검증이 클라이언트부터 데이터베이스까지 모든 계층에서 일어날 수 있음을 보여준다.](https://raw.githubusercontent.com/enderpawar/8week_Spring_Study/master/app/study_docs/assets/day14-overview-validation-layers.png)
+
+*출처: [Hibernate Validator 8.0 Reference Guide — Preface](https://docs.hibernate.org/validator/8.0/reference/en-US/html_single/) — Hibernate Validator 공식 문서. 저작권은 원저작자에게 있습니다.*
+
+### 2) `ddl-auto` 모드와 스키마 소유권
 
 **필요성.** Week B에서 스키마의 원본은 Flyway SQL 파일이다. 그런데 Hibernate도 Entity를 보고 DDL을 만들 수 있다. 두 도구가 모두 스키마를 바꿀 수 있으면, DB의 현재 모양이 어느 쪽에서 왔는지 추적할 수 없다.
 
@@ -64,7 +70,7 @@ Spring Boot는 H2 같은 내장 DB를 쓰고 Flyway·Liquibase가 없으면 기�
 
 > **정리.** `validate`는 스키마를 만들지 않는 감시자다. 원본은 Flyway, Hibernate는 기동 시 "내 매핑이 원본과 맞는가"만 확인하고 틀리면 멈춘다.
 
-### `NOT NULL`·`CHECK`·`@NotBlank`의 검증 계층
+### 3) `NOT NULL`·`CHECK`·`@NotBlank`의 검증 계층
 
 **필요성.** Day08에 H2 콘솔에서 `''`를 직접 넣었더니 `NOT NULL` 컬럼을 그대로 통과했다(`Update count: 1`). `''`는 값이 없는 것이 아니라 길이 0인 값이 있는 상태이기 때문이다. `@NotBlank`는 `''`를 막지만 HTTP 요청 경로에서만 동작하므로, 앱을 거치지 않은 INSERT는 보지 못한다.
 
@@ -87,7 +93,7 @@ H2 콘솔·네이티브 쿼리 ────────────────�
 
 **보장 범위와 한계.** `CHECK (room_name <> '')`는 길이 0인 문자열만 막는다. 공백만 있는 `'   '`를 거부하는지는 테스트하지 않았다(미검증). `@NotBlank`와 완전히 같은 규칙을 DB에 옮긴 것은 아니다.
 
-### Migration 불변과 새 버전 추가
+### 4) Migration 불변과 새 버전 추가
 
 Day13 시험의 교정 기준을 그대로 적용했다. Flyway는 적용된 파일의 체크섬을 기동마다 장부값과 대조하고, 다르면 `FlywayValidateException`으로 기동을 거부한다. 따라서 스키마를 바꾸는 방법은 `V1__init.sql` 수정이 아니라 새 버전 추가다.
 
@@ -99,14 +105,13 @@ V3__cancel_reason               (Day14, 독립과제)
 
 Flyway 공식 문서는 버전 1인 DB에 V2 파일을 더해 버전 2가 되는 migrate 과정을 다음처럼 그린다.
 
-![왼쪽의 Database는 flyway_schema_history 테이블과 기존 테이블들을 가진 Version = 1 상태다. 가운데 V2__Changes.sql 파일이 더해지면, 오른쪽 Database는 같은 flyway_schema_history와 기존 테이블에 새 테이블이 추가된 Version = 2 상태가 된다.](../../../assets/day14-web-flyway-migrate.png)
-<!-- velog 업로드: 이 줄 위 이미지 자리에 app/study_docs/assets/day14-web-flyway-migrate.png 파일을 드래그해 교체 -->
+![왼쪽의 Database는 flyway_schema_history 테이블과 기존 테이블들을 가진 Version = 1 상태다. 가운데 V2__Changes.sql 파일이 더해지면, 오른쪽 Database는 같은 flyway_schema_history와 기존 테이블에 새 테이블이 추가된 Version = 2 상태가 된다.](https://raw.githubusercontent.com/enderpawar/8week_Spring_Study/master/app/study_docs/assets/day14-web-flyway-migrate.png)
 
 *출처: [Migrations — Redgate Flyway Documentation](https://documentation.red-gate.com/flyway/flyway-concepts/migrations) — Copyright 1999 - 2026 Red Gate Software Ltd. All rights reserved.*
 
 이 구조는 추가만 허용되는 로그와 같다. 이미 push한 커밋을 rebase하지 않고 새 커밋을 쌓는 것처럼, 과거 버전을 고정해야 모든 DB가 같은 순서로 같은 상태에 도달한다.
 
-### 메서드 시그니처 변경의 전파
+### 5) 메서드 시그니처 변경의 전파
 
 **필요성.** 독립과제에서 `cancel()`에 취소 사유를 받게 해야 했다. 선택지는 둘이었다.
 
@@ -130,14 +135,13 @@ Reservation.cancel(String)으로 선언 변경
 
 마지막 줄이 이 전파의 경계다. 컴파일러는 Java 호출부만 검사한다. URL과 쿼리 파라미터로 이루어진 HTTP 계약이 바뀐 것은 컴파일 에러가 되지 않고, 요청을 실제로 보내는 테스트가 실행될 때에만 드러난다.
 
-![클래스 다이어그램. 오른쪽 열에 위에서 아래로 «@RestController» ReservationController, «@Service» ReservationService, «@Entity» Reservation, «table» reservation이 놓여 있다. Controller의 cancel(id: Long, cancelReason: String)은 cancelReason에 @RequestParam @NotBlank 제약이 붙어 있고, Controller가 Service의 cancel(id, cancelReason)을, Service가 Reservation의 cancel(cancelReason: String)을 «call» 의존 화살표로 호출한다. Reservation은 confirmed와 cancelReason 필드, getCancelReason()을 가지며 «map»으로 reservation 테이블에 연결된다. 테이블에는 room_name과 requester_name의 <> '' 제약과 cancel_reason VARCHAR(100) [0..1]이 있다. 왼쪽 열의 ReservationControllerHttpTest, ReservationServiceTest, JpaReservationRepositoryTest가 각각 같은 높이의 Controller, Service, Reservation을 «call»한다. 노트는 ddl-auto: validate가 기동 시 필드와 컬럼을 대조한다는 것을 테이블에 연결한다.](../../../assets/day14-cancel-reason-layers.png)
-<!-- velog 업로드: 이 줄 위 이미지 자리에 app/study_docs/assets/day14-cancel-reason-layers.png 파일을 드래그해 교체 -->
+![클래스 다이어그램. 오른쪽 열에 위에서 아래로 «@RestController» ReservationController, «@Service» ReservationService, «@Entity» Reservation, «table» reservation이 놓여 있다. Controller의 cancel(id: Long, cancelReason: String)은 cancelReason에 @RequestParam @NotBlank 제약이 붙어 있고, Controller가 Service의 cancel(id, cancelReason)을, Service가 Reservation의 cancel(cancelReason: String)을 «call» 의존 화살표로 호출한다. Reservation은 confirmed와 cancelReason 필드, getCancelReason()을 가지며 «map»으로 reservation 테이블에 연결된다. 테이블에는 room_name과 requester_name의 <> '' 제약과 cancel_reason VARCHAR(100) [0..1]이 있다. 왼쪽 열의 ReservationControllerHttpTest, ReservationServiceTest, JpaReservationRepositoryTest가 각각 같은 높이의 Controller, Service, Reservation을 «call»한다. 노트는 ddl-auto: validate가 기동 시 필드와 컬럼을 대조한다는 것을 테이블에 연결한다.](https://raw.githubusercontent.com/enderpawar/8week_Spring_Study/master/app/study_docs/assets/day14-cancel-reason-layers.png)
 
 그림에서 의존 화살표는 위에서 아래로 향하고, 컴파일 에러는 그 반대 방향으로 올라왔다. 가장 아래의 `Reservation`을 바꾸자 그것을 호출하는 모든 클래스가 차례로 드러났다. 인터페이스나 DI가 없어도, 정적 타입 검사만으로 영향 범위가 목록이 된다.
 
 > **정리.** 시그니처를 바꾸면 영향받는 Java 호출부는 컴파일러가 전부 찾아준다. 컴파일러가 못 보는 HTTP 계약 변경은 요청을 보내는 테스트만 잡는다.
 
-### `@PathVariable`과 `@RequestParam`의 구분
+### 6) `@PathVariable`과 `@RequestParam`의 구분
 
 **동작 위치.** 두 애노테이션은 요청의 서로 다른 부분에서 값을 꺼낸다.
 
@@ -162,7 +166,7 @@ Reservation.cancel(String)으로 선언 변경
 
 ## 3. D7 코드 적용
 
-### `ddl-auto: validate` 전환
+### 1) `ddl-auto: validate` 전환
 
 ```yaml
 jpa:
@@ -172,7 +176,7 @@ jpa:
 
 값 한 단어만 바꿨다. 주석은 `none` 시절 그대로인데, `validate`에서도 여전히 참이다. Hibernate는 스키마를 만들지 않고 대조만 한다.
 
-### `V2` — `CHECK` Constraint와 세 번의 시도
+### 2) `V2` — `CHECK` Constraint와 세 번의 시도
 
 ```sql
 ALTER TABLE reservation
@@ -200,7 +204,7 @@ assertThrows(PersistenceException.class, () -> {
 
 `checkConstraintRejectsEmptyRoomName()`이 통과했다. Day08에 H2 콘솔로 뚫었던 경로가 이제 DB 수준에서 막힌다.
 
-### `V3`와 Entity — `cancel_reason`의 NULL 허용
+### 3) `V3`와 Entity — `cancel_reason`의 NULL 허용
 
 ```sql
 ALTER TABLE reservation
@@ -221,7 +225,7 @@ public String getCancelReason() { return cancelReason; }
 
 별도 세터를 두지 않고 `cancel()` 안에서만 사유를 채우므로, 사유는 취소라는 상태 변경과 함께만 바뀐다.
 
-### 시그니처 변경을 따라간 수정
+### 4) 시그니처 변경을 따라간 수정
 
 시그니처를 바꾸자 첫 에러가 Service에서 났다.
 
@@ -242,7 +246,7 @@ mockMvc.perform(post("/reservations/cancel/{id}", 999_999L).param("cancelReason"
 
 쿼리 파라미터가 필수가 됐는데 요청에 넣지 않았으니, 기대하던 404·400이 아니라 **다른 이유의 400**이 돌아온 것이다. 두 테스트에 `.param("cancelReason", ...)`을 추가해 원래 검증하려던 경로로 되돌렸다.
 
-### 같은 Dirty Checking 함정의 재발
+### 5) 같은 Dirty Checking 함정의 재발
 
 독립과제 마지막 검증 테스트 `checkCancelReason()`은 세 번 썼다. 1차는 assert가 없었다. 2차는 취소 사유를 저장 전과 후에 **같은 문자열**로 두 번 설정했다.
 
@@ -288,7 +292,7 @@ assertEquals(reloaded.getCancelReason(), saved.getCancelReason());
 
 ## 5. 주차 마무리와 다음 시작점
 
-### Week B에서 바뀐 이해
+### 1) Week B에서 바뀐 이해
 
 Week B를 시작할 때 JPA를 "SQL을 대신 써주는 것"으로 알고 있었다. D3까지는 그 설명이 버텼지만, `findById()`가 SQL을 내보내지 않고 `save()`를 부르지 않아도 `UPDATE`가 나가는 것을 보고 무너졌다. JPA가 관리하는 것은 SQL이 아니라 트랜잭션 동안 객체가 어떤 상태에 있는가이고, SQL은 그 결과다.
 
@@ -296,7 +300,7 @@ D7에서는 스키마 쪽 소유권도 정리됐다. 스키마의 원본은 Flyw
 
 독립과제 뒤에는 `CLAUDE.md`의 주차 마무리 절차에 따라 이번 주 패턴을 `CODE_PATTERNS.md`의 P18~P21(1차 캐시, 변경 감지, `CHECK` 제약, 시그니처 변경 전파)로 승격하고, 대응하는 드릴 묶음 7을 `PATTERN_DRILLS.md`에 추가했다.
 
-### 아직 남은 것과 다음 범위
+### 2) 아직 남은 것과 다음 범위
 
 **아직 남은 것**은 두 가지다. `@Transactional`은 이번 주 내내 테스트 클래스에 붙은 "주어진 래퍼"로만 썼고, 경계를 어떻게 만드는지는 설명하지 못한다. 처음부터 **Week C D1**에 배정해둔 범위다. 오류 응답에 오류 코드·타임스탬프·요청 식별자가 없는 문제는 **나중에 고칠 것**(Week D D5 또는 Week E D1)으로 남아 있다.
 

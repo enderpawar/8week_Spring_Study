@@ -18,7 +18,7 @@ Day4에서 `cancel()`을 Service로 옮기면서 `ReservationService`는 `Reserv
 
 앞의 다섯 용어는 "객체가 어떻게 연결되는가", 뒤의 두 용어는 "그렇게 연결하고 나면 어떤 제약이 따라오는가"를 다룬다.
 
-### 객체 생성과 연결의 제어권
+### 1) 객체 생성과 연결의 제어권
 
 `ReservationController`는 `ReservationService`가, `ReservationService`는 `ReservationRepository` 구현체가 있어야 동작한다. 누군가는 이 세 객체를 올바른 순서로 만들어 서로 연결해야 한다.
 
@@ -43,14 +43,13 @@ SpringApplication.run() → ApplicationContext 기동
 
 Spring Framework 공식 문서는 애플리케이션 클래스와 설정 메타데이터가 컨테이너에 들어가 완성된 시스템이 되는 이 구조를 다음처럼 그린다.
 
-![Spring IoC 컨테이너 개요도. 위에서 Your Business Objects (POJOs)가, 왼쪽에서 Configuration Metadata가 The Spring Container로 들어가고, 컨테이너가 produces 화살표로 Fully configured system Ready for Use를 만들어 낸다.](../../../assets/day05-web-spring-ioc-container.png)
-<!-- velog 업로드: 이 줄 위 이미지 자리에 app/study_docs/assets/day05-web-spring-ioc-container.png 파일을 드래그해 교체 -->
+![Spring IoC 컨테이너 개요도. 위에서 Your Business Objects (POJOs)가, 왼쪽에서 Configuration Metadata가 The Spring Container로 들어가고, 컨테이너가 produces 화살표로 Fully configured system Ready for Use를 만들어 낸다.](https://raw.githubusercontent.com/enderpawar/8week_Spring_Study/master/app/study_docs/assets/day05-web-spring-ioc-container.png)
 
 *출처: [Container Overview — Spring Framework Reference, Figure 1. The Spring IoC container](https://docs.spring.io/spring-framework/reference/core/beans/basics.html) — Copyright © 2005 - Broadcom. All Rights Reserved. (문서 사본은 무료 배포와 저작권 고지 유지 조건으로 허용)*
 
 > **정리.** IoC는 객체의 생성과 연결을 누가 실행하는가의 문제다. 이 프로젝트에서는 `ApplicationContext`가 기동 시점에 Repository → Service → Controller 순서로 조립한다.
 
-### DI와 Constructor Injection
+### 2) DI와 Constructor Injection
 
 의존성 주입(DI)은 제어권을 가진 컨테이너가 부품을 건네는 구체적인 통로다. 이 프로젝트에서 그 통로는 생성자 매개변수다.
 
@@ -77,10 +76,9 @@ this.x의 x = 그 클래스에 실제로 선언된 필드
 매개변수 타입 = 그 필드에 대입 가능한 타입
 ```
 
-![클래스 다이어그램. «@RestController» ReservationController가 «@Service» ReservationService를, ReservationService가 «interface» ReservationRepository를 각각 생성자 주입으로 참조한다. «@Repository» InMemoryReservationRepository는 그 인터페이스를 «realize»하는데, 화살표가 구현체가 아니라 인터페이스로 향하는 것이 요점이다. Service는 구현체 이름을 모른다. 주석에는 ApplicationContext가 기동 시 Bean을 만들고 생성자 인자 타입에 맞는 Bean을 찾아 넣는다는 것, 기본 scope가 singleton이라 두 번 꺼내도 같은 인스턴스여서 ==가 true이고 그래서 Service가 무상태여야 한다는 것, @Repository를 떼면 넣어줄 Bean이 없어 기동에서 실패한다는 것이 적혀 있다.](../../../assets/day05-ioc-di.png)
-<!-- velog 업로드: 이 줄 위 이미지 자리에 app/study_docs/assets/day05-ioc-di.png 파일을 드래그해 교체 -->
+![클래스 다이어그램. «@RestController» ReservationController가 «@Service» ReservationService를, ReservationService가 «interface» ReservationRepository를 각각 생성자 주입으로 참조한다. «@Repository» InMemoryReservationRepository는 그 인터페이스를 «realize»하는데, 화살표가 구현체가 아니라 인터페이스로 향하는 것이 요점이다. Service는 구현체 이름을 모른다. 주석에는 ApplicationContext가 기동 시 Bean을 만들고 생성자 인자 타입에 맞는 Bean을 찾아 넣는다는 것, 기본 scope가 singleton이라 두 번 꺼내도 같은 인스턴스여서 ==가 true이고 그래서 Service가 무상태여야 한다는 것, @Repository를 떼면 넣어줄 Bean이 없어 기동에서 실패한다는 것이 적혀 있다.](https://raw.githubusercontent.com/enderpawar/8week_Spring_Study/master/app/study_docs/assets/day05-ioc-di.png)
 
-### DIP와 구현체 교체 범위
+### 3) DIP와 구현체 교체 범위
 
 생성자가 인터페이스 타입을 선언한다는 점이 DIP와 이어진다. Service가 의존하는 것은 `InMemoryReservationRepository`가 아니라 `ReservationRepository` 계약이다.
 
@@ -88,8 +86,7 @@ this.x의 x = 그 클래스에 실제로 선언된 필드
 
 Wikimedia Commons의 DIP 도식은 구체 클래스를 직접 참조하던 의존이 인터페이스를 향하도록 바뀌는 전후를 다음처럼 비교한다.
 
-![의존성 역전 전후 비교도. Figure 1에서는 Package A의 Object A가 Package B의 Object B를 직접 References한다. Figure 2에서는 Object A가 같은 Package A 안의 Interface A를 References하고, Package B의 Object B가 Interface A를 Inherits해서 의존 화살표가 구현체가 아니라 인터페이스로 향한다.](../../../assets/day05-web-dependency-inversion.png)
-<!-- velog 업로드: 이 줄 위 이미지 자리에 app/study_docs/assets/day05-web-dependency-inversion.png 파일을 드래그해 교체 -->
+![의존성 역전 전후 비교도. Figure 1에서는 Package A의 Object A가 Package B의 Object B를 직접 References한다. Figure 2에서는 Object A가 같은 Package A 안의 Interface A를 References하고, Package B의 Object B가 Interface A를 Inherits해서 의존 화살표가 구현체가 아니라 인터페이스로 향한다.](https://raw.githubusercontent.com/enderpawar/8week_Spring_Study/master/app/study_docs/assets/day05-web-dependency-inversion.png)
 
 *출처: [File:Dependency inversion.png — Wikimedia Commons](https://commons.wikimedia.org/wiki/File:Dependency_inversion.png) — Kevin Martin (Mrflay), CC BY-SA 4.0*
 
@@ -97,7 +94,7 @@ DIP와 DI는 층위가 다르다. DIP는 **의존 방향**에 대한 설계 원�
 
 이 설계가 보장하는 것은 교체 시 수정 범위가 좁아진다는 것까지다. 오늘은 구현체가 하나뿐이라 실제 교체는 하지 않았다. 구현체가 둘 이상일 때 컨테이너가 어느 것을 고르는지도 이번 범위 밖이다.
 
-### 타입 그래프와 Bean 그래프
+### 4) 타입 그래프와 Bean 그래프
 
 `@Repository` 한 줄을 떼면 어디서 멈추는지가 이번의 중심 실험이었다. 이 실험은 서로 다른 두 검사 단계를 갈라서 보여줬다.
 
@@ -116,14 +113,13 @@ DIP와 DI는 층위가 다르다. DIP는 **의존 방향**에 대한 설계 원�
 → NoSuchBeanDefinitionException → 컨텍스트 조립 중단 → contextLoads() 실패
 ```
 
-![시퀀스 다이어그램. 참여자는 테스트 실행, ApplicationContext, «@Repository» InMemoryReservationRepository, «@Service» ReservationService, «@RestController» ReservationController다. 먼저 compileJava가 성공하고, 테스트가 contextLoads()로 컨텍스트를 기동하면 ApplicationContext가 Component Scan과 생성자 인자 후보 탐색을 수행한다. alt 프레임의 첫 분기 [@Repository 있음]에서는 ① Repository 생성, ② repository를 Service 생성자에 주입, ③ service를 Controller 생성자에 주입한 뒤 기동 성공과 BUILD SUCCESSFUL을 돌려준다. 둘째 분기 [@Repository 제거]에서는 후보 Bean이 없어 NoSuchBeanDefinitionException이 테스트로 전달되고 contextLoads()가 실패한다. 하단 주석은 두 경우 모두 compileJava가 성공했고 사라진 것은 Bean 등록이라고 적는다.](../../../assets/day05-bean-assembly.png)
-<!-- velog 업로드: 이 줄 위 이미지 자리에 app/study_docs/assets/day05-bean-assembly.png 파일을 드래그해 교체 -->
+![시퀀스 다이어그램. 참여자는 테스트 실행, ApplicationContext, «@Repository» InMemoryReservationRepository, «@Service» ReservationService, «@RestController» ReservationController다. 먼저 compileJava가 성공하고, 테스트가 contextLoads()로 컨텍스트를 기동하면 ApplicationContext가 Component Scan과 생성자 인자 후보 탐색을 수행한다. alt 프레임의 첫 분기 [@Repository 있음]에서는 ① Repository 생성, ② repository를 Service 생성자에 주입, ③ service를 Controller 생성자에 주입한 뒤 기동 성공과 BUILD SUCCESSFUL을 돌려준다. 둘째 분기 [@Repository 제거]에서는 후보 Bean이 없어 NoSuchBeanDefinitionException이 테스트로 전달되고 contextLoads()가 실패한다. 하단 주석은 두 경우 모두 compileJava가 성공했고 사라진 것은 Bean 등록이라고 적는다.](https://raw.githubusercontent.com/enderpawar/8week_Spring_Study/master/app/study_docs/assets/day05-bean-assembly.png)
 
 실험 전에는 "애플리케이션 실행 단계에서 실패할 것"이라고 단계는 맞췄다. 다만 이유를 "구현 클래스가 저장소 인터페이스 역할을 잃는다"고 설명했다. Java 역할은 그대로였고, 잃은 것은 Spring Bean 자격이었다.
 
 > **정리.** 컴파일러는 타입 그래프를, 컨테이너는 기동 시점에 Bean 그래프를 검사한다. 애노테이션 누락은 두 번째 검사에서만 드러난다.
 
-### Singleton Bean과 Reference Equality
+### 5) Singleton Bean과 Reference Equality
 
 조립이 끝난 뒤 컨테이너는 만든 Bean을 보관하고 계속 돌려준다. 기본 scope인 singleton에서는 같은 타입을 두 번 `getBean()`해도 같은 인스턴스가 나온다.
 
@@ -144,7 +140,7 @@ first == second → true
 
 범위도 좁혀 둔다. singleton은 JVM 전체에 하나라는 뜻이 아니라 **ApplicationContext 하나에 하나**다. 컨텍스트가 둘이면 인스턴스도 둘일 수 있다.
 
-### Stateless Service와 공유 필드
+### 6) Stateless Service와 공유 필드
 
 singleton이라는 조립 규칙은 곧바로 설계 제약으로 이어진다. 여러 요청 스레드가 같은 Service 인스턴스를 함께 쓰므로, 그 인스턴스의 필드도 함께 쓴다.
 
@@ -171,7 +167,7 @@ singleton이라는 조립 규칙은 곧바로 설계 제약으로 이어진다. 
 
 ## 2. 코드 구현
 
-### Day4 주석 제거와 Service 생성자
+### 1) Day4 주석 제거와 Service 생성자
 
 현재 `ReservationService`의 앞부분이다.
 
@@ -196,7 +192,7 @@ private final InMemoryReservationRepository repository = new InMemoryReservation
 
 이 대조 코드는 비교용으로 적은 것이고 실행하지 않았다. `ReservationController` 생성자는 들여쓰기만 정리했다.
 
-### `@Repository` 제거 실험
+### 2) `@Repository` 제거 실험
 
 `InMemoryReservationRepository`에서 애노테이션만 제거하고 `compileJava`와 `test`를 차례로 실행했다. `compileJava`는 성공했고, `contextLoads()`가 실패했다. 원인 체인 마지막에 다음 예외가 있었다.
 
@@ -206,7 +202,7 @@ NoSuchBeanDefinitionException
 
 애노테이션을 되돌린 뒤 전체 테스트는 다시 `BUILD SUCCESSFUL`이었다. 복구했으므로 이 실험은 커밋에 남지 않았다.
 
-### 생성자 독립 작성의 컴파일 오류 세 개
+### 3) 생성자 독립 작성의 컴파일 오류 세 개
 
 완성 예제 읽기 → 대입문 한 줄 채우기 → Controller 생성자 전체 작성을 거친 뒤, `ReservationService` 생성자를 혼자 다시 썼다. 컴파일러가 세 번 잡아줬다.
 
@@ -218,7 +214,7 @@ incompatible types                                 ← ReservationService 타입
 
 원인은 하나였다. Controller 생성자의 모양을 옮겨오면서 클래스명·필드명·의존 타입을 Service 쪽으로 바꾸지 않았다. 세 오류를 메시지 순서대로 고친 뒤 전체 테스트가 통과했다.
 
-### 자동 검증 결과
+### 4) 자동 검증 결과
 
 Singleton 동일성을 확인하는 테스트를 하나 추가했다.
 
@@ -244,7 +240,7 @@ void reservationServiceBeanIsSingleton() {
 
 ## 3. 스스로 답한 질문
 
-### Q1. IoC와 DI의 구분
+### 1) IoC와 DI의 구분
 
 **질문.** 현재 코드에서 IoC와 DI는 각각 무엇을 가리키는가?
 
@@ -254,7 +250,7 @@ void reservationServiceBeanIsSingleton() {
 
 힌트를 받은 직후에 맞춘 답이라 진짜 인출인지 확신이 없어서 8/2 재시험 항목으로 걸어뒀다.
 
-### Q2. Singleton Bean의 `==` 비교 결과
+### 2) Singleton Bean의 `==` 비교 결과
 
 **질문.** 같은 Bean을 두 번 꺼내 `==`로 비교하면 결과는 무엇인가?
 
@@ -262,7 +258,7 @@ void reservationServiceBeanIsSingleton() {
 
 틀린 것은 `==`의 의미가 아니라 비교 대상에 대한 가정이었다. 두 번의 `getBean()`이 같은 인스턴스를 돌려줬다. 앞으로 `==` 결과를 예측할 때는 연산자만 보지 말고 "두 변수가 같은 객체를 가리킬 경로가 있는가"를 먼저 확인한다.
 
-### Q3. Singleton Service의 요청별 필드
+### 3) Singleton Service의 요청별 필드
 
 **질문.** Singleton Service에 요청별 `currentRequesterName`을 필드로 두면 무엇이 문제인가?
 

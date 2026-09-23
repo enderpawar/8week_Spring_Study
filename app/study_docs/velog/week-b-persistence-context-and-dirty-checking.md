@@ -33,7 +33,7 @@ Week B는 저장을 메모리에서 DB로 내리는 주였다. D1~D3에서 Flywa
 
 `clear()`는 이 공간을 통째로 비우고, `flush()`는 비우지 않고 내보내기만 한다. 두 메서드를 Day10에 이미 썼지만 그때는 검증 지점을 고정하려는 용도였고 무엇을 하는지는 설명하지 못했다.
 
-### 같은 `id`를 두 번 조회하면 SELECT는 몇 번인가
+### 1) 같은 `id`를 두 번 조회하면 SELECT는 몇 번인가
 
 테스트를 쓰기 전에 답을 적었다. 내 예측은 **SELECT 한 번, `first == second`는 참**이었다. `save()` → `flush()`로 `id`를 확보한 뒤 같은 `id`로 `findById()`를 두 번 부르는 구조다.
 
@@ -48,14 +48,13 @@ insert into reservation (confirmed, requester_name, room_name, id) values (?, ?,
 select r1_0.id, r1_0.confirmed, r1_0.requester_name, r1_0.room_name from reservation r1_0 where r1_0.id=?
 ```
 
-![시퀀스 다이어그램. 테스트가 save(reservation)를 호출하면 Repository가 영속성 컨텍스트에 영속 상태로 등록하고, flush() 시점에 컨텍스트가 H2로 INSERT를 보낸다. 이후 alt 프레임이 두 갈래로 갈린다. clear()를 호출하지 않은 갈래에서는 findById(id) 두 번이 모두 캐시 조회에서 끝나고 인스턴스 r을 돌려주며, H2 생명선에는 화살표가 하나도 닿지 않는다. clear()를 호출한 갈래에서는 첫 findById(id)만 컨텍스트가 H2로 SELECT를 보내 행 1건을 받아오고, 두 번째 findById(id)는 다시 캐시 조회에서 끝나 같은 인스턴스 r을 돌려준다.](../assets/day11-first-level-cache.png)
-<!-- velog 업로드: 이 줄 위 이미지 자리에 app/study_docs/assets/day11-first-level-cache.png 파일을 드래그해 교체 -->
+![시퀀스 다이어그램. 테스트가 save(reservation)를 호출하면 Repository가 영속성 컨텍스트에 영속 상태로 등록하고, flush() 시점에 컨텍스트가 H2로 INSERT를 보낸다. 이후 alt 프레임이 두 갈래로 갈린다. clear()를 호출하지 않은 갈래에서는 findById(id) 두 번이 모두 캐시 조회에서 끝나고 인스턴스 r을 돌려주며, H2 생명선에는 화살표가 하나도 닿지 않는다. clear()를 호출한 갈래에서는 첫 findById(id)만 컨텍스트가 H2로 SELECT를 보내 행 1건을 받아오고, 두 번째 findById(id)는 다시 캐시 조회에서 끝나 같은 인스턴스 r을 돌려준다.](https://raw.githubusercontent.com/enderpawar/8week_Spring_Study/master/app/study_docs/assets/day11-first-level-cache.png)
 
 `clear()`는 조회를 막는 장치가 아니라 **"처음 조회하는 상태"로 되돌리는** 장치였다. 그리고 두 경우 모두 두 조회가 같은 객체를 돌려줬다. 1차 캐시가 보장하는 건 값이 같다는 게 아니라 같은 트랜잭션·같은 `id`면 **객체가 하나**라는 것이다.
 
 첫 단언은 `assertEquals`로 썼다가 `assertSame`으로 바꿨다. `Reservation`에는 `equals()`를 재정의하지 않아 `assertEquals`도 우연히 통과하지만, 나중에 누가 `equals()`를 필드 비교로 재정의하면 서로 다른 인스턴스여도 계속 초록불이다.
 
-### `save()` 없이 `UPDATE`가 나가는가
+### 2) `save()` 없이 `UPDATE`가 나가는가
 
 D5의 예측은 "커밋될 것 같다, dirty checking 때문에"였고 결과는 맞았다.
 
@@ -100,17 +99,17 @@ Week A 전체와 Week B D1~D5 범위로 8문항을 봤다. 최종적으로는 �
 
 ## 4. D7 — 시험에서 고친 판단을 코드에 넣기
 
-### 틀린 문항이 그대로 이번 주 코드 규칙이 됐다
+### 1) 틀린 문항이 그대로 이번 주 코드 규칙이 됐다
 
 D7에는 스키마를 두 번 더 바꿔야 했다. `CHECK` 제약을 걸고, 독립과제로 컬럼을 하나 추가하는 일이다. 몇 시간 전 시험에서 틀린 게 정확히 **"적용된 마이그레이션은 고치지 않는다"**였으므로, 두 번 다 `V1__init.sql`을 열지 않고 `V2`·`V3`를 새로 쌓았다.
 
 Flyway는 SQL을 해석하지 않고 파일 전체의 해시만 대조한다. "주석 한 줄이라 의미 없음" 같은 판단을 아예 하지 않는다는 걸 Day08에 기동 실패로 겪었고, 오늘 시험에서는 그 이유를 dirty checking으로 잘못 댔다. 판단 기준을 고친 직후에 그 기준을 쓸 자리가 두 번 나온 셈이다.
 
-### `ddl-auto: none` → `validate`
+### 2) `ddl-auto: none` → `validate`
 
 예측은 "Entity 필드와 실제 DB 컬럼의 타입·이름을 비교해서 안 맞으면 기동 실패"였고 맞았다. `none`과 `validate`는 둘 다 Hibernate가 DDL을 만들지 않는다는 점에서 같고, `validate`는 거기에 **불일치 감시**를 더한다. 스키마를 만드는 권한은 끝까지 Flyway에만 있다.
 
-### `NOT NULL`이 못 막는 구멍을 `CHECK`로
+### 3) `NOT NULL`이 못 막는 구멍을 `CHECK`로
 
 Day08에 확인해둔 부채가 있었다. `NOT NULL`은 `NULL`만 막고 `''`는 통과시킨다 — `''`는 값이 없는 게 아니라 길이 0인 값이 있는 상태이기 때문이다.
 
@@ -123,7 +122,7 @@ ALTER TABLE reservation
 
 검증은 `entityManager.createNativeQuery()`로 Bean Validation을 완전히 우회해 빈 문자열을 직접 INSERT하고 `PersistenceException`이 나는지 봤다. `@NotBlank`가 보지 못하는 경로로 넣어야 DB 제약만 순수하게 테스트할 수 있다.
 
-### 독립과제 — `cancel_reason` 한 컬럼이 지나간 자리
+### 4) 독립과제 — `cancel_reason` 한 컬럼이 지나간 자리
 
 컬럼 하나인데 다섯 파일이 바뀌었다. `V3`에서 NULL 허용 여부를 정하는 게 첫 판단이었다. `NOT NULL`을 걸면 아직 취소되지 않은 예약도 사유를 가져야 한다. `CHECK`로 조건부 제약을 걸까 하다가, **아무 제약도 안 걸면 그 컬럼은 원래 nullable**이라는 데서 멈췄다.
 
@@ -140,7 +139,7 @@ Service를 고치니 Controller가, Controller를 고치니 테스트 4곳이 �
 
 어디가 영향받는지 외우고 있을 필요는 없었고, 컴파일 에러를 따라가면 됐다.
 
-### 같은 함정을 하루에 두 번
+### 5) 같은 함정을 하루에 두 번
 
 독립과제 마지막 검증 테스트에서 D5와 **같은 실수를 다시 했다.** 취소 사유를 저장 전과 후에 똑같은 문자열로 넣은 것이다. 로드 스냅샷과 최종값이 같으니 dirty checking이 동작하든 말든 통과한다.
 

@@ -22,7 +22,13 @@ Day8에서 `V1__init.sql`로 `reservation` 테이블을 만들어두고도 애�
 
 JDBC는 저장 한 번을 `DataSource` → `Connection` → `PreparedStatement` → `ResultSet` 네 객체로 쪼갠다. 앞의 셋은 **빌리고 반납해야 하는 자원**이고, 마지막 하나는 **사고방식을 바꿔야 하는 커서**다.
 
-### 영속 저장소와 JDBC 계층의 필요성
+오늘 다룬 객체들이 애플리케이션과 DB 사이 어디에 놓이는지 먼저 한 장으로 보면 다음과 같다(Oracle UCP 그림이지만 구조는 같다. 우리 프로젝트에서는 가운데 풀 자리를 HikariCP가, `Connection Factory` 자리를 H2 JDBC 드라이버가 맡고, 애플리케이션은 풀에서 빌린 연결로 DB와 직접 대화한 뒤 `close()`로 풀에 반납한다).
+
+![개념 구조도. 왼쪽 위 Application은 아래의 Pool-Enabled Data Source와 양방향으로 연결되고, Data Source는 가운데 여러 연결(동그라미)을 담은 UCP JDBC Connection Pool과 이어진다. 풀은 오른쪽 Connection Factory와 이어지고, Connection Factory가 오른쪽 위 Database와 양방향으로 연결해 물리 연결을 만든다. 맨 위의 빨간 양방향 화살표는 Application이 풀에서 빌린 연결로 Database와 직접 작업함을 나타낸다.](https://raw.githubusercontent.com/enderpawar/8week_Spring_Study/master/app/study_docs/assets/day09-overview-connection-pool.gif)
+
+*출처: [Introduction to UCP — Figure 1-1 Conceptual View of a UCP JDBC Connection Pool](https://docs.oracle.com/en/database/oracle/oracle-database/21/jjucp/intro.html) — Oracle, Universal Connection Pool Developer's Guide 21c. 저작권은 원저작자에게 있습니다.*
+
+### 1) 영속 저장소와 JDBC 계층의 필요성
 
 `InMemoryReservationRepository`는 JVM 힙의 `ArrayList`에 예약을 담았다. 프로세스가 끝나면 힙이 사라지고, 예약도 함께 사라진다. Day4에 기술부채로 남겨둔 문제가 이것이다.
 
@@ -39,14 +45,13 @@ ReservationService
 
 Wikimedia Commons의 JDBC 구조도는 애플리케이션이 JDBC API와 DriverManager/DataSource만 거치고, DB별 차이는 각 JDBC 드라이버가 맡는 구조를 다음처럼 그린다(그림의 `Base de Données`는 프랑스어로 "데이터베이스").
 
-![구조도. 맨 위 Java 애플리케이션이 JDBC API와 양방향으로 연결되고, 그 아래 JDBC Driver Manager 또는 DataSource 객체가 있다. 그 아래에 MariaDB, PostgreSQL, Oracle용 JDBC 드라이버 세 개가 각각 DriverManager/DataSource에 연결되고, 각 드라이버는 자기 데이터베이스와 양방향으로 통신한다.](../../../assets/day09-web-jdbc-api-driver.png)
-<!-- velog 업로드: 이 줄 위 이미지 자리에 app/study_docs/assets/day09-web-jdbc-api-driver.png 파일을 드래그해 교체 -->
+![구조도. 맨 위 Java 애플리케이션이 JDBC API와 양방향으로 연결되고, 그 아래 JDBC Driver Manager 또는 DataSource 객체가 있다. 그 아래에 MariaDB, PostgreSQL, Oracle용 JDBC 드라이버 세 개가 각각 DriverManager/DataSource에 연결되고, 각 드라이버는 자기 데이터베이스와 양방향으로 통신한다.](https://raw.githubusercontent.com/enderpawar/8week_Spring_Study/master/app/study_docs/assets/day09-web-jdbc-api-driver.png)
 
 *출처: [File:DessinApiJDBC.svg — Wikimedia Commons](https://commons.wikimedia.org/wiki/File:DessinApiJDBC.svg) — Unareil, CC BY-SA 4.0 (PNG 렌더링·여백 자름)*
 
 Service는 인터페이스만 알고 있으므로, 저장 기술을 바꿔도 Service 코드는 바뀌지 않는다. 오늘 바뀐 것은 이 사슬의 아래쪽 절반이다.
 
-### `DataSource`와 Connection Pool
+### 2) `DataSource`와 Connection Pool
 
 DB에 SQL을 보내려면 먼저 연결이 있어야 한다. 매번 새로 연결하면 TCP 연결과 인증을 반복하게 된다. 커밋 주석에는 이 비용을 "수십 ms짜리"라고 적었고, 그래서 미리 열어둔 커넥션을 빌렸다 반납하는 편이 싸다고 정리했다. 이 수치는 직접 측정하지 않았다.
 
@@ -60,7 +65,7 @@ con.close()     → 연결을 끊는 것이 아니라 풀에 반납
 
 풀의 커넥션 수는 유한하다. 반납하지 않은 커넥션이 쌓이면 풀이 마르고, 그 뒤에는 이 기능 하나가 아니라 DB를 쓰는 모든 요청이 커넥션을 기다린다. 이 누수 상황은 설명으로만 정리했고 실행해보지는 않았다(미검증).
 
-### `PreparedStatement`와 Parameter Binding
+### 3) `PreparedStatement`와 Parameter Binding
 
 `save()`의 SQL은 값 자리를 `?`로 비워둔다.
 
@@ -77,7 +82,7 @@ con.close()     → 연결을 끊는 것이 아니라 풀에 반납
 
 오늘은 바인딩 방식으로만 구현했고, 문자열 연결 방식으로 실제 공격 문자열을 넣어보는 대조군은 실행하지 않았다(미검증).
 
-### `ResultSet` Cursor — `next()`와 `getXxx()`의 구분
+### 4) `ResultSet` Cursor — `next()`와 `getXxx()`의 구분
 
 `ResultSet`은 결과 전체를 담은 리스트가 아니라 한 행을 가리키는 위치다. 자료구조의 Iterator와 같은 구조다. Java 공식 문서도 커서가 처음에는 첫 행 **앞**에 있고, `next()`가 한 행씩 앞으로 이동하며, `false`를 반환하면 마지막 행 뒤에 있다고 설명한다.
 
@@ -90,14 +95,13 @@ next() == false → 커서: 마지막 행 뒤 → 반복 종료
 
 여기서 함정은 `next()`가 **이동과 판정을 동시에** 한다는 점이다. "행이 있는가"를 묻는 것처럼 보이지만, 묻는 순간 커서가 한 칸 움직인다. 반대로 `getXxx()`는 커서를 움직이지 않고 현재 행의 값만 읽는다.
 
-![시퀀스 다이어그램. 참여자는 JdbcReservationRepository, DataSource(HikariCP 풀), Connection, PreparedStatement, ResultSet(커서)이다. Repository가 getConnection()으로 풀에서 con을 대여하고, prepareStatement(sql)로 ps를 받고, executeQuery()로 첫 행 앞에 놓인 rs를 받는다. rs.next()가 true인 동안 도는 loop 프레임 안에서 next()는 다음 행으로 이동하며 true를 돌려주고, mapRow(rs)가 getXxx("컬럼명")로 현재 행의 값을 이동 없이 읽는다. 마지막 next()는 마지막 행 뒤에서 false를 돌려준다. 끝으로 ResultSet, PreparedStatement, Connection 순으로 close()하며 Connection은 풀에 반납된다.](../../../assets/day09-jdbc-cursor.png)
-<!-- velog 업로드: 이 줄 위 이미지 자리에 app/study_docs/assets/day09-jdbc-cursor.png 파일을 드래그해 교체 -->
+![시퀀스 다이어그램. 참여자는 JdbcReservationRepository, DataSource(HikariCP 풀), Connection, PreparedStatement, ResultSet(커서)이다. Repository가 getConnection()으로 풀에서 con을 대여하고, prepareStatement(sql)로 ps를 받고, executeQuery()로 첫 행 앞에 놓인 rs를 받는다. rs.next()가 true인 동안 도는 loop 프레임 안에서 next()는 다음 행으로 이동하며 true를 돌려주고, mapRow(rs)가 getXxx("컬럼명")로 현재 행의 값을 이동 없이 읽는다. 마지막 next()는 마지막 행 뒤에서 false를 돌려준다. 끝으로 ResultSet, PreparedStatement, Connection 순으로 close()하며 Connection은 풀에 반납된다.](https://raw.githubusercontent.com/enderpawar/8week_Spring_Study/master/app/study_docs/assets/day09-jdbc-cursor.png)
 
 `findAll()`의 `while (rs.next())`가 이미 커서를 한 행씩 옮기고 있다. 그 안에서 호출되는 `mapRow()`는 "이미 정해진 한 행을 객체로 바꾸는" 자리다. 여기서 `next()`를 또 부르면 커서가 한 칸 더 가서 행이 하나 걸러 하나씩 사라진다. 컴파일도 되고 예외도 나지 않는 종류의 버그다.
 
 > **정리.** `next()`는 행을 넘길 때만, `getXxx()`는 값을 읽을 때만 쓴다.
 
-### try-with-resources와 checked 예외
+### 5) try-with-resources와 checked 예외
 
 `Connection`, `PreparedStatement`, `ResultSet`은 셋 다 닫아야 하는 자원이다. try-with-resources는 소괄호 안에서 연 자원을 블록을 벗어날 때 예외 발생 여부와 무관하게 **연 순서의 역순으로** 닫는다. 로드맵도 try-with-resources를 기본으로 두고, `finally`로 직접 닫는 방식은 옛 반복 코드의 대조용으로만 다룬다.
 
@@ -111,7 +115,7 @@ catch (SQLException e)
 
 원인을 넘기지 않으면 스택트레이스가 거기서 잘려 실제 SQL 오류를 잃는다. 예외 로그와 응답 본문을 나누는 원칙(원인은 로그로, 사용자에게는 일반 문구로)도 원인이 보존돼 있어야 성립한다.
 
-### `save()`의 저장 계약과 인터페이스의 한계
+### 6) `save()`의 저장 계약과 인터페이스의 한계
 
 `ReservationRepository`는 `Reservation save(Reservation reservation)`이라는 시그니처만 선언한다. Day4의 `InMemoryReservationRepository`는 그 안에 두 갈래를 두고 있었다.
 
@@ -130,7 +134,7 @@ save(reservation)
 
 > **정리.** `save()`는 "저장한다"가 아니라 "id가 없으면 신규, 있으면 갱신"이라는 계약이다. 인터페이스는 이 의미를 강제하지 못하므로 구현과 테스트가 지켜야 한다.
 
-### Bean 후보 모호성과 설정 우선순위
+### 7) Bean 후보 모호성과 설정 우선순위
 
 `JdbcReservationRepository`에 `@Repository`를 붙이자 같은 인터페이스의 Bean 후보가 둘이 됐다. Spring은 생성자 주입에서 **타입으로 후보를 모으고**, 후보가 둘이면 임의로 고르지 않고 기동을 실패시킨다. 조용히 잘못 고른 앱보다 즉시 멈춘 앱이 원인을 찾기 쉽다는 fail-fast 원칙이다.
 
@@ -142,9 +146,9 @@ save(reservation)
 | OS 환경변수 | 사용자 계정 | 다른 프로젝트의 PostgreSQL URL이 yml을 덮음 |
 | `test` 태스크 `environment(...)` | `build.gradle.kts` | 테스트 JVM의 URL을 H2 메모리 DB로 고정 |
 
-이 규칙은 같은 jar를 환경만 바꿔 배포하기 위한 장치다. 오늘은 그 장치에 의도치 않게 걸렸고, 구체적인 경위는 3절 Q3에 적었다.
+이 규칙은 같은 jar를 환경만 바꿔 배포하기 위한 장치다. 오늘은 그 장치에 의도치 않게 걸렸고, 구체적인 경위는 3절 3)에 적었다.
 
-### Unit Test와 Integration Test의 검증 범위
+### 8) Unit Test와 Integration Test의 검증 범위
 
 `ReservationServiceTest`는 Spring 없이 `new InMemoryReservationRepository()`로 조립하는 단위 테스트다. DB가 없고 즉시 끝난다. `StudyRoomApiApplicationTests`와 `ReservationControllerHttpTest`는 `@SpringBootTest`로 컨테이너를 띄우는 통합 테스트라 Bean 스캔과 DB 연결이 일어난다.
 
@@ -155,7 +159,7 @@ save(reservation)
 
 테스트 10개가 전부 통과했지만, JDBC 구현에서 성공한 취소 뒤에 행 개수를 세는 테스트는 없었다. 초록불은 "버그가 없다"가 아니라 "지금 확인한 것들에는 문제가 없다"는 뜻이다.
 
-### JDBC 반복 코드와 JPA 도입 배경
+### 9) JDBC 반복 코드와 JPA 도입 배경
 
 `InMemoryReservationRepository`의 `store.add(reservation)` 한 줄이 JDBC에서는 다음 일로 흩어졌다. 줄 수는 코드를 보고 센 대략치다.
 
@@ -178,7 +182,7 @@ save(reservation)
 
 ## 2. 코드 구현
 
-### `save()` — INSERT만 있는 저장
+### 1) `save()` — INSERT만 있는 저장
 
 ```java
 String sql = "INSERT INTO reservation (room_name, requester_name, confirmed) VALUES (?,?,?)";
@@ -199,7 +203,7 @@ try (Connection con = dataSource.getConnection();
 
 자원 대여·바인딩·키 회수·예외 변환은 모두 들어갔지만 `getId() != null`인 객체를 위한 갈래가 없다. 취소 흐름의 복제 행은 이 코드에서 나왔다. 오늘 과제로 UPDATE 분기를 냈지만 커밋에는 반영되지 않았다(`grep UPDATE` 결과 0건).
 
-### `mapRow` — 캡슐화된 생성자를 거치는 복원
+### 2) `mapRow` — 캡슐화된 생성자를 거치는 복원
 
 ```java
 private Reservation mapRow(ResultSet rs) throws SQLException {
@@ -214,13 +218,13 @@ private Reservation mapRow(ResultSet rs) throws SQLException {
 
 한 줄이면 될 것 같은 메서드가 세 단계로 나뉜 이유는 Day4의 설계다. `Reservation`의 생성자는 `(roomName, requesterName)`만 받고 `confirmed`는 항상 `false`로 시작하며, 상태 변경은 `confirm()`으로만 하도록 캡슐화했다. 새 예약을 만드는 규칙으로는 옳지만 **DB에는 이미 확정된 행이 있다.** 만들고 → id를 심고 → true일 때만 `confirm()`으로 따라잡는 우회로가 생긴 이유다.
 
-### 컴파일 오류의 단계별 보고
+### 3) 컴파일 오류의 단계별 보고
 
 세미콜론을 빠뜨린 상태로 빌드하자 `1 error`만 보고됐다. 고치자 새 오류 3개가 나타났다. 컴파일러는 먼저 글자를 문법 구조로 파싱하고, 그다음 이름과 타입을 대조하는 의미 분석을 한다. 파싱에서 멈추면 의미 분석은 실행되지 않으므로 오류 개수도 증상일 뿐이다.
 
 새 오류 중 2개는 `public JdbcReservation Repository(...)`처럼 클래스명 중간에 들어간 공백 하나에서 나왔다. 문법상 생성자가 아니라 반환 타입 `JdbcReservation`과 메서드 `Repository`로 해석됐고, 그 메서드 안에서 `final` 필드에 대입하자 `cannot assign a value to final variable`이 따라왔다. Day8에서 `final`이 DB 값은 못 막는 것을 봤다면, 이번에는 컴파일러가 사정권 안의 재대입을 막는 모습을 실물로 봤다.
 
-### 자동 검증 결과
+### 4) 자동 검증 결과
 
 | 항목 | 방법 | 결과 |
 |---|---|---|
@@ -242,7 +246,7 @@ Day4에 등록한 "프로세스를 재시작하면 데이터가 사라진다"는
 
 ## 3. 스스로 답한 질문
 
-### Q1. 같은 인터페이스 구현체 두 개의 주입 결과
+### 1) 같은 인터페이스 구현체 두 개의 주입 결과
 
 **질문.** `@Repository`가 붙은 `ReservationRepository` 구현체가 둘이면 어느 쪽이 주입되는가?
 
@@ -259,7 +263,7 @@ inMemoryReservationRepository, jdbcReservationRepository
 
 해결은 `InMemoryReservationRepository`에서 `@Repository`만 떼는 것으로 했다. 파일을 지우지 않은 건 `ReservationServiceTest`가 이 클래스를 Spring 없이 `new`로 조립해 쓰는 **테스트 대역**이기 때문이다. 실행할 땐 DB 구현, 테스트할 땐 메모리 구현. Day4에 Repository를 인터페이스로 뽑은 목적이 여기서 값을 치렀다.
 
-### Q2. `mapRow` 안의 확정 여부 판정
+### 2) `mapRow` 안의 확정 여부 판정
 
 **질문.** `mapRow` 안에서 확정 여부를 `if (rs.next())`로 판정하면 어떤 문제가 생기는가?
 
@@ -269,7 +273,7 @@ inMemoryReservationRepository, jdbcReservationRepository
 
 지금 알고 싶은 것은 "이 행의 `confirmed` 값"이므로 커서를 옮길 이유가 없다. `rs.getBoolean("confirmed")`로 값만 읽는 것으로 고쳤다.
 
-### Q3. `application.yml`의 H2 설정과 PostgreSQL 드라이버 요구
+### 3) `application.yml`의 H2 설정과 PostgreSQL 드라이버 요구
 
 **질문.** `application.yml`에 H2를 썼는데 왜 `Failed to load driver class org.postgresql.Driver`가 났는가?
 

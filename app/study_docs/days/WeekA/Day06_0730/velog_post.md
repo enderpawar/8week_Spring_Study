@@ -18,7 +18,13 @@ Week A D6는 새 개념을 배우는 날이 아니라 Day01~05를 노트 없이 
 
 이 용어들은 서로 다른 Day에서 나왔지만, 시험에서는 한 질문으로 모였다. **두 대상을 같은 것으로 판정하는 기준이 무엇인가**라는 질문이다.
 
-### Reference Equality와 Value Equality의 구분
+`==`와 `.equals()`의 차이는 결국 Stack의 변수가 Heap의 어느 객체를 가리키는지의 문제이므로, Singleton Bean과 `Long`에도 그대로 적용되는 이 구조를 가장 흔한 String 예시로 먼저 한 장으로 보면 다음과 같다(`a == c`는 true, `b == d`는 false, `.equals()`는 모두 true).
+
+![Stack 영역의 변수 a, b, c, d가 Heap 영역의 객체를 가리키는 그림. a와 c는 Heap 안 String Pool의 "apple" 객체 하나를 함께 가리키고, b와 d는 new String("apple")로 만든 서로 다른 두 객체를 각각 가리킨다. 따라서 a == c는 같은 참조라 true, b == d는 다른 참조라 false이며, 값은 모두 "apple"이다.](https://raw.githubusercontent.com/enderpawar/8week_Spring_Study/master/app/study_docs/assets/day06-overview-reference-equality.png)
+
+*출처: [[자바] 문자열 비교하기 ==와 equals의 차이](https://velog.io/@beneficial/%EC%9E%90%EB%B0%94-%EB%AC%B8%EC%9E%90%EC%97%B4-%EB%B9%84%EA%B5%90%ED%95%98%EA%B8%B0-%EC%99%80-equals%EC%9D%98-%EC%B0%A8%EC%9D%B4) — Romy(velog @beneficial). 저작권은 원저작자에게 있습니다.*
+
+### 1) Reference Equality와 Value Equality의 구분
 
 Java의 참조 타입 변수에는 객체 자체가 아니라 객체를 가리키는 참조값이 들어 있다. 그래서 비교 연산을 고를 때는 "참조를 비교할 것인가, 참조가 가리키는 객체의 값을 비교할 것인가"를 먼저 정해야 한다.
 
@@ -48,7 +54,7 @@ a.equals(b)
 
 > **정리.** `==`는 같은 객체인지, `.equals()`는 클래스가 정의한 같은 값인지 묻는다. 연산자보다 질문을 먼저 정한다.
 
-### Long boxing 캐시와 우연한 통과
+### 2) Long boxing 캐시와 우연한 통과
 
 `Long` 값 비교에서 `==`가 특히 위험한 이유는 작은 숫자에서 우연히 맞아 보이기 때문이다. 현재 저장소는 `long nextId`를 `assignId(Long id)`에 넘기므로 원시 타입 `long`이 `Long` 객체로 boxing된다.
 
@@ -64,14 +70,13 @@ assignId(nextId++)
 
 `Long.valueOf` 문서는 범위 밖의 값도 **캐시할 수 있다**고 적는다. 즉 1000을 `==`로 비교하면 반드시 `false`라는 뜻도 아니다. 결과가 구현과 생성 경로에 달려 있으므로 값 비교 수단으로 믿을 수 없다는 것이 정확한 결론이다.
 
-![객체 다이어그램 세 구획. 첫째 구획에서 test 객체의 first와 second 두 링크가 같은 reservationService 인스턴스 하나를 가리키고, applicationContext도 그 하나를 관리하므로 first == second가 true이고 assertSame이 통과한다. 둘째 구획에서 r의 id 링크는 value 1000인 storedId, findById의 인수 링크는 value 1000인 requestedId를 가리켜 인스턴스가 둘이므로 == 결과는 보장되지 않고 equals는 true다. 셋째 구획에서 value 1인 Long은 캐시된 인스턴스 하나를 두 링크가 공유해 ==가 우연히 true일 수 있다. Long 구획은 캐시 규칙에 따른 도식이며 실행 측정은 하지 않았다.](../../../assets/day06-reference-identity.png)
-<!-- velog 업로드: 이 줄 위 이미지 자리에 app/study_docs/assets/day06-reference-identity.png 파일을 드래그해 교체 -->
+![객체 다이어그램 세 구획. 첫째 구획에서 test 객체의 first와 second 두 링크가 같은 reservationService 인스턴스 하나를 가리키고, applicationContext도 그 하나를 관리하므로 first == second가 true이고 assertSame이 통과한다. 둘째 구획에서 r의 id 링크는 value 1000인 storedId, findById의 인수 링크는 value 1000인 requestedId를 가리켜 인스턴스가 둘이므로 == 결과는 보장되지 않고 equals는 true다. 셋째 구획에서 value 1인 Long은 캐시된 인스턴스 하나를 두 링크가 공유해 ==가 우연히 true일 수 있다. Long 구획은 캐시 규칙에 따른 도식이며 실행 측정은 하지 않았다.](https://raw.githubusercontent.com/enderpawar/8week_Spring_Study/master/app/study_docs/assets/day06-reference-identity.png)
 
 이 함정은 Day04에서 처음 만났다. 당시 `findById()`에서 `.equals()`를 쓴 이유를 "null값 탐지"라고 답했다가 교정했고, D6 누적시험의 `Long` 값 비교 문항은 통과했다. 작은 값과 큰 값의 `==` 결과를 직접 실행해 비교한 기록은 없으므로 위 대조군은 **미검증**이다.
 
 CS 관점에서는 객체의 identity와 equality 구분이다. identity는 "같은 객체인가", equality는 "같다고 정의한 관계에 있는가"다. vocab에 적은 **동등 관계**라는 말처럼, `equals()`는 클래스가 정하는 관계이고 `==`는 언어가 정한 참조 비교다.
 
-### Singleton Scope와 Bean Reference Equality
+### 3) Singleton Scope와 Bean Reference Equality
 
 Service는 요청마다 새로 만들 필요가 없다. 상태 없이 규칙만 실행하는 객체라면 하나를 만들어 여러 요청이 함께 쓰는 편이 생성 비용과 관리 측면에서 단순하다. Spring의 기본 scope인 Singleton이 이 선택을 제공한다.
 
@@ -89,8 +94,7 @@ ApplicationContext 초기화
 
 Spring 공식 문서는 Bean 정의 하나에서 인스턴스가 한 번만 만들어지고, 그 같은 인스턴스가 협력 객체마다 주입되는 구조를 다음처럼 그린다.
 
-![Spring Singleton scope 도식. 오른쪽의 accountDao Bean 정의 하나에서 인스턴스가 한 번만 생성되고(원 안의 1), 그 같은 공유 인스턴스가 화살표를 따라 왼쪽의 세 협력 Bean 정의에 ref="accountDao"로 각각 주입된다. 위 문구는 Only one instance is ever created, 아래 문구는 and this same shared instance is injected into each collaborating object다.](../../../assets/day06-web-singleton-scope.png)
-<!-- velog 업로드: 이 줄 위 이미지 자리에 app/study_docs/assets/day06-web-singleton-scope.png 파일을 드래그해 교체 -->
+![Spring Singleton scope 도식. 오른쪽의 accountDao Bean 정의 하나에서 인스턴스가 한 번만 생성되고(원 안의 1), 그 같은 공유 인스턴스가 화살표를 따라 왼쪽의 세 협력 Bean 정의에 ref="accountDao"로 각각 주입된다. 위 문구는 Only one instance is ever created, 아래 문구는 and this same shared instance is injected into each collaborating object다.](https://raw.githubusercontent.com/enderpawar/8week_Spring_Study/master/app/study_docs/assets/day06-web-singleton-scope.png)
 
 *출처: [Spring Framework Reference — Bean Scopes, The Singleton Scope](https://docs.spring.io/spring-framework/reference/core/beans/factory-scopes.html) — Copyright © 2005 - Broadcom. All Rights Reserved. (문서 사본은 무료 배포와 저작권 고지 유지 조건으로 허용)*
 
@@ -109,7 +113,7 @@ Spring의 Singleton은 GoF Singleton 패턴과 범위가 다르다.
 
 이후 Day16에서 `@Transactional`을 붙인 뒤에는 이 참조가 원본 클래스가 아니라 CGLIB 프록시라는 사실을 확인했다. 그때도 두 조회 결과는 같은 Singleton 프록시였다.
 
-### PK와 단건 갱신 대상의 식별
+### 4) PK와 단건 갱신 대상의 식별
 
 기존 예약 하나를 취소하려면 "어느 예약인가"를 가리킬 수단이 필요하다. Day04에서 `cancel()`을 `new Reservation(roomName, requesterName)`으로 만들었을 때, 예약이 취소되는 대신 같은 값의 새 인스턴스가 하나 더 생겼다. 값이 같아도 다른 객체였기 때문이다.
 
@@ -134,7 +138,7 @@ PK의 역할은 조회 기능을 가능하게 만드는 데 있지 않다. **갱
 
 현재 id는 메모리의 `nextId` 카운터라서 프로세스를 재시작하면 1부터 다시 시작한다. DB 기본키로 옮기는 작업은 Week B에서 진행한다. CS 관점에서는 관계형 DB의 엔티티 무결성, 즉 기본키가 행 하나를 유일하게 식별해야 한다는 규칙과 같은 질문이다.
 
-### Constructor Injection의 타입 연결
+### 5) Constructor Injection의 타입 연결
 
 `ReservationService`는 저장소 없이 동작할 수 없다. 이 필수 의존성을 생성자 매개변수로 드러내면, 컨테이너는 생성자를 보고 무엇을 넣어야 하는지 알 수 있고 객체는 생성 직후부터 완전한 상태가 된다.
 
@@ -156,7 +160,7 @@ PK의 역할은 조회 기능을 가능하게 만드는 데 있지 않다. **갱
 
 IoC와 DI의 구분도 같은 흐름에 있다. IoC는 객체 그래프의 생성·연결을 누가 제어하는지에 관한 원칙이고, DI는 그 과정에서 의존 객체를 생성자 같은 통로로 전달하는 구체적 방식이다.
 
-### Request Mapping과 컴파일 검사의 경계
+### 6) Request Mapping과 컴파일 검사의 경계
 
 `@PathVariable` 문항은 통과했지만, Day04에서 겪은 경계를 다시 설명한 문항이라 짧게 남긴다. URL 템플릿 `"/reservations/cancel/{id}"`는 문자열이므로 Java 컴파일러가 그 안의 `{id}`와 매개변수 이름을 대조하지 않는다.
 
@@ -179,7 +183,7 @@ Day04 당시 실제 응답은 `{"error":"Required URI template variable 'id' for
 
 ## 2. 코드 구현
 
-### 누적시험 범위와 결과
+### 1) 누적시험 범위와 결과
 
 Day01~03 문항은 앞선 +2 인출에서 통과했고 다음 복습일이 아직 오지 않아 간격을 유지했다. 이번 시험은 Day04~05에서 도래한 문항과 오답 재시험을 중심으로 진행했다.
 
@@ -193,7 +197,7 @@ Day01~03 문항은 앞선 +2 인출에서 통과했고 다음 복습일이 아�
 | `@PathVariable` 불일치 | 통과 | 컴파일이 아닌 요청 처리 시점의 문제 |
 | 생성자 주입 문법 | 교정 후 통과 | 생성자명·필드명·타입 확인 |
 
-### 같은 Bean과 같은 값의 비교 코드
+### 2) 같은 Bean과 같은 값의 비교 코드
 
 ```java
 // StudyRoomApiApplicationTests — 같은 Bean인지: 참조 비교
@@ -213,7 +217,7 @@ for (Reservation r : store) {
 
 `findById()`에서는 두 `Long`이 같은 객체인지가 중요하지 않다. 저장된 예약 번호와 URL로 받은 번호가 같은 숫자인지가 중요하므로 `.equals()`가 저장소 계약에 맞다. 반환형 `Optional`은 같은 커밋의 D7 작업에서 바뀐 부분이다.
 
-### Constructor Injection의 필드 대입
+### 3) Constructor Injection의 필드 대입
 
 ```java
 private final ReservationRepository reservationRepository;
@@ -225,7 +229,7 @@ public ReservationService(ReservationRepository reservationRepository) {
 
 `this.reservationRepository`는 현재 객체의 필드이고, 오른쪽의 `reservationRepository`는 생성자 매개변수다. 매개변수 타입이 필드 타입과 같으므로 대입이 성립한다.
 
-### 자동 검증 결과
+### 4) 자동 검증 결과
 
 | 검증 항목 | 근거 | 결과 |
 |---|---|---|
@@ -239,7 +243,7 @@ public ReservationService(ReservationRepository reservationRepository) {
 
 ## 3. 스스로 답한 질문
 
-### Q1. Singleton Bean 비교 결과의 판단 근거
+### 1) Singleton Bean 비교 결과의 판단 근거
 
 **질문.** 같은 ApplicationContext에서 `ReservationService` Bean을 두 번 조회해 `==`로 비교하면 왜 `true`인가?
 
@@ -249,7 +253,7 @@ public ReservationService(ReservationRepository reservationRepository) {
 
 재발 방지로, 연산자를 고르기 전에 비교 목적을 "참조인가, 값인가"로 먼저 말한다. 그다음 "두 변수가 같은 객체를 가리킬 경로가 있는가"를 확인한다.
 
-### Q2. PK 없이 수정하는 방식의 한계
+### 2) PK 없이 수정하는 방식의 한계
 
 **질문.** 기존 예약을 안전하게 수정하는 데 PK가 필요한 이유는 무엇인가?
 
@@ -259,7 +263,7 @@ public ReservationService(ReservationRepository reservationRepository) {
 
 이 기준은 Day07에서 저장소의 추가와 교체 분기에 그대로 사용했다.
 
-### Q3. Constructor Injection에서 `this.x`의 대상
+### 3) Constructor Injection에서 `this.x`의 대상
 
 **질문.** 생성자 주입 코드의 `this.x`에서 `x`는 무엇을 가리키는가?
 
@@ -281,7 +285,7 @@ Controller의 생성자 모양을 그대로 복사하는 것이 아니라, 현�
 - `Long` 식별자를 `==`로 비교한 코드가 테스트를 통과하는 조건
 
 <!-- 선택 복습 메모: 게시 화면에는 노출하지 않는다.
-### 선택 추가 설명
+### 1) 선택 추가 설명
 
 [직접 작성] Singleton Bean 비교에서는 `==`가 의미 있고, `Long` 식별자 값 비교에서는 `.equals()`가 필요한 이유를 한 문단으로 설명한다.
 -->

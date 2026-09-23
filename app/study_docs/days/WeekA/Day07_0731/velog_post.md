@@ -17,7 +17,13 @@ Week A D7은 새 기능을 추가하는 날이 아니라 Day03·04에서 **바�
 
 세 기술부채는 따로 보이지만 모두 **계약이 정해지지 않은 경계**였다. 저장소는 "저장"의 의미를, 조회는 "없음"의 표현을, 예외 처리기는 "외부에 무엇을 보일지"를 정하지 않은 상태였다.
 
-### 저장 계약과 신규·기존 분기
+오늘 계약을 고정한 Service·예외 처리기 단위 테스트는 피라미드 맨 아래 Unit Tests에, 포트 없이 HTTP 요청·응답 경계를 거치는 MockMvc 테스트는 그 위 Service Tests 쪽에 놓인다는 점을 테스트 전체 범위 한 장으로 먼저 보면 다음과 같다.
+
+![Mike Cohn의 테스트 피라미드. 아래에서 위로 Unit Tests, Service Tests, UI Tests 세 층이 쌓여 있고, 아래층일수록 넓다. 왼쪽 화살표는 아래가 more isolation, 위가 more integration임을, 오른쪽 화살표는 아래가 faster, 위가 slower임을 나타낸다.](https://raw.githubusercontent.com/enderpawar/8week_Spring_Study/master/app/study_docs/assets/day07-overview-test-pyramid.png)
+
+*출처: [The Practical Test Pyramid](https://martinfowler.com/articles/practical-test-pyramid.html) — Ham Vocke, martinfowler.com. 저작권은 원저작자에게 있습니다.*
+
+### 1) 저장 계약과 신규·기존 분기
 
 `save()`라는 이름만으로 동작은 정해지지 않는다. 목록에 무조건 추가할 수도 있고, 같은 id가 있으면 교체할 수도 있다. 호출자가 결과를 예측하려면 신규와 기존을 무엇으로 구분하는지 계약으로 정해야 한다.
 
@@ -54,7 +60,7 @@ save(reservation)
 
 > **정리.** 저장 계약은 메서드 이름이 아니라 분기와 자료구조 연산이 정한다. id가 없으면 추가, 있으면 교체, 있는데 대상이 없으면 예외다.
 
-### Absence of Value의 표현 — `null`과 `Optional`
+### 2) Absence of Value의 표현 — `null`과 `Optional`
 
 없는 예약 번호를 조회했을 때 무엇을 돌려줄지도 계약이다. Day04의 `findById()`는 못 찾으면 `null`을 반환했고, `ReservationService.cancel()`은 확인 없이 `reservation.cancel()`을 호출했다.
 
@@ -81,7 +87,7 @@ Repository.findById(999)
 
 이제 `null.cancel()`에서 우연히 생긴 NPE와 "예약 번호가 없음"을 구분할 수 있다. CS 관점에서는 값이 있거나 없는 두 상태를 타입으로 명시하는 합 타입의 발상과 가깝다.
 
-### 계층별 실패 변환과 HTTP Status Code
+### 3) 계층별 실패 변환과 HTTP Status Code
 
 같은 실패도 계층을 지나며 표현이 바뀐다. 각 계층은 자기 언어로만 실패를 말한다.
 
@@ -105,8 +111,7 @@ Controller.cancel(id)에서 ReservationNotFoundException 전파
 
 `Exception` 처리기가 함께 있어도 404가 나온다는 점은 MockMvc 테스트 `cancelReturns404WhenReservationDoesNotExist()`로 확인했다. 처리기 선택이 가장 넓은 타입 쪽으로 빠지지 않았다는 증거다.
 
-![시퀀스 다이어그램. 참여자는 MockMvc(DispatcherServlet), ReservationController, ReservationService, InMemoryReservationRepository, GlobalExceptionHandler다. POST cancel 요청이 Controller의 cancel(id), Service의 findById(id)로 이어진다. alt 프레임의 첫 구획은 id가 저장소에 있는 경우로, Repository가 Optional.of(r)을 돌려주고 Service가 r.cancel() 후 save(r)를 호출하며 Repository는 store.set(index, r)로 교체한 뒤 r을 반환하고 최종 응답은 200 OK다. 둘째 구획은 id가 없는 경우로, Repository가 Optional.empty()를 돌려주고 Service의 orElseThrow()가 ReservationNotFoundException을 던진다. 예외는 Controller를 지나 DispatcherServlet으로 전파되고, handleNotFound(ex)가 404와 error JSON을 반환한다. 오류 경로는 빨간색이다.](../../../assets/day07-storage-contract.png)
-<!-- velog 업로드: 이 줄 위 이미지 자리에 app/study_docs/assets/day07-storage-contract.png 파일을 드래그해 교체 -->
+![시퀀스 다이어그램. 참여자는 MockMvc(DispatcherServlet), ReservationController, ReservationService, InMemoryReservationRepository, GlobalExceptionHandler다. POST cancel 요청이 Controller의 cancel(id), Service의 findById(id)로 이어진다. alt 프레임의 첫 구획은 id가 저장소에 있는 경우로, Repository가 Optional.of(r)을 돌려주고 Service가 r.cancel() 후 save(r)를 호출하며 Repository는 store.set(index, r)로 교체한 뒤 r을 반환하고 최종 응답은 200 OK다. 둘째 구획은 id가 없는 경우로, Repository가 Optional.empty()를 돌려주고 Service의 orElseThrow()가 ReservationNotFoundException을 던진다. 예외는 Controller를 지나 DispatcherServlet으로 전파되고, handleNotFound(ex)가 404와 error JSON을 반환한다. 오류 경로는 빨간색이다.](https://raw.githubusercontent.com/enderpawar/8week_Spring_Study/master/app/study_docs/assets/day07-storage-contract.png)
 
 예상하지 못한 예외는 다르게 다룬다. Day03의 `handleUnexpected()`는 `ex.getMessage()`를 그대로 500 본문에 실었다. 예외 메시지에는 내부 클래스, DB 접속 정보, 파일 경로 같은 구현 세부가 들어갈 수 있다.
 
@@ -119,7 +124,7 @@ HTTP 의미론으로 정리하면, 400은 클라이언트 입력이 잘못됐다
 
 > **정리.** 실패는 계층마다 번역된다. `Optional.empty()` → 도메인 예외 → 404로 의미를 옮기고, 예상 밖의 실패는 로그와 응답으로 정보를 나눈다.
 
-### Path Variable의 Method Validation
+### 4) Path Variable의 Method Validation
 
 `/reservations/cancel/0`처럼 범위 밖의 번호는 Service에 도달하기 전에 막는 편이 맞다. 저장소를 뒤지기 전에 "입력이 잘못됐다"는 400으로 끝낼 수 있기 때문이다. 취소 경로는 body DTO가 아니라 `{id}` 하나를 받으므로 Day03의 `@Valid` DTO 검증으로는 막을 수 없었다.
 
@@ -140,7 +145,7 @@ POST /reservations/cancel/0
 
 Spring 문서에 따르면 제약 애노테이션을 메서드 매개변수에 직접 선언했을 때 메서드 검증이 적용되고 `HandlerMethodValidationException`이 발생한다. 성립 조건도 있다. Controller 클래스에 `@Validated`를 붙이면 내장 검증 대신 AOP 프록시를 통한 검증이 적용된다고 문서는 설명한다. 현재 `ReservationController`에는 클래스 수준 `@Validated`가 없다.
 
-### Unit Test와 MockMvc의 검증 범위
+### 5) Unit Test와 MockMvc의 검증 범위
 
 `GlobalExceptionHandlerTest`는 처리기 메서드를 직접 호출해 반환 객체만 확인한다. 이 테스트만으로는 URL 매핑, `@Positive` 검증, 처리기 선택, JSON 직렬화가 실제로 함께 동작하는지 알 수 없다.
 
@@ -167,7 +172,7 @@ MockMvc는 네트워크와 서블릿 컨테이너를 거치지 않으므로 실�
 
 ## 2. 코드 구현
 
-### 저장 계약의 세 분기
+### 1) 저장 계약의 세 분기
 
 ```java
 if (reservation.getId() == null) {
@@ -188,7 +193,7 @@ throw new IllegalArgumentException("저장소에 없는 예약 번호입니다: 
 
 신규 분기에서만 `add()`가 실행되고 `return`으로 끝난다. 기존 id는 D6에서 정리한 대로 `.equals()`로 값을 비교해 위치를 찾는다. 어느 분기에도 해당하지 않으면 예외로 끝난다.
 
-### Absence of Value의 도메인 예외 변환
+### 2) Absence of Value의 도메인 예외 변환
 
 ```java
 // ReservationRepository
@@ -203,7 +208,7 @@ reservationRepository.save(reservation);
 
 인터페이스 선언이 바뀌었으므로 구현체는 못 찾았을 때 `Optional.empty()`를 반환한다. `ReservationNotFoundException`은 생성자에서 `"예약을 찾을 수 없습니다. (id: " + id + ")"` 메시지를 만든다.
 
-### Global Exception Handler와 경로 제약
+### 3) Global Exception Handler와 경로 제약
 
 ```java
 @ExceptionHandler(ReservationNotFoundException.class)
@@ -221,7 +226,7 @@ public ResponseEntity<Map<String, String>> handleUnexpected(Exception ex) {
 
 같은 클래스에 `HandlerMethodValidationException`을 400으로 바꾸는 `handleMethodValidation()`도 추가했다. Controller 쪽 변경은 `cancel(@PathVariable @Positive(message = "예약 번호는 1 이상이어야 합니다") Long id)` 한 줄이다.
 
-### 자동 검증 결과
+### 4) 자동 검증 결과
 
 | 테스트 층 | 확인한 동작 | 결과 |
 |---|---|---|
@@ -237,7 +242,7 @@ public ResponseEntity<Map<String, String>> handleUnexpected(Exception ex) {
 
 D7에는 새 시험 문항의 오답이 없다. 아래는 Day03·04에서 답을 정하지 못한 채 기술부채로 넘긴 질문이다.
 
-### Q1. 취소 후 재저장의 중복 원인
+### 1) 취소 후 재저장의 중복 원인
 
 **질문.** 이미 취소한 객체를 다시 `save()`하면 왜 목록에 중복이 생기는가?
 
@@ -247,7 +252,7 @@ D7에는 새 시험 문항의 오답이 없다. 아래는 Day03·04에서 답을
 
 재발 방지로, 저장 계약을 읽을 때는 메서드 이름이 아니라 신규·기존 분기와 자료구조 연산을 확인한다.
 
-### Q2. 없는 예약의 표현 방식
+### 2) 없는 예약의 표현 방식
 
 **질문.** 예약이 없을 때 `findById()`는 무엇을 돌려주고, 그 뒤 처리는 누가 맡아야 하는가?
 
@@ -255,7 +260,7 @@ D7에는 새 시험 문항의 오답이 없다. 아래는 Day03·04에서 답을
 
 D7에서는 역할을 계층별 질문으로 나눴다. Repository는 "값이 있는가?"를 `Optional`로, Service는 "업무상 무슨 실패인가?"를 `ReservationNotFoundException`으로, 웹 계층은 "어떤 HTTP 응답인가?"를 404로 결정한다. `Optional`을 반환하는 것만으로 오류 처리가 끝나지 않는다는 점이 핵심이었다.
 
-### Q3. 500 응답의 예외 메시지 노출
+### 3) 500 응답의 예외 메시지 노출
 
 **질문.** 모든 예외 메시지를 그대로 응답하면 디버깅이 쉬워지지 않는가?
 
@@ -279,7 +284,7 @@ D7에서는 상세 원인과 stack trace를 서버 로그에 남기고, 응답�
 - 예외 처리기 단위 테스트와 MockMvc 테스트가 보장하는 범위의 차이
 
 <!-- 선택 복습 메모: 게시 화면에는 노출하지 않는다.
-### 선택 추가 설명
+### 1) 선택 추가 설명
 
 [직접 작성] 신규 예약의 저장과 기존 예약의 갱신을 `id`로 어떻게 구분하는지, 그리고 `Optional`이 `null`보다 실패 경계를 어떻게 선명하게 만드는지 설명한다.
 -->

@@ -6,9 +6,15 @@ Week B D6은 새 개념을 배우는 날이 아니라, Week A 전체와 Week B D
 
 ## 1. 시험 범위와 진행 방식
 
-### 재개 시점과 출제 범위
+### 1) 재개 시점과 출제 범위
 
 시험은 2026-08-22에 봤다. Week B D1~D3은 8/9에 끝냈고, 그 사이 노트북 데이터 유실로 D4~D7 기록을 잃어 8/22에 D4부터 다시 진행했다. 따라서 Week A 후반부와 Week B 초반부는 13일 만에 다시 꺼내는 내용이었다.
+
+시험 범위인 Week B 저장 계층이 전체 구조의 어디에 있는지 먼저 한 장으로 보면 다음과 같다. Controller는 이 그림 왼쪽의 Service 앞에서 요청을 받고, 그림의 Database 스키마는 애플리케이션 기동 시 Flyway가 먼저 마이그레이션해 둔다.
+
+![왼쪽부터 다섯 구역이 점선으로 나뉘어 있다. Application Modules 구역의 Service가 Repository를 호출하고, Repository는 O/R Mapper 구역의 Spring Data JPA를 거쳐 JPA 인터페이스를 구현한 Hibernate로 이어진다. 빨간 점선 테두리는 Repository부터 Hibernate까지를 한 묶음으로 표시한다. Hibernate는 JDBC Interfaces 구역의 JDBC Basic APIs와 접속 설정을 가진 DataSource를 사용하고, 둘은 JDBC Implementations 구역의 JDBC Driver로 모인 뒤 Persistence Layer 구역의 Database에 도달한다.](https://raw.githubusercontent.com/enderpawar/8week_Spring_Study/master/app/study_docs/assets/day13-overview-data-access-stack.png)
+
+*출처: [6.3. Database Access (JPA) — TERASOLUNA Server Framework for Java (5.x) Development Guideline](https://terasolunaorg.github.io/guideline/5.4.1.RELEASE/en/ArchitectureInDetail/DataAccessDetail/DataAccessJpa.html) — NTT DATA Corporation, TERASOLUNA 개발 가이드라인. 저작권은 원저작자에게 있습니다.*
 
 출제 범위는 다음과 같다.
 
@@ -18,7 +24,7 @@ Week B D6은 새 개념을 배우는 날이 아니라, Week A 전체와 Week B D
 
 노트를 덮고 먼저 답하고, 틀리거나 막히면 힌트를 받은 뒤 다시 답하는 방식으로 진행했다. 힌트 이후의 답은 통과로 기록하되, 힌트가 필요했다는 사실은 따로 남겼다.
 
-### 시험 결과
+### 2) 시험 결과
 
 | 구분 | 문항 | 기록 |
 |---|---|---|
@@ -30,7 +36,7 @@ Week B D6은 새 개념을 배우는 날이 아니라, Week A 전체와 Week B D
 
 ## 2. 시험에서 틀린 문제
 
-### 오답 개념 색인
+### 1) 오답 개념 색인
 
 | 개념 | 한줄뜻 | 현재 프로젝트 적용 지점 |
 |---|---|---|
@@ -40,7 +46,7 @@ Week B D6은 새 개념을 배우는 날이 아니라, Week A 전체와 Week B D
 | 체크섬 검증 | 적용된 마이그레이션 파일의 해시를 기동 시 장부값과 대조 | `Migration checksum mismatch for migration version 1` |
 | 변경 감지 | 관리 중인 Entity의 로드 스냅샷과 현재 값을 flush 시점에 비교 | `managed.cancel()` 후 `flush()`에서 `UPDATE` |
 
-### 문항 2. DTO와 Domain 분리의 인과관계
+### 2) 문항 2 — DTO와 Domain 분리의 인과관계
 
 **질문.** DTO(`record`)와 Domain을 왜 분리하는가?
 
@@ -89,7 +95,7 @@ Domain이 가변이라고 해서 아무 필드나 바꿀 수 있는 것도 아�
 
 > **정리.** Domain은 불변이 아니라서 상태 변경을 하는 것이 아니다. 상태 변경이 필요한 역할이라서 불변으로 만들 수 없고, 그 변경 경로를 메서드로 좁힌다.
 
-### 문항 3. Constructor Injection의 이유
+### 3) 문항 3 — Constructor Injection의 이유
 
 **질문.** 생성자 주입을 쓰는 이유를 세 가지 이상 설명하라.
 
@@ -149,7 +155,7 @@ ApplicationContext 기동
 
 > **정리.** 생성자 주입의 이유는 하나의 구조에서 나온다. 의존성을 타입으로 선언하고 밖에서 받기 때문에 구현을 바꿀 수 있고, 테스트에서 직접 넣을 수 있고, 없으면 객체가 만들어지지 않는다.
 
-### 문항 6. Flyway Checksum과 Hibernate Dirty Checking의 구분
+### 4) 문항 6 — Flyway Checksum과 Hibernate Dirty Checking의 구분
 
 **질문.** 이미 적용된 Flyway 마이그레이션 파일을 왜 고치면 안 되는가?
 
@@ -174,8 +180,7 @@ Flyway는 SQL 파일을 순서대로 한 번씩만 실행한다. 이 규칙이 �
 
 Flyway 공식 문서는 DB의 `flyway_schema_history`와 로컬 마이그레이션 파일을 함께 대조해 검증을 통과시키는 validate 단계를 다음처럼 그린다.
 
-![왼쪽 Database 상자 안에 초록색 flyway_schema_history 테이블과 파란 테이블 세 개가 있고, 더하기 기호 옆에 V1__Initial.sql, V2__Changes.sql, V3__RefData.sql 마이그레이션 파일 세 개가 놓여 있다. 화살표가 오른쪽 초록 체크 표시로 이어져, 스키마 이력의 기록과 파일을 대조한 validate가 통과했음을 나타낸다.](../../../assets/day13-web-flyway-validate.png)
-<!-- velog 업로드: 이 줄 위 이미지 자리에 app/study_docs/assets/day13-web-flyway-validate.png 파일을 드래그해 교체 -->
+![왼쪽 Database 상자 안에 초록색 flyway_schema_history 테이블과 파란 테이블 세 개가 있고, 더하기 기호 옆에 V1__Initial.sql, V2__Changes.sql, V3__RefData.sql 마이그레이션 파일 세 개가 놓여 있다. 화살표가 오른쪽 초록 체크 표시로 이어져, 스키마 이력의 기록과 파일을 대조한 validate가 통과했음을 나타낸다.](https://raw.githubusercontent.com/enderpawar/8week_Spring_Study/master/app/study_docs/assets/day13-web-flyway-validate.png)
 
 *출처: [Flyway schema history table — Redgate Flyway Documentation](https://documentation.red-gate.com/fd/flyway-schema-history-table-273973417.html) — Copyright 1999 - 2026 Red Gate Software Ltd. All rights reserved.*
 
@@ -203,8 +208,7 @@ FlywayValidateException:
 
 Day12 실험에서 코드에 `repository.save(managed)`가 없는데도 `update reservation set confirmed=?, requester_name=?, room_name=? where id=?`가 로그에 찍혔다.
 
-![시퀀스 다이어그램 두 개가 위아래로 놓여 있다. 위 sd 체크섬 검증에서는 애플리케이션 기동 시 Spring Boot가 Flyway에 마이그레이션을 요청하고, Flyway가 파일마다 체크섬을 계산한 뒤 H2의 flyway_schema_history에서 기록된 체크섬을 받아온다. alt 프레임에서 두 값이 같으면 미적용 버전만 실행하고 기동을 계속하며, 다르면 FlywayValidateException으로 기동을 거부한다. 아래 sd 변경 감지에서는 테스트가 findById(id)를 호출하면 영속성 컨텍스트가 로드 스냅샷을 보관하고 managed를 돌려준다. 테스트가 managed에 cancel을 호출해 필드만 바꾸고 save()는 호출하지 않는다. flush() 시점에 영속성 컨텍스트가 스냅샷과 현재 필드를 비교하고, alt 프레임에서 값이 다르면 H2에 UPDATE를 보내고 같으면 UPDATE를 보내지 않는다.](../../../assets/day13-checksum-vs-dirty-checking.png)
-<!-- velog 업로드: 이 줄 위 이미지 자리에 app/study_docs/assets/day13-checksum-vs-dirty-checking.png 파일을 드래그해 교체 -->
+![시퀀스 다이어그램 두 개가 위아래로 놓여 있다. 위 sd 체크섬 검증에서는 애플리케이션 기동 시 Spring Boot가 Flyway에 마이그레이션을 요청하고, Flyway가 파일마다 체크섬을 계산한 뒤 H2의 flyway_schema_history에서 기록된 체크섬을 받아온다. alt 프레임에서 두 값이 같으면 미적용 버전만 실행하고 기동을 계속하며, 다르면 FlywayValidateException으로 기동을 거부한다. 아래 sd 변경 감지에서는 테스트가 findById(id)를 호출하면 영속성 컨텍스트가 로드 스냅샷을 보관하고 managed를 돌려준다. 테스트가 managed에 cancel을 호출해 필드만 바꾸고 save()는 호출하지 않는다. flush() 시점에 영속성 컨텍스트가 스냅샷과 현재 필드를 비교하고, alt 프레임에서 값이 다르면 H2에 UPDATE를 보내고 같으면 UPDATE를 보내지 않는다.](https://raw.githubusercontent.com/enderpawar/8week_Spring_Study/master/app/study_docs/assets/day13-checksum-vs-dirty-checking.png)
 
 #### 두 장치의 비교
 
@@ -234,7 +238,7 @@ CS 쪽으로 보면 두 장치 모두 "기준값을 저장해두고 현재 값�
 
 ## 3. 오답 재발 방지와 D7 연결
 
-### 복습큐 재등록
+### 1) 복습큐 재등록
 
 세 개념을 복습큐에 다시 올렸다. 모두 +2일 뒤인 8/24에 도래한다.
 
@@ -244,13 +248,13 @@ CS 쪽으로 보면 두 장치 모두 "기준값을 저장해두고 현재 값�
 | 생성자 주입의 이유 | 힌트 필요 | 8/24 |
 | Flyway 체크섬 ≠ Hibernate dirty checking | 힌트 필요 | 8/24 |
 
-### 교정한 기준이 D7에서 쓰인 자리
+### 2) 교정한 기준이 D7에서 쓰인 자리
 
 시험 직후 D7에서 스키마를 두 번 더 바꿔야 했다. 빈 문자열을 막는 `CHECK` 제약과 독립과제의 `cancel_reason` 컬럼이다. 몇 시간 전 시험에서 틀린 문항이 정확히 "적용된 마이그레이션은 고치지 않는다"였으므로, 두 번 모두 `V1__init.sql`을 열지 않고 `V2`·`V3`를 새로 쌓았다.
 
 판단 기준을 교정한 직후에 그 기준을 쓸 자리가 두 번 나온 셈이다. 구체적인 SQL과 시행착오는 Day14 글에 정리한다.
 
-### 자동 검증 범위
+### 3) 자동 검증 범위
 
 이날은 시험만 진행해 새 코드나 테스트가 없다. 시험 기록은 `quiz.md`로 남겼고 D4~D7 작업과 함께 [9e3dfc3](https://github.com/enderpawar/8week_Spring_Study/commit/9e3dfc3a3956d03e68588499e7a54772a7a6d599)에 커밋했다. 위에서 인용한 체크섬 오류 메시지는 Day08, `UPDATE` 로그는 Day12의 실행 결과다.
 

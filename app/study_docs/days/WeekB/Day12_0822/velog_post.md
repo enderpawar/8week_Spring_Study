@@ -13,7 +13,13 @@ Day11에서 한 트랜잭션 안의 같은 `id`는 1차 캐시를 통해 같은 
 | `flush()` | 영속성 컨텍스트의 변경 사항을 실제 SQL로 DB에 내보내는 시점 | `entityManager.flush()` |
 | `save()`의 실제 역할 | 새 객체를 영속화하는 편의 메서드. "저장"의 유일한 경로가 아님 | `ReservationService.reserve()`의 `save()` |
 
-### Dirty Checking의 필요성
+오늘 다룬 변경 감지가 flush 한 번 안에서 어떤 순서로 일어나는지 먼저 한 장으로 보면 다음과 같다.
+
+![영속성 컨텍스트(entityManager) 안의 변경 감지 흐름도. 1차 캐시 표는 @Id, Entity, 스냅샷 세 열로 memberA와 memberB의 엔티티와 스냅샷을 함께 보관한다. 1. flush()가 호출되면 2. 엔티티와 스냅샷을 비교하고, 달라진 memberA에 대해 3. UPDATE SQL을 생성해 쓰기 지연 SQL 저장소에 쌓는다. 4. flush 때 저장소의 UPDATE A가 DB로 전송되고, 5. commit으로 DB에 확정된다.](https://raw.githubusercontent.com/enderpawar/8week_Spring_Study/master/app/study_docs/assets/day12-overview-dirty-checking.png)
+
+*출처: [[JPA] 영속성 컨텍스트](https://velog.io/@imcool2551/JPA-%EC%98%81%EC%86%8D%EC%84%B1-%EC%BB%A8%ED%85%8D%EC%8A%A4%ED%8A%B8) — imcool2551 (velog), 원 도식은 인프런 김영한 JPA 로드맵 강의 자료. 저작권은 원저작자에게 있습니다.*
+
+### 1) Dirty Checking의 필요성
 
 Day09의 `JdbcReservationRepository.save()`에는 `INSERT`만 있었다. 그래서 취소 흐름에서 기존 예약을 다시 저장하면 새 행이 하나 더 생겼다. 상태가 바뀔 때마다 어떤 SQL을 보낼지 저장소 코드가 직접 결정해야 했던 구조다.
 
@@ -24,7 +30,7 @@ JPA로 바꾼 뒤에도 "필드를 바꿨으면 반드시 `save()`를 불러야 
 
 Day11에서 확인했듯 한 트랜잭션 안에서 같은 예약은 인스턴스 하나다. 그렇다면 그 인스턴스의 필드가 바뀌었다는 사실만으로 "이 예약의 상태가 바뀌었다"를 판단할 수 있다. 변경 감지는 이 판단을 영속성 컨텍스트가 하도록 만든 장치다.
 
-### Snapshot과 비교 시점
+### 2) Snapshot과 비교 시점
 
 변경 감지는 "지금 값이 무엇인가"를 보지 않는다. **들어올 때의 값과 지금 값이 다른가**를 본다. 그래서 들어올 때의 값을 따로 보관해야 하고, 그것이 스냅샷이다.
 
@@ -51,7 +57,7 @@ update reservation set confirmed=?, requester_name=?, room_name=? where id=?
 
 > **정리.** 변경 감지는 flush 시점에 "로드(또는 저장) 시점 스냅샷 ≠ 현재 값"인 Entity만 골라 `UPDATE`를 만든다. 값을 바꾼 호출 자체는 SQL을 만들지 않는다.
 
-### 중간 과정이 아닌 최종 결과의 비교
+### 3) 중간 과정이 아닌 최종 결과의 비교
 
 이 정의에서 바로 나오는 결론이 있다. 트랜잭션 안에서 값이 몇 번 바뀌었는지는 상관없다. flush 시점의 최종값이 스냅샷과 같으면 변경이 없는 것으로 본다.
 
@@ -67,10 +73,9 @@ update reservation set confirmed=?, requester_name=?, room_name=? where id=?
 
 3차에서 `confirm()`을 최초 저장 이전으로 옮겨 DB에 `true`를 넣어두고, 트랜잭션 안에서는 `cancel()`만 한 번 불렀다. 그제서야 스냅샷(`true`)과 최종값(`false`)이 달라졌고 `UPDATE`가 관찰됐다.
 
-![시퀀스 다이어그램. 참여자는 테스트, Repository, r : Reservation, 영속성 컨텍스트, H2다. 테스트가 save(r)을 호출하면 Repository가 r을 영속 상태로 등록하고, flush() 때 컨텍스트가 H2로 INSERT를 보낸다. findById(id)는 캐시 조회에서 같은 인스턴스 r을 managed로 돌려준다. alt 프레임의 첫 갈래는 저장 전 confirm()으로 스냅샷이 confirmed=true인 3차 시도다. managed.cancel()로 confirmed가 false가 되고, flush()에서 컨텍스트가 true와 false가 다름을 확인해 H2로 UPDATE를 보낸다. 둘째 갈래는 스냅샷이 confirmed=false인 1·2차 시도다. cancel() 뒤 flush()에서 false와 false가 같아 UPDATE가 없다. 프레임 뒤에는 clear() 후 findById(id)가 캐시에 없어 H2로 SELECT를 보내 confirmed=false인 새 인스턴스 reloaded를 받는다. 하단 주석은 두 갈래 모두 assertFalse가 통과하고 차이는 UPDATE 발생 여부뿐이라고 적는다.](../../../assets/day12-dirty-checking.png)
-<!-- velog 업로드: 이 줄 위 이미지 자리에 app/study_docs/assets/day12-dirty-checking.png 파일을 드래그해 교체 -->
+![시퀀스 다이어그램. 참여자는 테스트, Repository, r : Reservation, 영속성 컨텍스트, H2다. 테스트가 save(r)을 호출하면 Repository가 r을 영속 상태로 등록하고, flush() 때 컨텍스트가 H2로 INSERT를 보낸다. findById(id)는 캐시 조회에서 같은 인스턴스 r을 managed로 돌려준다. alt 프레임의 첫 갈래는 저장 전 confirm()으로 스냅샷이 confirmed=true인 3차 시도다. managed.cancel()로 confirmed가 false가 되고, flush()에서 컨텍스트가 true와 false가 다름을 확인해 H2로 UPDATE를 보낸다. 둘째 갈래는 스냅샷이 confirmed=false인 1·2차 시도다. cancel() 뒤 flush()에서 false와 false가 같아 UPDATE가 없다. 프레임 뒤에는 clear() 후 findById(id)가 캐시에 없어 H2로 SELECT를 보내 confirmed=false인 새 인스턴스 reloaded를 받는다. 하단 주석은 두 갈래 모두 assertFalse가 통과하고 차이는 UPDATE 발생 여부뿐이라고 적는다.](https://raw.githubusercontent.com/enderpawar/8week_Spring_Study/master/app/study_docs/assets/day12-dirty-checking.png)
 
-### flush 시점과 테스트 트랜잭션
+### 4) flush 시점과 테스트 트랜잭션
 
 오늘 테스트는 `cancel()` 다음 줄에서 `entityManager.flush()`를 직접 불렀다. flush는 대기 중인 변경을 SQL로 내보내는 시점이고, 그 시점이 와야 비교가 일어난다.
 
@@ -88,7 +93,7 @@ Spring 테스트에서 `@Transactional`로 감싼 테스트 트랜잭션은 **�
 
 그래서 이 테스트에서 본 `UPDATE`는 DB에 **실행**됐지만 **확정**되지는 않았다. `flush()` 줄을 빼고 돌려 `UPDATE`가 사라지는지는 실행하지 않았다(미검증).
 
-### flush와 commit의 구분
+### 5) flush와 commit의 구분
 
 | 동작 | 하는 일 | 되돌릴 수 있는가 |
 |---|---|---|
@@ -99,7 +104,7 @@ ACID의 원자성 단위는 commit이다. flush는 그 트랜잭션 안에서 SQ
 
 > **정리.** flush는 "SQL을 보내는 시점", commit은 "결과를 확정하는 시점"이다. 테스트 트랜잭션은 기본적으로 rollback되므로, 변경 감지를 관찰하려면 flush를 직접 불러야 한다.
 
-### `save()`의 역할 재정의
+### 6) `save()`의 역할 재정의
 
 오늘 결과로 `save()`를 다시 봤다. 이미 관리 중인 Entity라면 `save()` 없이도 flush 시점에 반영된다. `save()`가 꼭 필요한 곳은 **아직 컨텍스트에 없는 새 객체**를 영속화할 때다.
 
@@ -112,13 +117,13 @@ ACID의 원자성 단위는 commit이다. flush는 그 트랜잭션 안에서 SQ
 
 같은 이유로 Day10의 `savingExistingReservationUpdatesWithoutAddingDuplicate()`도 다시 읽힌다. 그 테스트는 관리 중인 `saved`에 `cancel()` 후 `save(saved)`를 불렀다. 거기서 본 `UPDATE`가 `save()` 호출 때문인지 변경 감지 때문인지는 그 테스트만으로 구분할 수 없다(미검증).
 
-### 보장 범위와 한계
+### 7) 보장 범위와 한계
 
 - **보장(관찰함).** 같은 트랜잭션 안에서 관리 중인 Entity의 필드를 바꾸고 flush하면, `save()` 없이 `UPDATE`가 실행되고 재조회 값에 반영됐다.
 - **성립 조건.** Entity가 관리 상태여야 하고, flush 시점의 값이 스냅샷과 달라야 한다.
 - **보장하지 않음(미검증).** 관리 상태가 아닌 객체(컨텍스트 밖으로 나간 객체)의 필드 변경은 오늘 실험하지 않았다. Day11처럼 `clear()` 뒤에 남은 참조를 바꾸는 경우가 여기에 해당한다.
 
-### 현재 코드 연결
+### 8) 현재 코드 연결
 
 - 실험 코드: `JpaReservationRepositoryTest.modifyingManagedEntityWithoutExplicitSaveStillPersistsOnFlush()`
 - 상태 변경 메서드: `Reservation.cancel()` (`this.confirmed = false`), `Reservation.confirm()`
@@ -132,7 +137,7 @@ ACID의 원자성 단위는 commit이다. flush는 그 트랜잭션 안에서 SQ
 
 ## 2. 코드 구현
 
-### `save()` 호출 없는 상태 변경 테스트
+### 1) `save()` 호출 없는 상태 변경 테스트
 
 ```java
 Reservation reservation = new Reservation("B202", "노은주");
@@ -159,7 +164,7 @@ assertFalse(reloaded.isConfirmed());
 
 `cancel()`은 이날 인자가 없는 메서드였다. 이후 D7 독립과제([2f870cf](https://github.com/enderpawar/8week_Spring_Study/commit/2f870cf97f51e956885b914505c09d54fe1b7ca3))에서 취소 사유를 받는 `cancel(String)`으로 바뀌었다.
 
-### 자동 검증 결과
+### 2) 자동 검증 결과
 
 `./gradlew test --tests "...JpaReservationRepositoryTest" -i`로 실행해 Hibernate SQL 로그를 터미널에서 확인했다.
 
@@ -179,7 +184,7 @@ select r1_0.id, r1_0.confirmed, r1_0.requester_name, r1_0.room_name from reserva
 
 ## 3. 스스로 답한 질문
 
-### Q1. `save()` 없는 필드 변경의 DB 반영
+### 1) `save()` 없는 필드 변경의 DB 반영
 
 **질문.** 관리 중인 Entity를 `cancel()`만 하고 `save()`는 호출하지 않으면 DB에 반영되는가?
 
@@ -189,7 +194,7 @@ select r1_0.id, r1_0.confirmed, r1_0.requester_name, r1_0.room_name from reserva
 
 교정된 답은 이렇다. 영속성 컨텍스트가 **flush 시점**에 관리 중인 Entity의 **현재 값과 로드(또는 저장) 시점 스냅샷**을 비교하고, 다르면 `UPDATE`를 만든다. 또 오늘 테스트에서는 트랜잭션이 rollback으로 끝나므로, 정확히는 "커밋된다"가 아니라 "flush 시점에 UPDATE가 실행된다"까지가 관찰한 범위다.
 
-### Q2. 증명력이 없는 Dirty Checking 테스트의 구성
+### 2) 증명력이 없는 Dirty Checking 테스트의 구성
 
 **질문.** 처음 두 번의 테스트는 왜 통과했는데도 아무것도 증명하지 못했는가?
 
