@@ -1,4 +1,4 @@
-# [백엔드 기본기 Day15] Transaction Boundary — flush·commit·rollback
+# [Spring Study Day 15] Transaction Boundary — flush·commit·rollback
 
 Week B에서는 영속성 컨텍스트와 변경 감지를 관찰하기 위해 `@Transactional`을 설명 없이 사용했다. 이번에는 `ReservationService.cancel()`을 기준으로 어디부터 어디까지 하나의 트랜잭션이어야 하는지 정하고, 정상 반환과 예외 발생이 DB의 최종 상태를 어떻게 갈라놓는지 확인했다.
 

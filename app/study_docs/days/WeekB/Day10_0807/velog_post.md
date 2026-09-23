@@ -1,4 +1,4 @@
-# [백엔드 기본기 Day10] ORM — Entity 매핑과 Spring Data JPA 기본 CRUD
+# [Spring Study Day 10] ORM — Entity 매핑과 Spring Data JPA 기본 CRUD
 
 Day9에 만든 `JdbcReservationRepository`는 `save()`에 INSERT만 있어서, 취소 흐름에서 기존 예약을 저장하면 새 행이 하나 더 생겼다. 오늘은 그 자리를 Spring Data JPA 구현으로 바꾸고 같은 흐름을 다시 검증했다. 영속성 컨텍스트와 flush 시점은 다음 Day의 주제라 여기서는 다루지 않고, Entity 매핑과 기본 CRUD까지만 본다.
 

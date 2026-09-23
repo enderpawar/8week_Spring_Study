@@ -1,4 +1,4 @@
-# [백엔드 기본기 Day9] Relational Data Access 계층 — JDBC 직접 구현과 저장 계약
+# [Spring Study Day 9] Relational Data Access 계층 — JDBC 직접 구현과 저장 계약
 
 Day8에서 `V1__init.sql`로 `reservation` 테이블을 만들어두고도 애플리케이션은 여전히 `InMemoryReservationRepository`의 `ArrayList`에 예약을 담고 있었다. 오늘은 그 자리를 순수 JDBC 구현으로 교체했다. JPA는 쓰지 않았다. 다음 Day에 지워질 코드가 얼마나 되는지를 눈으로 보려면 먼저 손으로 써봐야 하기 때문이다.
 

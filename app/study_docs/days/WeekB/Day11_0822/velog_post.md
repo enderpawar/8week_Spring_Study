@@ -1,4 +1,4 @@
-# [백엔드 기본기 Day11] Persistence Context — First-Level Cache와 Entity Identity
+# [Spring Study Day 11] Persistence Context — First-Level Cache와 Entity Identity
 
 Day10에서 `Reservation`을 Entity로 매핑하고 Spring Data JPA 어댑터로 저장소를 갈아끼웠다. 그때 테스트에 `entityManager.flush()`와 `clear()`를 넣었지만 두 메서드가 무엇을 하는지는 설명하지 못했다. 이번에는 그 둘이 다루는 대상인 영속성 컨텍스트를 열어, 같은 `id`를 한 트랜잭션에서 두 번 조회할 때 SQL이 몇 번 나가고 어떤 객체가 돌아오는지 확인했다. 필드 변경이 `UPDATE`로 바뀌는 변경 감지는 Day12의 범위다.
 

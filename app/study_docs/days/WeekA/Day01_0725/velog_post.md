@@ -1,4 +1,4 @@
-# [백엔드 기본기 Day1] Request-Response의 왕복 — 기본 HTTP Status Code와 `ResponseEntity`
+# [Spring Study Day 1] Request-Response의 왕복 — 기본 HTTP Status Code와 `ResponseEntity`
 
 새 5주 로드맵의 첫날이다. `app/`을 빈 스켈레톤으로 다시 시작하고, `HelloController` 하나로 GET 요청이 응답이 되기까지의 경로를 따라갔다. 다루는 범위는 상태코드가 정해지는 지점과 반환값이 본문이 되는 지점까지다. 요청 본문 처리와 입력 검증은 Day2·Day3에서 다룬다.
 
@@ -8,13 +8,6 @@
 >
 > 이전 Day: 없음 — 시리즈 첫날, 빈 스켈레톤에서 시작
 > 다음 Day: 요청 본문(JSON)이 Java 객체가 되는 단계 (Day2)
-
-**이 글의 순서**
-
-1. 개념 설명 — 1) HTTP 응답의 구성 · 2) 요청 한 건의 처리 순서 · 3) 기본·명시적 Status Code · 4) 반환값의 본문 변환 · 5) URL 경로와 메서드 이름 · 6) Compile Time과 Runtime · 7) 용어 한줄뜻
-2. 코드 구현 — 컨트롤러 코드와 한 줄씩 보기, `/bye`의 컴파일 에러, 검증 결과
-3. 스스로 답한 질문 — 실제로 틀렸던 질문 세 개
-4. 학습 정리 — 전체 흐름 다시 보기와 남은 것
 
 ## 1. 개념 설명
 

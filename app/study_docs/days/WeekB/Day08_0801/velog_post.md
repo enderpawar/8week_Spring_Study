@@ -1,4 +1,4 @@
-# [백엔드 기본기 Day8] Schema Migration — Migration 파일과 Checksum 검증
+# [Spring Study Day 8] Schema Migration — Migration 파일과 Checksum 검증
 
 Day4에서 `InMemoryReservationRepository`가 예약을 `ArrayList`에 담게 만들면서, 프로세스를 재시작하면 데이터가 사라진다는 부채를 기술부채 원장에 남겨뒀다. 오늘은 그 저장소를 교체하기 전에 데이터가 들어갈 테이블부터 만들었다. 스키마를 SQL 파일로 정의하고 Flyway가 그 파일을 어떻게 다루는지까지만 봤다. Entity 매핑과 JPA는 다음 Day들의 범위라 손대지 않았다.
 

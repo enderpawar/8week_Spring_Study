@@ -1,4 +1,4 @@
-# [백엔드 기본기 Day12] Dirty Checking — Snapshot과 flush 시점
+# [Spring Study Day 12] Dirty Checking — Snapshot과 flush 시점
 
 Day11에서 한 트랜잭션 안의 같은 `id`는 1차 캐시를 통해 같은 인스턴스로 돌아온다는 것을 확인했다. 이번에는 그 인스턴스의 필드만 바꾸고 `save()`를 부르지 않았을 때 DB에 반영되는지, 반영된다면 무엇을 언제 비교해서 `UPDATE`를 만드는지 확인했다. 트랜잭션 경계와 commit·rollback은 Week C D1의 범위로 남긴다.
 

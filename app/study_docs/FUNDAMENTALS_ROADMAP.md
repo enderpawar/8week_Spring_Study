@@ -75,7 +75,7 @@
 - [x] **D6 누적시험 A + 오답 재시험** — 2026-08-02 완료 ([Day06 기록](days/WeekA/Day06_0730/))
 - [x] **D7 버퍼 / 기술부채 상환** — 2026-08-02 완료 ([Day07 기록](days/WeekA/Day07_0731/))
 
-Week A 통합 Velog — [백엔드 기본기 DAY 6 & DAY 7: 1주차 마무리 시험](velog/week-a-identity-storage-error-boundary.md)
+Week A 통합 Velog — [Spring Study Day 6 & Day 7: 1주차 마무리 시험](velog/week-a-identity-storage-error-boundary.md)
 
 #### Week B — 데이터 접근 기초
 
@@ -89,7 +89,7 @@ Week A 통합 Velog — [백엔드 기본기 DAY 6 & DAY 7: 1주차 마무리 �
 - [x] D6 누적시험 A+B — 2026-08-22 완료, 8/8 통과 ([Day13 기록](days/WeekB/Day13_0822/))
 - [x] D7 버퍼 / `ddl-auto: validate` — 2026-08-22 완료: ①②(ddl-auto: validate 전환, CHECK 제약 부채 상환) + ③독립과제(`cancel_reason` 컬럼, V3 마이그레이션+Entity+Service+Controller 전 계층 관통) ([Day14 기록](days/WeekB/Day14_0822/)). **패턴 승격 완료** — `CODE_PATTERNS.md`에 P18~P21 append, P10~P17 근거 줄번호 재감사(P13·P16·P17·P11 정정), `PATTERN_DRILLS.md`에 묶음 7(D18~D21, Loan 도메인) 추가.
 
-Week B 통합 Velog — [백엔드 기본기 DAY 11 ~ DAY 14: 2주차 마무리 시험](velog/week-b-persistence-context-and-dirty-checking.md)
+Week B 통합 Velog — [Spring Study Day 11 ~ Day 14: 2주차 마무리 시험](velog/week-b-persistence-context-and-dirty-checking.md)
 > D4~D7이 하루에 진행돼 처음에는 네 날을 한 편으로 합쳤다. 2026-09-23 사용자 요청으로 Day별 글로 다시 분할했다 — [Day11](days/WeekB/Day11_0822/velog_post.md) · [Day12](days/WeekB/Day12_0822/velog_post.md) · [Day13](days/WeekB/Day13_0822/velog_post.md) · [Day14](days/WeekB/Day14_0822/velog_post.md). 통합 글은 이력으로 보존한다.
 
 Week B 전체와 Week C D1~D2 완료. 다음은 Week C D3 — 트랜잭션 전파.

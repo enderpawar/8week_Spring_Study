@@ -1,4 +1,4 @@
-# [백엔드 기본기 Day14] 2주차 버퍼 — ddl-auto validate와 CHECK Constraint
+# [Spring Study Day 14] 2주차 버퍼 — ddl-auto validate와 CHECK Constraint
 
 Week B D7은 버퍼다. 새 개념을 배우기보다 한 주 동안 쌓인 설정과 부채를 정리하고, 독립과제로 그 주의 개념을 힌트 없이 한 번 관통시킨다. Day13 시험에서 교정한 "적용된 마이그레이션은 고치지 않는다"는 기준이 여기서 두 번 쓰였다.
 

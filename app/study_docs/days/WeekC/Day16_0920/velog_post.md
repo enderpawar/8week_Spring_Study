@@ -1,4 +1,4 @@
-# [백엔드 기본기 Day16] Spring AOP Proxy — `@Transactional`과 self-invocation
+# [Spring Study Day 16] Spring AOP Proxy — `@Transactional`과 self-invocation
 
 Day15에서는 `ReservationService.cancel()`에 `@Transactional`을 붙이고 commit과 rollback을 관찰했다. 이번에는 애노테이션 한 줄이 메서드 전후에 트랜잭션 처리를 붙이는 구조를 열어보고, 같은 메서드라도 외부 호출과 객체 내부 호출에서 결과가 달라지는 조건을 테스트했다.
 
