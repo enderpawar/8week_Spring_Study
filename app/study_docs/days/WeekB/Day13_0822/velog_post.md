@@ -4,17 +4,16 @@ Week B D6은 새 개념을 배우는 날이 아니라, Week A 전체와 Week B D
 
 > 8문항을 모두 최종 통과했지만 힌트 없이 답한 것은 절반이었다. DTO와 Domain의 분리 이유는 인과관계를 거꾸로 답했고, 생성자 주입은 개념부터 다시 설명을 들어야 했으며, 적용된 Flyway 파일을 고치면 안 되는 이유에는 그날 배운 "Dirty Checking"을 넣었다. 세 오답을 복습큐에 다시 올렸고, Flyway 기준은 바로 다음 D7에서 `V2`·`V3` 마이그레이션을 새로 쌓는 판단으로 쓰였다.
 
+> **오늘의 흐름** `Day8~12 인출 → 8문항 답변 → 오답 3개 교정 → 복습큐 재등록 → D7 코드 적용`
+>
+> 이전 Day: 관리 중인 Entity의 변경을 Snapshot과 비교해 `save()` 없이 UPDATE가 나가는 Dirty Checking (Day12)
+> 다음 Day: 2주차 버퍼로 `ddl-auto: validate`와 `CHECK` 제약, `cancel_reason` 독립과제 적용 (Day14)
+
 ## 1. 시험 범위와 진행 방식
 
 ### 1) 재개 시점과 출제 범위
 
 시험은 2026-08-22에 봤다. Week B D1~D3은 8/9에 끝냈고, 그 사이 노트북 데이터 유실로 D4~D7 기록을 잃어 8/22에 D4부터 다시 진행했다. 따라서 Week A 후반부와 Week B 초반부는 13일 만에 다시 꺼내는 내용이었다.
-
-시험 범위인 Week B 저장 계층이 전체 구조의 어디에 있는지 먼저 한 장으로 보면 다음과 같다. Controller는 이 그림 왼쪽의 Service 앞에서 요청을 받고, 그림의 Database 스키마는 애플리케이션 기동 시 Flyway가 먼저 마이그레이션해 둔다.
-
-![왼쪽부터 다섯 구역이 점선으로 나뉘어 있다. Application Modules 구역의 Service가 Repository를 호출하고, Repository는 O/R Mapper 구역의 Spring Data JPA를 거쳐 JPA 인터페이스를 구현한 Hibernate로 이어진다. 빨간 점선 테두리는 Repository부터 Hibernate까지를 한 묶음으로 표시한다. Hibernate는 JDBC Interfaces 구역의 JDBC Basic APIs와 접속 설정을 가진 DataSource를 사용하고, 둘은 JDBC Implementations 구역의 JDBC Driver로 모인 뒤 Persistence Layer 구역의 Database에 도달한다.](https://raw.githubusercontent.com/enderpawar/8week_Spring_Study/master/app/study_docs/assets/day13-overview-data-access-stack.png)
-
-*출처: [6.3. Database Access (JPA) — TERASOLUNA Server Framework for Java (5.x) Development Guideline](https://terasolunaorg.github.io/guideline/5.4.1.RELEASE/en/ArchitectureInDetail/DataAccessDetail/DataAccessJpa.html) — NTT DATA Corporation, TERASOLUNA 개발 가이드라인. 저작권은 원저작자에게 있습니다.*
 
 출제 범위는 다음과 같다.
 
@@ -34,19 +33,27 @@ Week B D6은 새 개념을 배우는 날이 아니라, Week A 전체와 Week B D
 
 13일 공백 동안 가장 많이 흐려진 영역은 Week A 후반부(DI와 싱글톤의 이유)와 Flyway 용어였다. 아래에서는 2·3·6번을 다룬다. 3번은 최종 판정이 통과지만 개념 자체를 기억하지 못한 상태에서 시작했으므로 오답과 같은 무게로 다시 정리했다.
 
+### 3) 용어 한줄뜻
+
+| 용어 | 한줄뜻 |
+|---|---|
+| DTO | 계층 경계를 넘는 데이터의 모양만 담은 불변 객체 |
+| Domain Model | 상태와 그 상태를 바꾸는 규칙을 함께 가진 객체 |
+| Constructor Injection | 필요한 의존성을 생성자 매개변수로 받아 조립 시점에 고정하는 DI 방식 |
+| Checksum | 마이그레이션 파일 내용을 해시로 압축해 기록된 값과 대조하는 검증 기준 |
+| Dirty Checking | 관리 중인 Entity의 현재 값을 로드 시점 스냅샷과 비교해 변경을 감지하는 동작 |
+
+> **더 볼 것**
+> - [Migrations - Redgate Flyway](https://documentation.red-gate.com/flyway/flyway-concepts/migrations): 버전 마이그레이션과 스키마 이력 관리
+> - [Hibernate ORM User Guide](https://docs.jboss.org/hibernate/orm/6.6/userguide/html_single/Hibernate_User_Guide.html): 영속성 컨텍스트와 Entity 상태 전이
+> - [Dependency Injection — Spring Framework Reference](https://docs.spring.io/spring-framework/reference/core/beans/dependencies/factory-collaborators.html): 생성자 기반 DI와 생성자 인자 타입 매칭
+> - [Records — Java Language Reference (Java 17)](https://docs.oracle.com/en/java/javase/17/language/records.html): `record`의 불변 필드와 자동 생성 멤버
+
 ## 2. 시험에서 틀린 문제
 
-### 1) 오답 개념 색인
+### 1) 문항 2 — DTO와 Domain 분리의 인과관계
 
-| 개념 | 한줄뜻 | 현재 프로젝트 적용 지점 |
-|---|---|---|
-| DTO | 계층 경계를 넘는 데이터의 모양만 담은 스냅샷 | `record ReservationRequest` |
-| Domain 객체 | 상태와 그 상태를 바꾸는 규칙을 함께 가진 객체 | `Reservation.confirm()`, `cancel()` |
-| 생성자 주입 | 필요한 의존성을 생성자 매개변수로 받는 DI 방식 | `ReservationService(ReservationRepository)` |
-| 체크섬 검증 | 적용된 마이그레이션 파일의 해시를 기동 시 장부값과 대조 | `Migration checksum mismatch for migration version 1` |
-| 변경 감지 | 관리 중인 Entity의 로드 스냅샷과 현재 값을 flush 시점에 비교 | `managed.cancel()` 후 `flush()`에서 `UPDATE` |
-
-### 2) 문항 2 — DTO와 Domain 분리의 인과관계
+> **DTO** = 계층 경계를 넘는 데이터의 모양만 담아 옮기는 객체
 
 **질문.** DTO(`record`)와 Domain을 왜 분리하는가?
 
@@ -95,7 +102,9 @@ Domain이 가변이라고 해서 아무 필드나 바꿀 수 있는 것도 아�
 
 > **정리.** Domain은 불변이 아니라서 상태 변경을 하는 것이 아니다. 상태 변경이 필요한 역할이라서 불변으로 만들 수 없고, 그 변경 경로를 메서드로 좁힌다.
 
-### 3) 문항 3 — Constructor Injection의 이유
+### 2) 문항 3 — Constructor Injection의 이유
+
+> **Constructor Injection** = 필요한 의존성을 생성자 매개변수로 받는 DI 방식
 
 **질문.** 생성자 주입을 쓰는 이유를 세 가지 이상 설명하라.
 
@@ -155,7 +164,9 @@ ApplicationContext 기동
 
 > **정리.** 생성자 주입의 이유는 하나의 구조에서 나온다. 의존성을 타입으로 선언하고 밖에서 받기 때문에 구현을 바꿀 수 있고, 테스트에서 직접 넣을 수 있고, 없으면 객체가 만들어지지 않는다.
 
-### 4) 문항 6 — Flyway Checksum과 Hibernate Dirty Checking의 구분
+### 3) 문항 6 — Flyway Checksum과 Hibernate Dirty Checking의 구분
+
+> **Checksum** = 마이그레이션 파일의 해시를 계산해 이미 적용된 기록의 해시와 대조하는 값
 
 **질문.** 이미 적용된 Flyway 마이그레이션 파일을 왜 고치면 안 되는가?
 
@@ -230,12 +241,6 @@ CS 쪽으로 보면 두 장치 모두 "기준값을 저장해두고 현재 값�
 
 > **정리.** 적용된 마이그레이션을 고치면 안 되는 이유는 dirty checking이 아니라 체크섬 불일치다. Flyway는 기동 시 파일을 비교해 멈추고, Hibernate는 flush 시 필드를 비교해 `UPDATE`를 만든다.
 
-> **더 볼 것**
-> - [Migrations - Redgate Flyway](https://documentation.red-gate.com/flyway/flyway-concepts/migrations): 버전 마이그레이션과 스키마 이력 관리
-> - [Hibernate ORM User Guide](https://docs.jboss.org/hibernate/orm/6.6/userguide/html_single/Hibernate_User_Guide.html): 영속성 컨텍스트와 Entity 상태 전이
-> - [Dependency Injection — Spring Framework Reference](https://docs.spring.io/spring-framework/reference/core/beans/dependencies/factory-collaborators.html): 생성자 기반 DI와 생성자 인자 타입 매칭
-> - [Records — Java Language Reference (Java 17)](https://docs.oracle.com/en/java/javase/17/language/records.html): `record`의 불변 필드와 자동 생성 멤버
-
 ## 3. 오답 재발 방지와 D7 연결
 
 ### 1) 복습큐 재등록
@@ -259,6 +264,16 @@ CS 쪽으로 보면 두 장치 모두 "기준값을 저장해두고 현재 값�
 이날은 시험만 진행해 새 코드나 테스트가 없다. 시험 기록은 `quiz.md`로 남겼고 D4~D7 작업과 함께 [9e3dfc3](https://github.com/enderpawar/8week_Spring_Study/commit/9e3dfc3a3956d03e68588499e7a54772a7a6d599)에 커밋했다. 위에서 인용한 체크섬 오류 메시지는 Day08, `UPDATE` 로그는 Day12의 실행 결과다.
 
 ## 4. 학습 정리와 다음 범위
+
+### 1) 전체 흐름 다시 보기
+
+오늘 다룬 시험 범위인 Week B 저장 계층이 전체 구조의 어디에 있는지 한 장으로 다시 보면 다음과 같다. Controller는 이 그림 왼쪽의 Service 앞에서 요청을 받고, 그림의 Database 스키마는 애플리케이션 기동 시 Flyway가 먼저 마이그레이션해 둔다.
+
+![왼쪽부터 다섯 구역이 점선으로 나뉘어 있다. Application Modules 구역의 Service가 Repository를 호출하고, Repository는 O/R Mapper 구역의 Spring Data JPA를 거쳐 JPA 인터페이스를 구현한 Hibernate로 이어진다. 빨간 점선 테두리는 Repository부터 Hibernate까지를 한 묶음으로 표시한다. Hibernate는 JDBC Interfaces 구역의 JDBC Basic APIs와 접속 설정을 가진 DataSource를 사용하고, 둘은 JDBC Implementations 구역의 JDBC Driver로 모인 뒤 Persistence Layer 구역의 Database에 도달한다.](https://raw.githubusercontent.com/enderpawar/8week_Spring_Study/master/app/study_docs/assets/day13-overview-data-access-stack.png)
+
+*출처: [6.3. Database Access (JPA) — TERASOLUNA Server Framework for Java (5.x) Development Guideline](https://terasolunaorg.github.io/guideline/5.4.1.RELEASE/en/ArchitectureInDetail/DataAccessDetail/DataAccessJpa.html) — NTT DATA Corporation, TERASOLUNA 개발 가이드라인. 저작권은 원저작자에게 있습니다.*
+
+### 2) 이해의 변화와 남은 것
 
 시험 전에는 "변경을 감지한다"는 설명 하나로 Flyway와 Hibernate를 함께 묶어 기억하고 있었다. 비교 대상·기준값·시점·결과를 나눠 적고 나니 두 장치는 목적부터 반대였다. 하나는 과거 파일을 지키고, 하나는 현재 객체의 변화를 내보낸다.
 

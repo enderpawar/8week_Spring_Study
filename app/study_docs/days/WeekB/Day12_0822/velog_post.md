@@ -4,22 +4,16 @@ Day11에서 한 트랜잭션 안의 같은 `id`는 1차 캐시를 통해 같은 
 
 > 관리 중인 `Reservation`에 `cancel()`만 호출하고 `save()` 없이 `flush()`하자 `update reservation set ...`가 실행됐고, `clear()` 후 재조회한 값도 `confirmed=false`였다. 예측은 맞았지만 비교 대상과 시점은 로그를 본 뒤에야 설명할 수 있었고, 그 사이 테스트를 두 번 잘못 짰다. 두 시도는 로드 시점 스냅샷과 최종값이 같아 변경 감지가 동작하든 말든 통과하는 테스트였다.
 
+> **오늘의 흐름** `필요성 → Snapshot 비교 → 최종 결과 비교 → flush 시점 → flush·commit 구분 → save() 역할 재정의`
+>
+> 이전 Day: Persistence Context와 First-Level Cache로 같은 id 조회의 SELECT 횟수와 Entity 동일성을 확인 (Day11)
+> 다음 Day: Week A·B 범위의 2주차 누적시험과 오답 교정 (Day13)
+
 ## 1. 개념 설명
 
-| 용어 | 한줄뜻 | 현재 프로젝트 적용 지점 |
-|---|---|---|
-| 변경 감지(Dirty Checking) | 관리 중인 Entity의 현재 값을 스냅샷과 비교해 다르면 `UPDATE`를 만드는 동작 | `managed.cancel()`만 호출, `save()` 없음 |
-| 스냅샷 | Entity가 영속성 컨텍스트에 들어온(로드되거나 저장된) 시점의 필드 값 사본 | 저장 시점 `confirmed=true` |
-| `flush()` | 영속성 컨텍스트의 변경 사항을 실제 SQL로 DB에 내보내는 시점 | `entityManager.flush()` |
-| `save()`의 실제 역할 | 새 객체를 영속화하는 편의 메서드. "저장"의 유일한 경로가 아님 | `ReservationService.reserve()`의 `save()` |
-
-오늘 다룬 변경 감지가 flush 한 번 안에서 어떤 순서로 일어나는지 먼저 한 장으로 보면 다음과 같다.
-
-![영속성 컨텍스트(entityManager) 안의 변경 감지 흐름도. 1차 캐시 표는 @Id, Entity, 스냅샷 세 열로 memberA와 memberB의 엔티티와 스냅샷을 함께 보관한다. 1. flush()가 호출되면 2. 엔티티와 스냅샷을 비교하고, 달라진 memberA에 대해 3. UPDATE SQL을 생성해 쓰기 지연 SQL 저장소에 쌓는다. 4. flush 때 저장소의 UPDATE A가 DB로 전송되고, 5. commit으로 DB에 확정된다.](https://raw.githubusercontent.com/enderpawar/8week_Spring_Study/master/app/study_docs/assets/day12-overview-dirty-checking.png)
-
-*출처: [[JPA] 영속성 컨텍스트](https://velog.io/@imcool2551/JPA-%EC%98%81%EC%86%8D%EC%84%B1-%EC%BB%A8%ED%85%8D%EC%8A%A4%ED%8A%B8) — imcool2551 (velog), 원 도식은 인프런 김영한 JPA 로드맵 강의 자료. 저작권은 원저작자에게 있습니다.*
-
 ### 1) Dirty Checking의 필요성
+
+> **Dirty Checking** = 관리 중인 Entity의 현재 값을 스냅샷과 비교해 다르면 `UPDATE`를 만드는 동작
 
 Day09의 `JdbcReservationRepository.save()`에는 `INSERT`만 있었다. 그래서 취소 흐름에서 기존 예약을 다시 저장하면 새 행이 하나 더 생겼다. 상태가 바뀔 때마다 어떤 SQL을 보낼지 저장소 코드가 직접 결정해야 했던 구조다.
 
@@ -30,9 +24,13 @@ JPA로 바꾼 뒤에도 "필드를 바꿨으면 반드시 `save()`를 불러야 
 
 Day11에서 확인했듯 한 트랜잭션 안에서 같은 예약은 인스턴스 하나다. 그렇다면 그 인스턴스의 필드가 바뀌었다는 사실만으로 "이 예약의 상태가 바뀌었다"를 판단할 수 있다. 변경 감지는 이 판단을 영속성 컨텍스트가 하도록 만든 장치다.
 
+상태를 바꾸는 메서드는 `Reservation.cancel()`(`this.confirmed = false`)과 `Reservation.confirm()`이며, 둘 다 JPA를 모르는 평범한 Java 메서드다. 이 변경을 SQL로 옮기는 일은 도메인 메서드가 아니라 영속성 컨텍스트가 한다.
+
 ### 2) Snapshot과 비교 시점
 
-변경 감지는 "지금 값이 무엇인가"를 보지 않는다. **들어올 때의 값과 지금 값이 다른가**를 본다. 그래서 들어올 때의 값을 따로 보관해야 하고, 그것이 스냅샷이다.
+> **Snapshot** = Entity가 영속성 컨텍스트에 들어온(로드되거나 저장된) 시점의 필드 값 사본
+
+변경 감지는 "지금 값이 무엇인가"를 보지 않는다. **들어올 때의 값과 지금 값이 다른가**를 본다. 그래서 들어올 때의 값을 따로 보관해야 하고, 그것이 스냅샷이다. 오늘 이 비교를 관찰한 실험 코드는 `JpaReservationRepositoryTest.modifyingManagedEntityWithoutExplicitSaveStillPersistsOnFlush()`다.
 
 ```text
 Entity가 영속성 컨텍스트에 들어옴 (save 또는 조회)
@@ -55,9 +53,11 @@ update reservation set confirmed=?, requester_name=?, room_name=? where id=?
 
 바뀐 것은 `confirmed` 하나인데 세 컬럼이 모두 `set` 절에 있다. 적어도 이 설정에서는 Hibernate가 바뀐 컬럼만 골라 쓰지 않고 Entity의 컬럼 전체로 `UPDATE`를 만들었다. 이 방식을 바꾸는 설정은 오늘 다루지 않았다.
 
-> **정리.** 변경 감지는 flush 시점에 "로드(또는 저장) 시점 스냅샷 ≠ 현재 값"인 Entity만 골라 `UPDATE`를 만든다. 값을 바꾼 호출 자체는 SQL을 만들지 않는다.
+> **보장 범위** — 같은 트랜잭션 안에서 관리 중인 Entity의 필드를 바꾸고 flush하면, `save()` 없이 `UPDATE`가 실행되고 재조회 값에 반영됐다. 성립 조건은 Entity가 관리 상태여야 하고, flush 시점의 값이 스냅샷과 달라야 한다는 것이다. 관리 상태가 아닌 객체(컨텍스트 밖으로 나간 객체)의 필드 변경은 오늘 실험하지 않았다(미검증) — Day11처럼 `clear()` 뒤에 남은 참조를 바꾸는 경우가 여기에 해당한다.
 
 ### 3) 중간 과정이 아닌 최종 결과의 비교
+
+> **Final-State Comparison** = 트랜잭션 중간에 값이 몇 번 바뀌었는지와 무관하게, flush 시점의 최종값과 스냅샷만 비교하는 변경 감지의 성질
 
 이 정의에서 바로 나오는 결론이 있다. 트랜잭션 안에서 값이 몇 번 바뀌었는지는 상관없다. flush 시점의 최종값이 스냅샷과 같으면 변경이 없는 것으로 본다.
 
@@ -77,7 +77,9 @@ update reservation set confirmed=?, requester_name=?, room_name=? where id=?
 
 ### 4) flush 시점과 테스트 트랜잭션
 
-오늘 테스트는 `cancel()` 다음 줄에서 `entityManager.flush()`를 직접 불렀다. flush는 대기 중인 변경을 SQL로 내보내는 시점이고, 그 시점이 와야 비교가 일어난다.
+> **Test Transaction Rollback** = Spring `@Transactional` 테스트가 기본적으로 종료 시 rollback해, commit 전 자동 flush가 일어나지 않는 성질
+
+오늘 테스트는 `cancel()` 다음 줄에서 `entityManager.flush()`를 직접 불렀다. flush는 대기 중인 변경을 SQL로 내보내는 시점이고, 그 시점이 와야 비교가 일어난다. flush·clear는 테스트에 주입한 `EntityManager`로 직접 호출했고, 트랜잭션은 테스트 클래스의 클래스 수준 `@Transactional`이 감싼다.
 
 명시적으로 부르지 않아도 flush는 일어난다. Hibernate 문서의 기본 `AUTO` 모드는 트랜잭션 commit 전, 그리고 일부 쿼리 실행 전에 flush한다. 문제는 테스트다.
 
@@ -95,6 +97,8 @@ Spring 테스트에서 `@Transactional`로 감싼 테스트 트랜잭션은 **�
 
 ### 5) flush와 commit의 구분
 
+> **Transaction Boundary** = 트랜잭션이 시작되고 끝나는 경계로, 그 안의 변경을 확정(commit)하거나 취소(rollback)하는 단위
+
 | 동작 | 하는 일 | 되돌릴 수 있는가 |
 |---|---|---|
 | `flush()` | 컨텍스트의 변경을 SQL로 DB에 실행 | 같은 트랜잭션이 rollback되면 취소됨 |
@@ -105,6 +109,8 @@ ACID의 원자성 단위는 commit이다. flush는 그 트랜잭션 안에서 SQ
 > **정리.** flush는 "SQL을 보내는 시점", commit은 "결과를 확정하는 시점"이다. 테스트 트랜잭션은 기본적으로 rollback되므로, 변경 감지를 관찰하려면 flush를 직접 불러야 한다.
 
 ### 6) `save()`의 역할 재정의
+
+> **`save()`의 실제 역할** = 새 객체를 영속화하는 편의 메서드. "저장"의 유일한 경로가 아님
 
 오늘 결과로 `save()`를 다시 봤다. 이미 관리 중인 Entity라면 `save()` 없이도 flush 시점에 반영된다. `save()`가 꼭 필요한 곳은 **아직 컨텍스트에 없는 새 객체**를 영속화할 때다.
 
@@ -117,18 +123,17 @@ ACID의 원자성 단위는 commit이다. flush는 그 트랜잭션 안에서 SQ
 
 같은 이유로 Day10의 `savingExistingReservationUpdatesWithoutAddingDuplicate()`도 다시 읽힌다. 그 테스트는 관리 중인 `saved`에 `cancel()` 후 `save(saved)`를 불렀다. 거기서 본 `UPDATE`가 `save()` 호출 때문인지 변경 감지 때문인지는 그 테스트만으로 구분할 수 없다(미검증).
 
-### 7) 보장 범위와 한계
+### 7) 용어 한줄뜻
 
-- **보장(관찰함).** 같은 트랜잭션 안에서 관리 중인 Entity의 필드를 바꾸고 flush하면, `save()` 없이 `UPDATE`가 실행되고 재조회 값에 반영됐다.
-- **성립 조건.** Entity가 관리 상태여야 하고, flush 시점의 값이 스냅샷과 달라야 한다.
-- **보장하지 않음(미검증).** 관리 상태가 아닌 객체(컨텍스트 밖으로 나간 객체)의 필드 변경은 오늘 실험하지 않았다. Day11처럼 `clear()` 뒤에 남은 참조를 바꾸는 경우가 여기에 해당한다.
-
-### 8) 현재 코드 연결
-
-- 실험 코드: `JpaReservationRepositoryTest.modifyingManagedEntityWithoutExplicitSaveStillPersistsOnFlush()`
-- 상태 변경 메서드: `Reservation.cancel()` (`this.confirmed = false`), `Reservation.confirm()`
-- flush·clear 도구: 테스트에 주입한 `EntityManager`
-- 트랜잭션: 테스트 클래스의 클래스 수준 `@Transactional`
+| 용어 | 한줄뜻 |
+|---|---|
+| Dirty Checking | 관리 중인 Entity의 현재 값을 스냅샷과 비교해 다르면 `UPDATE`를 만드는 동작 |
+| Snapshot | Entity가 영속성 컨텍스트에 들어온 시점의 필드 값 사본 |
+| Persistence Context | 관리 중인 Entity와 스냅샷을 함께 보관하는 JPA의 관리 영역 |
+| Managed State | Entity가 영속성 컨텍스트에 등록되어 변경 감지 대상이 되는 상태 |
+| flush | 영속성 컨텍스트의 변경 사항을 실제 SQL로 DB에 내보내는 시점 |
+| Transaction Boundary | 트랜잭션이 시작되고 끝나는 경계로, Entity가 관리 상태로 남는 범위를 결정 |
+| Repository | Entity의 저장·조회를 담당하는 컴포넌트로 `save()`는 그 편의 메서드 중 하나 |
 
 > **더 볼 것**
 > - [Hibernate ORM User Guide — Flushing](https://docs.hibernate.org/orm/6.6/userguide/html_single/Hibernate_User_Guide.html#flushing): `AUTO` flush 모드와 flush가 일어나는 시점
@@ -163,6 +168,16 @@ assertFalse(reloaded.isConfirmed());
 마지막의 `clear()` → `findById()`는 검증 지점을 DB로 옮기는 장치다. `clear()` 없이 `managed.isConfirmed()`를 확인하면 메모리 값만 보는 것이라, DB 반영 여부를 증명하지 못한다.
 
 `cancel()`은 이날 인자가 없는 메서드였다. 이후 D7 독립과제([2f870cf](https://github.com/enderpawar/8week_Spring_Study/commit/2f870cf97f51e956885b914505c09d54fe1b7ca3))에서 취소 사유를 받는 `cancel(String)`으로 바뀌었다.
+
+**한 줄씩 보기**
+
+- `reservation.confirm();` — 저장 전에 호출해 스냅샷을 `confirmed=true`로 만든다.
+- `entityManager.flush();` (첫 번째) — INSERT를 즉시 내보내 `id`를 확보한다.
+- `Reservation managed = repository.findById(id).orElseThrow();` — 같은 트랜잭션이라 1차 캐시에서 스냅샷 `true`인 인스턴스를 관리 상태로 돌려받는다.
+- `managed.cancel();` — `save()` 없이 필드만 `false`로 바꾼다. 이 줄에서는 SQL이 없다.
+- `entityManager.flush();` (두 번째) — 이 시점에 스냅샷(`true`)과 현재 값(`false`)을 비교해 `UPDATE`를 실행한다.
+- `entityManager.clear();` — 1차 캐시를 비워 다음 조회가 DB를 다시 읽게 만든다.
+- `assertFalse(reloaded.isConfirmed());` — DB에서 새로 읽은 값으로 반영 여부를 확인한다.
 
 ### 2) 자동 검증 결과
 
@@ -205,6 +220,16 @@ select r1_0.id, r1_0.confirmed, r1_0.requester_name, r1_0.room_name from reserva
 재발 방지 기준은 **"상태를 바꾸는 호출이 로드 시점 스냅샷과 다른 최종값을 만드는가"**를 테스트 작성 전에 확인하는 것이다. 초기 상태를 트랜잭션 밖(최초 저장 이전)에서 반대 값으로 만들어 두고, 트랜잭션 안에서는 변경 호출을 한 번만 남긴다.
 
 ## 4. 학습 정리와 다음 범위
+
+### 1) 전체 흐름 다시 보기
+
+오늘 실험은 관리 중인 Entity의 필드를 바꾸고 `save()` 없이 flush했을 때 `UPDATE`가 나가는지 확인하는 것이었다. 아래 그림은 그 변경 감지가 flush 한 번 안에서 어떤 순서로 일어나는지 정리한 것이다.
+
+![영속성 컨텍스트(entityManager) 안의 변경 감지 흐름도. 1차 캐시 표는 @Id, Entity, 스냅샷 세 열로 memberA와 memberB의 엔티티와 스냅샷을 함께 보관한다. 1. flush()가 호출되면 2. 엔티티와 스냅샷을 비교하고, 달라진 memberA에 대해 3. UPDATE SQL을 생성해 쓰기 지연 SQL 저장소에 쌓는다. 4. flush 때 저장소의 UPDATE A가 DB로 전송되고, 5. commit으로 DB에 확정된다.](https://raw.githubusercontent.com/enderpawar/8week_Spring_Study/master/app/study_docs/assets/day12-overview-dirty-checking.png)
+
+*출처: [[JPA] 영속성 컨텍스트](https://velog.io/@imcool2551/JPA-%EC%98%81%EC%86%8D%EC%84%B1-%EC%BB%A8%ED%85%8D%EC%8A%A4%ED%8A%B8) — imcool2551 (velog), 원 도식은 인프런 김영한 JPA 로드맵 강의 자료. 저작권은 원저작자에게 있습니다.*
+
+### 2) 이해의 변화와 남은 것
 
 JPA에서 "저장"은 `save()` 호출과 같은 말이 아니었다. 관리 중인 객체의 필드를 바꾸는 행위 자체가 변경이고, 영속성 컨텍스트가 flush 시점에 스냅샷과 비교해 그 변경을 SQL로 바꾼다. `save()`는 새 객체를 컨텍스트에 넣는 입구에 가깝다.
 
