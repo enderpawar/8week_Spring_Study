@@ -57,7 +57,7 @@
 **현재 확인 시점: 2026-09-20 — Week C D2 Spring AOP 프록시 / self-invocation 관찰 완료. 다음 시작점은 Week C D3 — 트랜잭션 전파.**
 > **Week C D2 완료 근거(2026-09-20)**: `ReservationService` Bean이 `ReservationService$$SpringCGLIB$$0` 타입의 AOP 프록시임을 `AopUtils`로 확인했다. 테스트용 `SelfInvocationService`에서 외부 `inner()` 호출은 트랜잭션 활성 `true`, 비트랜잭션 `outer()`의 내부 호출은 `false`, `@Transactional transactionalOuter()`의 내부 호출은 바깥 경계의 효과로 `true`임을 검증했다. 전체 테스트 22개가 통과했다. 상세는 [Day16 기록](days/WeekC/Day16_0920/).
 > **Week C D1 완료 근거(2026-09-20)**: `ReservationService.cancel()` 전체에 `@Transactional`을 적용하고 명시적 `save()`를 제거했다. `ReservationServiceTransactionTest`에서 ① 정상 반환 시 변경 감지 `UPDATE`와 commit 후 취소 상태 유지, ② 명시적 `flush()`로 `UPDATE`를 실행한 뒤 `RuntimeException`으로 rollback되어 기존 `confirmed=true`, `cancelReason=null`이 유지되는 것을 H2 통합 테스트로 확인했다. 전체 테스트 18개가 통과했다. 상세는 [Day15 기록](days/WeekC/Day15_0920/).
-> **D4·D5 완료 근거(2026-08-22, 데이터 유실 복구 후 재학습)**: `JpaReservationRepositoryTest`에 통합 테스트 2개를 추가했다. ① 같은 트랜잭션 안에서 같은 id를 2회 `findById()`하면 SELECT는 0번(이미 캐시), `clear()` 추가 시 SELECT 1번으로 바뀌고 `first == second`는 두 조건 모두 `true` — 1차 캐시가 값이 아니라 트랜잭션·id 기준으로 참조를 재사용함을 확인했다(`JpaReservationRepositoryTest.java:64-80`). ② `confirmed=true`로 저장한 예약을 재조회해 `cancel()`만 호출하고 `save()`는 호출하지 않았는데도 `flush()` 시점에 `UPDATE`가 자동 실행됨을 로그로 확인했다(`JpaReservationRepositoryTest.java:82-109`, dirty checking). 상세는 [Day11 기록](days/WeekB/Day11_0822/), [Day12 기록](days/WeekB/Day12_0822/).
+> **D4·D5 완료 근거(2026-08-22, 데이터 유실 복구 후 재학습)**: `JpaReservationRepositoryTest`에 통합 테스트 2개를 추가했다. ① 같은 트랜잭션 안에서 같은 id를 2회 `findById()`하면 SELECT는 0번(이미 캐시), `clear()` 추가 시 SELECT 1번으로 바뀌고 `first == second`는 두 조건 모두 `true` — 1차 캐시가 값이 아니라 트랜잭션·id 기준으로 참조를 재사용함을 확인했다(`JpaReservationRepositoryTest.java:65-81`). ② `confirmed=true`로 저장한 예약을 재조회해 `cancel()`만 호출하고 `save()`는 호출하지 않았는데도 `flush()` 시점에 `UPDATE`가 자동 실행됨을 로그로 확인했다(`JpaReservationRepositoryTest.java:83-110`, dirty checking). 상세는 [Day11 기록](days/WeekB/Day11_0822/), [Day12 기록](days/WeekB/Day12_0822/).
 > **D3 완료 근거(2026-08-09)**: `Reservation` Entity 매핑, Spring Data JPA 어댑터 CRUD, JDBC Bean 후보 제거를 완료했다. 통합 테스트 2개로 신규 저장·단건 조회와 기존 ID 갱신·중복 방지를 검증했고 Hibernate 로그에서 `INSERT`·`SELECT`·`UPDATE`를 확인했다. 상세는 [Day10 진행 기록](days/WeekB/Day10_0807/progress.md).
 > **D6 시작**: Week A+B 범위 누적시험. 오답은 그 자리에서 복습큐에 등록한다.
 > **밀린 인출분(2026-08-09 Day10 등록 전 기준 실측)**: 기존 복습큐 38행 중 **36행이 도래**했다(미래 도래는 `@Repository` 8/19, `Optional`→도메인예외 8/12 둘뿐). 내역 — 8/3 1건 / 8/4 18건 / **8/6 오답재시험 4건** / 8/7 8건(Day08 계열) / 8/8 4건 / 8/9 1건. 여기에 Day09 `quiz.md` §1 6문항(8/7 출제 예정이었으나 미실시)과 Day10 신규 7건이 별도로 있다.
@@ -90,7 +90,7 @@ Week A 통합 Velog — [백엔드 기본기 DAY 6 & DAY 7: 1주차 마무리 �
 - [x] D7 버퍼 / `ddl-auto: validate` — 2026-08-22 완료: ①②(ddl-auto: validate 전환, CHECK 제약 부채 상환) + ③독립과제(`cancel_reason` 컬럼, V3 마이그레이션+Entity+Service+Controller 전 계층 관통) ([Day14 기록](days/WeekB/Day14_0822/)). **패턴 승격 완료** — `CODE_PATTERNS.md`에 P18~P21 append, P10~P17 근거 줄번호 재감사(P13·P16·P17·P11 정정), `PATTERN_DRILLS.md`에 묶음 7(D18~D21, Loan 도메인) 추가.
 
 Week B 통합 Velog — [백엔드 기본기 DAY 11 ~ DAY 14: 2주차 마무리 시험](velog/week-b-persistence-context-and-dirty-checking.md)
-> D4~D7이 하루에 진행돼 Day별 글로 나누지 않고 네 날을 한 편으로 합쳤다(사용자 요청). Day11~14의 `vocab`·`quiz`·`explain-log`는 Day별로 분리 보존한다.
+> D4~D7이 하루에 진행돼 처음에는 네 날을 한 편으로 합쳤다. 2026-09-23 사용자 요청으로 Day별 글로 다시 분할했다 — [Day11](days/WeekB/Day11_0822/velog_post.md) · [Day12](days/WeekB/Day12_0822/velog_post.md) · [Day13](days/WeekB/Day13_0822/velog_post.md) · [Day14](days/WeekB/Day14_0822/velog_post.md). 통합 글은 이력으로 보존한다.
 
 Week B 전체와 Week C D1~D2 완료. 다음은 Week C D3 — 트랜잭션 전파.
 

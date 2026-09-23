@@ -1,46 +1,168 @@
-# [백엔드 기본기 Day5] IoC와 DI — Service 생성자에 Repository를 넣어주는 건 누구인가
+# [백엔드 기본기 Day5] IoC와 DI — Constructor Injection과 Singleton Bean
 
-Day4에서 `cancel()`을 Service로 옮기면서 `ReservationService`는 `ReservationRepository` 인터페이스를 생성자로 받는 모양이 됐다. 그런데 Service 코드 어디에도 `new InMemoryReservationRepository()`가 없어서, 생성자 위에 `//원리는 5일 차에서 배우기..`라는 주석을 달아두고 넘어갔었다. 오늘은 그 주석을 지운 날이라, 객체를 누가 만들어 어디에 넣는지까지만 보고 scope 종류 전체나 동시성 재현은 범위 밖으로 뒀다.
+Day4에서 `cancel()`을 Service로 옮기면서 `ReservationService`는 `ReservationRepository` 인터페이스를 생성자로 받는 모양이 됐다. 그런데 Service 코드 어디에도 `new InMemoryReservationRepository()`가 없어서, 생성자 위에 `//원리는 5일 차에서 배우기..`라는 주석을 달아두고 넘어갔었다. 이번에는 그 주석을 지웠다. 객체를 누가 만들어 어디에 넣는지까지만 다루고, scope 종류 전체나 동시성 재현은 범위 밖으로 둔다.
 
-> Service가 구현체를 직접 만들지 않는데도 도는 이유를 IoC와 DI로 나눠서 설명해봤다. `@Repository`를 떼고 돌려보니 컴파일은 통과하고 컨텍스트 조립이 `NoSuchBeanDefinitionException`으로 멈췄고, 같은 Service Bean을 두 번 꺼내 비교한 `assertSame`은 통과했다. 공유 인스턴스에서 생길 수 있는 경쟁 상태는 설명만 했고 실행으로 재현하지는 않았다.
+> Service가 구현체를 직접 만들지 않는데도 도는 이유를 IoC와 DI로 나눠서 설명했다. `@Repository`를 떼고 돌려보니 컴파일은 통과하고 컨텍스트 조립이 `NoSuchBeanDefinitionException`으로 멈췄고, 같은 Service Bean을 두 번 꺼내 비교한 `assertSame`은 통과했다. 공유 인스턴스에서 생길 수 있는 경쟁 상태는 설명만 했고 실행으로 재현하지는 않았다.
 
 ## 1. 개념 설명
 
-오늘 정리한 용어부터.
-
-| 용어 | 한줄뜻 | 코드 모습 |
+| 용어 | 한줄뜻 | 현재 프로젝트 적용 지점 |
 |---|---|---|
-| IoC (제어의 역전) | 객체를 생성하고 연결하는 제어권이 애플리케이션 코드가 아니라 Spring 컨테이너에 있는 것 | Spring이 Repository→Service→Controller 순서로 Bean을 조립 |
-| DI (의존성 주입) | 객체가 필요한 의존성을 직접 만들지 않고 외부에서 전달받는 것 | `ReservationService(ReservationRepository repository)` |
-| Bean | Spring 컨테이너가 생성·보관·연결하는 객체 | `@Service`, `@Repository`, `@RestController` |
+| IoC (제어의 역전) | 객체를 생성하고 연결하는 제어권이 애플리케이션 코드가 아니라 Spring 컨테이너에 있는 것 | Repository → Service → Controller 순서의 Bean 조립 |
+| DI (의존성 주입) | 필요한 의존성을 직접 만들지 않고 외부에서 전달받는 것 | `ReservationService(ReservationRepository ...)` |
+| Bean | Spring 컨테이너가 생성·보관·연결하는 객체 | `@Service`, `@Repository`, `@RestController` 클래스 |
 | 생성자 주입 | 필요한 객체를 생성자 매개변수로 받는 DI 방식 | `this.reservationRepository = reservationRepository;` |
-| DIP (의존성 역전 원칙) | 상위 정책이 구체 구현이 아니라 추상화에 의존하는 원칙 | Service가 `InMemoryReservationRepository`가 아니라 `ReservationRepository`에 의존 |
-| Singleton Bean | 기본적으로 ApplicationContext 하나에 인스턴스 하나만 두는 Bean | 같은 타입을 두 번 `getBean()`하면 같은 참조 |
-| 무상태(stateless) Service | 요청마다 달라지는 값을 공유 필드에 저장하지 않는 Service | `requesterName`을 메서드 매개변수·지역변수로 사용 |
+| DIP (의존성 역전 원칙) | 상위 정책이 구체 구현이 아니라 추상화에 의존하는 원칙 | Service → `ReservationRepository` 인터페이스 |
+| Singleton Bean | 기본적으로 ApplicationContext 하나에 인스턴스 하나만 두는 Bean | `reservationServiceBeanIsSingleton()` |
+| 무상태(stateless) Service | 요청마다 달라지는 값을 공유 필드에 저장하지 않는 Service | `requesterName`을 매개변수·지역변수로 사용 |
 
-**표의 용어들은 조립 과정의 서로 다른 단계를 가리킨다.** 앞의 넷은 "객체가 어떻게 연결되는가", 뒤의 셋은 "그렇게 연결하고 나면 어떤 제약이 따라오는가"다.
+앞의 다섯 용어는 "객체가 어떻게 연결되는가", 뒤의 두 용어는 "그렇게 연결하고 나면 어떤 제약이 따라오는가"를 다룬다.
 
-연결 순서는 이렇게 흐른다.
+### 객체 생성과 연결의 제어권
+
+`ReservationController`는 `ReservationService`가, `ReservationService`는 `ReservationRepository` 구현체가 있어야 동작한다. 누군가는 이 세 객체를 올바른 순서로 만들어 서로 연결해야 한다.
+
+그 일을 각 클래스가 직접 하면, Service는 필드에서 `new InMemoryReservationRepository()`를 호출해야 한다. 그러면 Service는 "무엇이 필요한가"뿐 아니라 "그것을 어떻게 만드는가"까지 알게 된다. 저장 방식이 바뀌면 Service 코드를 열어 `new` 뒤의 클래스 이름을 고쳐야 한다.
+
+제어의 역전(IoC)은 이 조립 책임을 애플리케이션 코드 밖으로 옮긴 것이다. 우리 코드는 `new`를 부르지 않고, Spring 컨테이너(`ApplicationContext`)가 기동 시점에 객체 그래프를 조립한다.
 
 ```text
-Component Scan 이 @Repository·@Service·@RestController 붙은 클래스를 Bean 후보로 수집
-  → InMemoryReservationRepository Bean 생성
-  → 그 참조를 ReservationService(ReservationRepository) 생성자에 전달
-  → 만들어진 Service를 ReservationController(ReservationService) 생성자에 전달
+SpringApplication.run() → ApplicationContext 기동
+→ Component Scan: @SpringBootApplication이 있는 com.example.studyroom 아래에서
+  @Repository·@Service·@RestController가 붙은 클래스를 Bean 후보로 수집
+→ ReservationService 생성자의 인자 타입 ReservationRepository에 맞는 Bean을 찾음
+→ InMemoryReservationRepository Bean 생성
+→ 그 참조를 ReservationService(ReservationRepository) 생성자에 전달
+→ 만들어진 Service를 ReservationController(ReservationService) 생성자에 전달
+→ 완성된 Bean들을 컨텍스트에 보관
 ```
 
-이 그림에서 IoC와 DI는 서로 다른 층위를 가리킨다.
+생성자에 넣을 인자가 먼저 있어야 하므로 생성이 끝나는 순서는 Repository → Service → Controller다. 호출 흐름의 방향(Controller → Service → Repository)과 반대라는 점을 기억해 둔다.
 
-> - **IoC** — 조립 책임이 어디에 있는가. 화살표 전체를 누가 실행하느냐의 문제다.
-> - **DI** — 그 책임을 가진 쪽이 부품을 어떤 통로로 건네는가. 여기서는 생성자 매개변수다.
+"제어가 역전됐다"는 표현은 이 순서의 실행 주체를 가리킨다. 전에는 호출하는 쪽이 부품을 만들었고, 지금은 컨테이너가 부품을 만들어 호출하는 쪽에 넘긴다.
 
-생성자 주입은 그 통로를 타입으로 선언하는 방식이라, 이 클래스가 없으면 못 도는 의존성이 생성자 시그니처에 그대로 드러난다. 받은 값을 `final` 필드에 넣으면 초기화 이후 바뀌지 않는다는 것도 같이 보장된다.
+Spring Framework 공식 문서는 애플리케이션 클래스와 설정 메타데이터가 컨테이너에 들어가 완성된 시스템이 되는 이 구조를 다음처럼 그린다.
 
-**타입으로 선언한다는 게 DIP와 이어진다.** Service가 선언한 타입이 인터페이스이므로, 메모리 구현을 DB 구현이나 테스트용 가짜로 바꿔도 Service와 Controller의 코드는 그대로 둘 수 있다. 학습 중에는 이걸 "여러 계층간 코드 수정이 번거롭게 여러번 일어나지 않아도 된다"고 정리했다.
+![Spring IoC 컨테이너 개요도. 위에서 Your Business Objects (POJOs)가, 왼쪽에서 Configuration Metadata가 The Spring Container로 들어가고, 컨테이너가 produces 화살표로 Fully configured system Ready for Use를 만들어 낸다.](../../../assets/day05-web-spring-ioc-container.png)
+<!-- velog 업로드: 이 줄 위 이미지 자리에 app/study_docs/assets/day05-web-spring-ioc-container.png 파일을 드래그해 교체 -->
 
-**Singleton은 조립이 끝난 다음의 이야기다.** 기본 scope에서는 컨테이너 하나가 Bean 하나만 만들어 계속 돌려주므로, 여러 요청 스레드가 같은 Service 객체를 함께 쓴다. 그래서 무상태가 취향이 아니라 조건이 된다 — 요청마다 달라지는 값을 공유 필드에 두면 스레드끼리 서로의 값을 덮어쓸 수 있다.
+*출처: [Container Overview — Spring Framework Reference, Figure 1. The Spring IoC container](https://docs.spring.io/spring-framework/reference/core/beans/basics.html) — Copyright © 2005 - Broadcom. All Rights Reserved. (문서 사본은 무료 배포와 저작권 고지 유지 조건으로 허용)*
+
+> **정리.** IoC는 객체의 생성과 연결을 누가 실행하는가의 문제다. 이 프로젝트에서는 `ApplicationContext`가 기동 시점에 Repository → Service → Controller 순서로 조립한다.
+
+### DI와 Constructor Injection
+
+의존성 주입(DI)은 제어권을 가진 컨테이너가 부품을 건네는 구체적인 통로다. 이 프로젝트에서 그 통로는 생성자 매개변수다.
+
+이번에 가장 오래 혼동한 짝이 IoC와 DI였다. 처음에는 두 용어를 같은 것의 다른 이름처럼 묶어 외운 상태였다.
+
+| 구분 | 묻는 것 | 이 프로젝트에서 |
+|---|---|---|
+| IoC | 조립 책임이 어디에 있는가 | Spring 컨테이너가 세 객체를 만들고 연결 |
+| DI | 그 책임을 가진 쪽이 부품을 어떤 통로로 건네는가 | Repository Bean을 Service 생성자 매개변수로 전달 |
+
+Day4 주석을 지우고 남은 Service 생성자는 **Spring 문법이 하나도 없는 평범한 Java 생성자**다. Spring이 바꾼 것은 생성자의 모양이 아니라 그것을 누가 언제 호출하느냐다. Spring이 없어도 호출할 수 있는 형태이고, Spring은 그 호출을 대신 수행해 객체 그래프 조립을 자동화할 뿐이다.
+
+생성자 주입을 고른 이유는 세 가지로 정리된다.
+
+- 이 클래스가 없으면 못 도는 의존성이 생성자 시그니처에 타입으로 드러난다
+- 받은 값을 `final` 필드에 넣으면 초기화 이후 바뀌지 않는다
+- Service는 구현체를 만드는 방법을 모르고, 받은 인터페이스만 사용한다
+
+생성자를 직접 작성할 때는 문법 조건도 세 가지가 맞아야 한다. 이번에 컴파일러가 하나씩 잡아준 조건이다.
+
+```text
+생성자 이름 = 클래스 이름
+this.x의 x = 그 클래스에 실제로 선언된 필드
+매개변수 타입 = 그 필드에 대입 가능한 타입
+```
 
 ![클래스 다이어그램. «@RestController» ReservationController가 «@Service» ReservationService를, ReservationService가 «interface» ReservationRepository를 각각 생성자 주입으로 참조한다. «@Repository» InMemoryReservationRepository는 그 인터페이스를 «realize»하는데, 화살표가 구현체가 아니라 인터페이스로 향하는 것이 요점이다. Service는 구현체 이름을 모른다. 주석에는 ApplicationContext가 기동 시 Bean을 만들고 생성자 인자 타입에 맞는 Bean을 찾아 넣는다는 것, 기본 scope가 singleton이라 두 번 꺼내도 같은 인스턴스여서 ==가 true이고 그래서 Service가 무상태여야 한다는 것, @Repository를 떼면 넣어줄 Bean이 없어 기동에서 실패한다는 것이 적혀 있다.](../../../assets/day05-ioc-di.png)
+<!-- velog 업로드: 이 줄 위 이미지 자리에 app/study_docs/assets/day05-ioc-di.png 파일을 드래그해 교체 -->
+
+### DIP와 구현체 교체 범위
+
+생성자가 인터페이스 타입을 선언한다는 점이 DIP와 이어진다. Service가 의존하는 것은 `InMemoryReservationRepository`가 아니라 `ReservationRepository` 계약이다.
+
+그래서 메모리 구현을 DB 구현이나 테스트용 가짜로 바꿔도 Service와 Controller의 코드는 그대로 둘 수 있다. 학습 중에는 이것을 "여러 계층간 코드 수정이 번거롭게 여러번 일어나지 않아도 된다"고 정리했다.
+
+Wikimedia Commons의 DIP 도식은 구체 클래스를 직접 참조하던 의존이 인터페이스를 향하도록 바뀌는 전후를 다음처럼 비교한다.
+
+![의존성 역전 전후 비교도. Figure 1에서는 Package A의 Object A가 Package B의 Object B를 직접 References한다. Figure 2에서는 Object A가 같은 Package A 안의 Interface A를 References하고, Package B의 Object B가 Interface A를 Inherits해서 의존 화살표가 구현체가 아니라 인터페이스로 향한다.](../../../assets/day05-web-dependency-inversion.png)
+<!-- velog 업로드: 이 줄 위 이미지 자리에 app/study_docs/assets/day05-web-dependency-inversion.png 파일을 드래그해 교체 -->
+
+*출처: [File:Dependency inversion.png — Wikimedia Commons](https://commons.wikimedia.org/wiki/File:Dependency_inversion.png) — Kevin Martin (Mrflay), CC BY-SA 4.0*
+
+DIP와 DI는 층위가 다르다. DIP는 **의존 방향**에 대한 설계 원칙이고, DI는 그 방향대로 **실제 객체를 넣어주는 수단**이다. 인터페이스에 의존하도록 설계해도 누군가 구현체를 넣어주지 않으면 실행되지 않는다.
+
+이 설계가 보장하는 것은 교체 시 수정 범위가 좁아진다는 것까지다. 오늘은 구현체가 하나뿐이라 실제 교체는 하지 않았다. 구현체가 둘 이상일 때 컨테이너가 어느 것을 고르는지도 이번 범위 밖이다.
+
+### 타입 그래프와 Bean 그래프
+
+`@Repository` 한 줄을 떼면 어디서 멈추는지가 이번의 중심 실험이었다. 이 실험은 서로 다른 두 검사 단계를 갈라서 보여줬다.
+
+| 검사 단계 | 확인하는 것 | `@Repository` 제거 시 |
+|---|---|---|
+| `compileJava` | Java 타입 관계(`implements`, 대입 가능성) | 성공 |
+| 컨텍스트 기동(`contextLoads()`) | 생성자 인자마다 넣을 Bean이 있는가 | `NoSuchBeanDefinitionException`으로 실패 |
+
+`implements ReservationRepository`는 그대로 남아 있으므로 컴파일러가 보는 타입 그래프에는 문제가 없다. 사라진 것은 Component Scan 단계의 Bean 등록이다. 인터페이스를 구현했다는 사실만으로 Bean이 되지는 않는다.
+
+```text
+@Repository 제거
+→ compileJava 성공 (타입 관계 유지)
+→ Component Scan이 InMemoryReservationRepository를 후보로 수집하지 않음
+→ ReservationService 생성자 인자 ReservationRepository에 넣을 Bean 없음
+→ NoSuchBeanDefinitionException → 컨텍스트 조립 중단 → contextLoads() 실패
+```
+
+![시퀀스 다이어그램. 참여자는 테스트 실행, ApplicationContext, «@Repository» InMemoryReservationRepository, «@Service» ReservationService, «@RestController» ReservationController다. 먼저 compileJava가 성공하고, 테스트가 contextLoads()로 컨텍스트를 기동하면 ApplicationContext가 Component Scan과 생성자 인자 후보 탐색을 수행한다. alt 프레임의 첫 분기 [@Repository 있음]에서는 ① Repository 생성, ② repository를 Service 생성자에 주입, ③ service를 Controller 생성자에 주입한 뒤 기동 성공과 BUILD SUCCESSFUL을 돌려준다. 둘째 분기 [@Repository 제거]에서는 후보 Bean이 없어 NoSuchBeanDefinitionException이 테스트로 전달되고 contextLoads()가 실패한다. 하단 주석은 두 경우 모두 compileJava가 성공했고 사라진 것은 Bean 등록이라고 적는다.](../../../assets/day05-bean-assembly.png)
+<!-- velog 업로드: 이 줄 위 이미지 자리에 app/study_docs/assets/day05-bean-assembly.png 파일을 드래그해 교체 -->
+
+실험 전에는 "애플리케이션 실행 단계에서 실패할 것"이라고 단계는 맞췄다. 다만 이유를 "구현 클래스가 저장소 인터페이스 역할을 잃는다"고 설명했다. Java 역할은 그대로였고, 잃은 것은 Spring Bean 자격이었다.
+
+> **정리.** 컴파일러는 타입 그래프를, 컨테이너는 기동 시점에 Bean 그래프를 검사한다. 애노테이션 누락은 두 번째 검사에서만 드러난다.
+
+### Singleton Bean과 Reference Equality
+
+조립이 끝난 뒤 컨테이너는 만든 Bean을 보관하고 계속 돌려준다. 기본 scope인 singleton에서는 같은 타입을 두 번 `getBean()`해도 같은 인스턴스가 나온다.
+
+```text
+getBean(ReservationService.class) → 보관 중인 인스턴스 A 반환
+getBean(ReservationService.class) → 같은 인스턴스 A 반환
+first == second → true
+```
+
+실행 전에는 `false`를 예측했다. Day4에서 서로 다른 `Long` 객체를 `==`로 비교했던 경험을 그대로 가져온 예측이었다. 두 결과는 모순되지 않는다.
+
+| 비교 대상 | 두 참조가 가리키는 것 | `==` 결과 |
+|---|---|---|
+| 서로 다른 `Long` 객체 | 각각 다른 인스턴스 | `false` |
+| 두 번 조회한 Service Bean | 컨테이너가 보관한 같은 인스턴스 | `true` |
+
+`==`는 두 경우 모두 참조 비교다. 달라진 것은 연산자의 의미가 아니라 두 변수가 같은 객체를 가리킬 경로가 있느냐였다. CS로 보면 참조 동일성(identity) 판정이고, 값이 같은지(equality)와는 다른 질문이다.
+
+범위도 좁혀 둔다. singleton은 JVM 전체에 하나라는 뜻이 아니라 **ApplicationContext 하나에 하나**다. 컨텍스트가 둘이면 인스턴스도 둘일 수 있다.
+
+### Stateless Service와 공유 필드
+
+singleton이라는 조립 규칙은 곧바로 설계 제약으로 이어진다. 여러 요청 스레드가 같은 Service 인스턴스를 함께 쓰므로, 그 인스턴스의 필드도 함께 쓴다.
+
+요청마다 달라지는 값을 필드에 두면 다음 순서가 가능하다.
+
+```text
+진우 요청 스레드: this.currentRequesterName = "진우"
+민수 요청 스레드: this.currentRequesterName = "민수"   ← 덮어씀
+진우 요청 스레드: this.currentRequesterName 읽기 → "민수"
+```
+
+그래서 무상태는 취향이 아니라 조건이 된다. 요청별 값은 메서드 매개변수·지역변수에 두어 호출마다 분리하고, 필드에는 주입받은 `reservationRepository`처럼 호출과 무관한 값만 둔다. 현재 `reserve(String roomName, String requesterName)`가 이 형태다.
+
+이 순서는 설명으로 짚은 것이고 코드로 재현하지 않았으므로 **미검증**이다. 스레드 공유 메모리에서 생기는 경쟁 상태(race condition)의 한 예로 연결해 둔다.
+
+같은 "상태"라는 말을 다른 곳에 일반화하지는 않는다. `InMemoryReservationRepository`의 `ArrayList`는 예약을 보관하려고 변경 가능한 상태를 의도적으로 가진다. 이 저장소의 동시성 안전성도 검증하지 않았다.
+
+> **정리.** singleton Bean은 요청 스레드가 공유한다. 요청마다 달라지는 값은 필드가 아니라 매개변수·지역변수에 둔다.
 
 > **더 볼 것**
 > - [Dependency Injection — Spring Framework Reference](https://docs.spring.io/spring-framework/reference/core/beans/dependencies/factory-collaborators.html): 생성자 기반 DI와 생성자 인자 타입 매칭
@@ -49,7 +171,7 @@ Component Scan 이 @Repository·@Service·@RestController 붙은 클래스를 Be
 
 ## 2. 코드 구현
 
-### Day4가 남긴 `//원리는 5일 차에서 배우기..` 지우기
+### Day4 주석 제거와 Service 생성자
 
 현재 `ReservationService`의 앞부분이다.
 
@@ -64,29 +186,27 @@ public class ReservationService{
     }
 ```
 
-Day4까지는 이 생성자 위에 `//생성자 주입 : Spring이 자동으로 InMemoryReservationRepository를 찾아 넣어준다.`와 `//원리는 5일 차에서 배우기..` 두 줄이 붙어 있었고, 오늘 커밋에서 지웠다.
+Day4까지는 이 생성자 위에 `//생성자 주입 : Spring이 자동으로 InMemoryReservationRepository를 찾아 넣어준다.`와 `//원리는 5일 차에서 배우기..` 두 줄이 붙어 있었고, 이번 커밋에서 지웠다. "자동으로 찾아 넣어준다"는 문장은 1절의 조립 순서로 대체됐다.
 
-지우고 보니 남는 건 **Spring 문법이 하나도 없는 평범한 Java 생성자**다. Spring이 바꾸는 건 생성자의 모양이 아니라 그걸 누가 언제 호출하느냐다. 대신 Service가 이렇게 썼다면,
+대신 Service가 아래처럼 썼다면, Service는 구현체를 만드는 방법까지 알게 된다.
 
 ```java
 private final InMemoryReservationRepository repository = new InMemoryReservationRepository();
 ```
 
-Service가 "무엇이 필요한가"뿐 아니라 "그걸 어떻게 만드는가"까지 알게 된다. 생성자로 받는 쪽을 고른 건 그 두 가지를 분리하기 위해서였다.
+이 대조 코드는 비교용으로 적은 것이고 실행하지 않았다. `ReservationController` 생성자는 들여쓰기만 정리했다.
 
-### `@Repository`를 떼면 어디서 멈추는가
+### `@Repository` 제거 실험
 
-`InMemoryReservationRepository`에서 애노테이션만 제거하기 전에 "코드 자체는 문제없지만 애플리케이션 실행 단계에서 실패할 것"이라고 예측했다. 실패하는 단계는 맞췄는데, 이유는 "구현 클래스가 저장소 인터페이스 역할을 잃는다"고 설명했다.
-
-실제로는 `compileJava`가 성공했다. `implements ReservationRepository`가 그대로 남아 있으니 Java 타입 관계에는 아무 문제가 없었다. 멈춘 곳은 `contextLoads()`였고, 원인 체인 마지막에 이게 있었다.
+`InMemoryReservationRepository`에서 애노테이션만 제거하고 `compileJava`와 `test`를 차례로 실행했다. `compileJava`는 성공했고, `contextLoads()`가 실패했다. 원인 체인 마지막에 다음 예외가 있었다.
 
 ```text
 NoSuchBeanDefinitionException
 ```
 
-사라진 건 Java의 구현 관계가 아니라 Spring Bean 등록이었다. Repository Bean이 없으니 Service 생성자에 넣을 후보가 없고, 그 자리에서 컨텍스트 조립 전체가 중단된다. **컴파일러가 검사하는 타입 그래프와 Spring이 런타임에 조립하는 Bean 그래프는 서로 다른 검사 단계**라는 걸 이 실험으로 갈라냈다. 애노테이션을 되돌린 뒤 전체 테스트는 다시 통과했다.
+애노테이션을 되돌린 뒤 전체 테스트는 다시 `BUILD SUCCESSFUL`이었다. 복구했으므로 이 실험은 커밋에 남지 않았다.
 
-### 생성자를 힌트 없이 다시 써봤을 때 나온 오류 세 개
+### 생성자 독립 작성의 컴파일 오류 세 개
 
 완성 예제 읽기 → 대입문 한 줄 채우기 → Controller 생성자 전체 작성을 거친 뒤, `ReservationService` 생성자를 혼자 다시 썼다. 컴파일러가 세 번 잡아줬다.
 
@@ -96,11 +216,11 @@ cannot find symbol                                 ← 없는 this.reservationSe
 incompatible types                                 ← ReservationService 타입 매개변수를 Repository 필드에 대입
 ```
 
-세 오류가 각각 다른 조건을 가리켰다. 생성자 이름은 클래스 이름과 같아야 하고, `this.x`의 `x`는 그 클래스에 실제로 선언된 필드여야 하며, 매개변수 타입은 그 필드에 대입 가능해야 한다. 원인은 하나였다 — Controller 생성자의 모양을 옮겨오면서 클래스명·필드명·의존 타입을 Service 쪽으로 바꾸지 않은 것이다.
+원인은 하나였다. Controller 생성자의 모양을 옮겨오면서 클래스명·필드명·의존 타입을 Service 쪽으로 바꾸지 않았다. 세 오류를 메시지 순서대로 고친 뒤 전체 테스트가 통과했다.
 
-### 오늘 확인한 것
+### 자동 검증 결과
 
-소스에 남은 변경은 Service·Controller 생성자 정리와 테스트 한 개 추가다.
+Singleton 동일성을 확인하는 테스트를 하나 추가했다.
 
 ```java
 @Test
@@ -114,7 +234,7 @@ void reservationServiceBeanIsSingleton() {
 
 | 확인한 것 | 방법 | 결과 |
 |---|---|---|
-| Bean 등록이 빠지면 어디서 멈추는가 | 수동 확인 — `@Repository` 제거 후 `compileJava`·`test`, 확인 뒤 복구했으므로 커밋에 남지 않음 | 컴파일 성공, `contextLoads()` 실패, 원인 `NoSuchBeanDefinitionException` |
+| Bean 등록 누락 시 실패 지점 | 수동 확인 — `@Repository` 제거 후 `compileJava`·`test`, 확인 뒤 복구 | 컴파일 성공, `contextLoads()` 실패, `NoSuchBeanDefinitionException` |
 | 같은 Service Bean 두 번 조회 | 자동 테스트 — `reservationServiceBeanIsSingleton()` | `assertSame(first, second)` 통과 |
 | 최종 객체 그래프 | 자동 테스트 — `./gradlew test` 전체 | `BUILD SUCCESSFUL` |
 
@@ -124,38 +244,47 @@ void reservationServiceBeanIsSingleton() {
 
 ## 3. 스스로 답한 질문
 
-### Q. IoC와 DI는 지금 코드에서 각각 뭘 가리키나?
+### Q1. IoC와 DI의 구분
 
-처음 답은 **"잘 모르겠다"**였다. 두 용어를 같은 것의 다른 이름처럼 묶어서 외워둔 상태라, 하나를 설명하려 하면 다른 하나의 설명이 나왔다.
+**질문.** 현재 코드에서 IoC와 DI는 각각 무엇을 가리키는가?
 
-빈칸을 채우며 다시 세운 답은 이렇다. IoC는 제어권이 어디로 옮겨갔는가의 문제로, 지금은 Controller·Service·Repository 세 객체의 생성과 연결을 Spring 컨테이너가 맡고 있다. DI는 그 제어권을 가진 쪽이 부품을 건네는 구체적인 방식이고, 여기서는 "Repository 구현 Bean을 Service 생성자 매개변수로 넘긴다"가 그것이다.
+**A1.** 처음 답은 **"잘 모르겠다"**였다. 두 용어를 같은 것의 다른 이름처럼 묶어서 외워둔 상태라, 하나를 설명하려 하면 다른 하나의 설명이 나왔다.
 
-다만 힌트를 받은 직후에 맞춘 거라 진짜 인출인지 확신이 없어서, 8/2 재시험 항목으로 걸어뒀다.
+빈칸을 채우며 다시 세운 답은 이렇다. IoC는 제어권이 어디로 옮겨갔는가의 문제로, Controller·Service·Repository의 생성과 연결을 Spring 컨테이너가 맡는다. DI는 그 제어권을 가진 쪽이 부품을 건네는 방식이고, 여기서는 Repository 구현 Bean을 Service 생성자 매개변수로 넘기는 것이다.
 
-### Q. 같은 Bean을 두 번 꺼내 `==`로 비교했는데 왜 `true`인가?
+힌트를 받은 직후에 맞춘 답이라 진짜 인출인지 확신이 없어서 8/2 재시험 항목으로 걸어뒀다.
 
-실행 전 예측은 `false`였다. 며칠 전 서로 다른 `Long` Wrapper 객체를 `==`로 비교했다가 틀렸던 경험을 그대로 가져다 붙였다. 실제로는 `assertSame(first, second)`가 통과했다.
+### Q2. Singleton Bean의 `==` 비교 결과
 
-틀린 건 `==`의 의미가 아니라 비교 대상에 대한 가정이었다. `==`는 여전히 참조 비교이고, 다만 두 번의 `getBean()`이 정말 같은 인스턴스를 돌려줬다. 서로 다른 `Long`은 애초에 다른 객체였고 Singleton Bean은 같은 객체였으니, 두 결과는 서로 모순되지 않는다.
+**질문.** 같은 Bean을 두 번 꺼내 `==`로 비교하면 결과는 무엇인가?
 
-여기서 하나 더 좁혀 잡았다. Singleton은 JVM 전체에 하나라는 뜻이 아니라 **ApplicationContext 하나에 하나**다. 앞으로 `==` 결과를 예측할 땐 연산자만 보지 말고 "두 변수가 같은 객체를 가리킬 경로가 있는가"를 먼저 확인하기로 했다.
+**A2.** 실행 전 예측은 `false`였다. 서로 다른 `Long` Wrapper 객체를 `==`로 비교했던 경험을 그대로 가져다 붙였다. 실제로는 `assertSame(first, second)`가 통과했다.
 
-### Q. Singleton Service에 요청별 이름을 필드로 두면 뭐가 문제인가?
+틀린 것은 `==`의 의미가 아니라 비교 대상에 대한 가정이었다. 두 번의 `getBean()`이 같은 인스턴스를 돌려줬다. 앞으로 `==` 결과를 예측할 때는 연산자만 보지 말고 "두 변수가 같은 객체를 가리킬 경로가 있는가"를 먼저 확인한다.
 
-처음 답은 **"요청에 혼선이 생길 수 있다"**였다. 방향은 맞는데 무엇이 공유되는지가 빠져 있었다.
+### Q3. Singleton Service의 요청별 필드
 
-공유되는 건 Service 인스턴스이고, 따라서 그 인스턴스의 필드도 요청 스레드들이 함께 쓴다. `currentRequesterName` 같은 필드에 진우 요청이 값을 쓴 뒤 민수 요청이 덮어쓰면, 진우 요청이 이어서 그 필드를 읽을 때 민수의 값을 읽을 수 있다. 그래서 요청마다 달라지는 값은 메서드 매개변수·지역변수에 두고, 필드에는 주입받은 의존성처럼 호출과 무관한 값만 둔다.
+**질문.** Singleton Service에 요청별 `currentRequesterName`을 필드로 두면 무엇이 문제인가?
 
-이 순서는 설명으로 짚은 것이고 코드로 재현하지는 않았다. 그래서 "몇 번 중 몇 번" 같은 수치는 여기 쓰지 않는다.
+**A3.** 처음 답은 **"요청에 혼선이 생길 수 있다"**였다. 방향은 맞았지만 무엇이 공유되는지가 빠져 있었다.
 
-## 4. 정리하며
+공유되는 것은 Service 인스턴스이고, 따라서 그 필드도 요청 스레드들이 함께 쓴다. 한 요청이 쓴 값을 다른 요청이 덮어쓰면 첫 요청이 잘못된 이름을 읽을 수 있다. 이 순서는 설명으로 짚었을 뿐 코드로 재현하지 않았으므로 "몇 번 중 몇 번" 같은 수치는 쓰지 않는다.
 
-시작할 때는 생성자 주입을 "Spring이 제공하는 특별한 생성자"쯤으로 생각했다. 확인한 건 반대였다 — 생성자는 그대로 평범한 Java 생성자이고, 달라진 건 그걸 호출하는 주체다. `@Repository` 제거 실험이 그 경계를 눈으로 보여줬다. 컴파일러는 `implements` 관계까지만 보고, 그 뒤에 Bean 그래프를 조립하는 일은 완전히 다른 단계에서 벌어진다.
+## 4. 학습 정리와 다음 범위
 
-`==` 예측이 틀린 것도 같은 종류의 교정이었다. 연산자의 의미는 처음부터 맞게 알고 있었고, 몰랐던 쪽은 컨테이너가 같은 인스턴스를 돌려준다는 조립 규칙이었다. Singleton을 "하나만 만든다"로 외우는 것과 "그래서 필드를 공유한다"까지 잇는 건 다른 일이라는 것도 여기서 붙었다.
+시작할 때는 생성자 주입을 "Spring이 제공하는 특별한 생성자"쯤으로 생각했다. 확인한 것은 반대였다. 생성자는 평범한 Java 생성자이고, 달라진 것은 그것을 호출하는 주체다. `@Repository` 제거 실험이 그 경계를 보여줬다. 컴파일러는 `implements` 관계까지만 보고, Bean 그래프 조립은 컨텍스트 기동이라는 다른 단계에서 벌어진다.
 
-남은 것도 있다. 공유 인스턴스의 경쟁 상태와 `InMemoryReservationRepository`의 `ArrayList` 동시성은 오늘 설명만 하고 재현하지 않았는데, 동시성은 이 5주 트랙에서 다루지 않기로 한 **고치지 않을 것**라 미검증 표시만 남긴다. 그리고 오늘 늘어난 자동 테스트는 Bean 동일성 하나뿐이라 HTTP 응답 계약은 여전히 회귀를 잡지 못한다 — 이건 Week D D5에 갚기로 한 **나중에 고칠 것**다.
+`==` 예측이 틀린 것도 같은 종류의 교정이었다. 연산자의 의미는 처음부터 맞게 알고 있었고, 몰랐던 쪽은 컨테이너가 같은 인스턴스를 돌려준다는 조립 규칙이었다. singleton을 "하나만 만든다"로 외우는 것과 "그래서 필드를 공유한다"까지 잇는 것은 다른 일이었다.
 
-다음은 Week A D6 누적시험이다. 그 전에 오늘 힌트가 필요했던 IoC·DI 구분, Singleton 동일성, 생성자 구조를 8/2에 다시 인출한다.
+**아직 남은 것**은 두 가지다. 공유 인스턴스의 경쟁 상태와 `ArrayList` 동시성은 설명만 하고 재현하지 않았다. 동시성은 이 5주 트랙에서 다루지 않기로 해 **고치지 않을 것**으로 두고 미검증 표시만 남긴다. 또 이번에 늘어난 자동 테스트는 Bean 동일성 하나뿐이라 HTTP 응답 계약은 여전히 회귀를 잡지 못한다. 이것은 Week D D5에 갚기로 한 **나중에 고칠 것**이다.
 
-오늘 공부한 소스코드: [8week_Spring_Study/app](https://github.com/enderpawar/8week_Spring_Study/tree/master/app)
+다음은 Week A D6 누적시험이다. 그 전에 힌트가 필요했던 IoC·DI 구분, Singleton 동일성, 생성자 구조를 8/2에 다시 인출한다.
+
+면접에서 다시 답해볼 항목을 남긴다.
+
+- 생성자 주입과 필드에서 직접 `new`로 만드는 방식의 책임 차이
+- singleton Bean이 무상태여야 하는 조건
+
+---
+
+오늘 공부한 소스코드: `app/src/main/java/com/example/studyroom/service/ReservationService.java`, `app/src/main/java/com/example/studyroom/controller/ReservationController.java`, `app/src/test/java/com/example/studyroom/StudyRoomApiApplicationTests.java`

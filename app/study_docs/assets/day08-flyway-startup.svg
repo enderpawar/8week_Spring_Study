@@ -1,0 +1,125 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 700" width="900" height="700" font-family="system-ui, -apple-system, 'Segoe UI', 'Malgun Gothic', 'Apple SD Gothic Neo', sans-serif">
+  <rect x="0" y="0" width="900" height="700" fill="#ffffff"/>
+  <defs>
+    <marker id="call" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#334155"/>
+    </marker>
+    <marker id="ret" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10" fill="none" stroke="#334155" stroke-width="1.2"/>
+    </marker>
+    <marker id="err" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#b91c1c"/>
+    </marker>
+    <style>
+      .msg { stroke: #334155; stroke-width: 1.3; fill: none; marker-end: url(#call); }
+      .rtn { stroke: #334155; stroke-width: 1.2; stroke-dasharray: 5 4; fill: none; marker-end: url(#ret); }
+      .emsg { stroke: #b91c1c; stroke-width: 1.4; fill: none; marker-end: url(#err); }
+      .act { fill: #ffffff; stroke: #334155; stroke-width: 1.1; }
+      .eact { fill: #ffffff; stroke: #b91c1c; stroke-width: 1.2; }
+      .life { stroke: #334155; stroke-width: 1; stroke-dasharray: 4 4; }
+      .frame { fill: none; stroke: #334155; stroke-width: 1.2; }
+      .tab { fill: #ffffff; stroke: #334155; stroke-width: 1.2; }
+      .div { stroke: #334155; stroke-width: 1.1; stroke-dasharray: 6 4; }
+      .code { font-size: 11.5px; fill: #334155; font-family: ui-monospace, 'Cascadia Code', Consolas, monospace; }
+      .ecode { font-size: 11.5px; fill: #b91c1c; font-weight: 700; font-family: ui-monospace, 'Cascadia Code', Consolas, monospace; }
+      .txt { font-size: 11.5px; fill: #475569; }
+      .etxt { font-size: 11.5px; fill: #b91c1c; }
+      .guard { font-size: 12px; font-weight: 600; fill: #0f172a; }
+      .eguard { font-size: 12px; font-weight: 600; fill: #b91c1c; }
+      .pname { font-size: 13px; font-weight: 600; fill: #0f172a; }
+    </style>
+  </defs>
+
+  <text x="30" y="28" font-size="12" fill="#475569">시퀀스 다이어그램 — 애플리케이션 기동 시 Flyway가 V1__init.sql을 적용·통과·거부하는 경로 (Day08)</text>
+
+  <!-- participants -->
+  <rect x="40" y="46" width="150" height="40" fill="#ffffff" stroke="#334155" stroke-width="1.3"/>
+  <text x="115" y="64" class="pname" text-anchor="middle">Spring Boot</text>
+  <text x="115" y="79" class="txt" text-anchor="middle">컨텍스트 기동</text>
+
+  <rect x="235" y="46" width="130" height="40" fill="#ffffff" stroke="#334155" stroke-width="1.3"/>
+  <text x="300" y="71" class="pname" text-anchor="middle">Flyway</text>
+
+  <rect x="710" y="46" width="160" height="40" fill="#ffffff" stroke="#334155" stroke-width="1.3"/>
+  <text x="790" y="64" class="pname" text-anchor="middle">db/migration</text>
+  <text x="790" y="79" class="code" text-anchor="middle">V1__init.sql</text>
+
+  <rect x="475" y="46" width="170" height="40" fill="#ffffff" stroke="#334155" stroke-width="1.3"/>
+  <text x="560" y="64" class="pname" text-anchor="middle">H2 (file)</text>
+  <text x="560" y="79" class="code" text-anchor="middle">flyway_schema_history</text>
+
+  <!-- lifelines -->
+  <line x1="115" y1="86" x2="115" y2="668" class="life"/>
+  <line x1="300" y1="86" x2="300" y2="668" class="life"/>
+  <line x1="560" y1="86" x2="560" y2="668" class="life"/>
+  <line x1="790" y1="86" x2="790" y2="668" class="life"/>
+
+  <!-- activations -->
+  <rect x="111" y="106" width="8" height="550" class="act"/>
+  <rect x="296" y="112" width="8" height="508" class="act"/>
+  <rect x="786" y="138" width="8" height="30" class="act"/>
+  <rect x="556" y="236" width="8" height="30" class="act"/>
+
+  <!-- preamble -->
+  <line x1="119" y1="116" x2="294" y2="116" class="msg"/>
+  <text x="207" y="110" class="code" text-anchor="middle">migrate()</text>
+
+  <line x1="304" y1="142" x2="784" y2="142" class="msg"/>
+  <text x="675" y="136" class="txt" text-anchor="middle">V&lt;버전&gt;__&lt;설명&gt;.sql 스캔</text>
+
+  <line x1="784" y1="166" x2="306" y2="166" class="rtn"/>
+  <text x="675" y="160" class="code" text-anchor="middle">V1__init.sql</text>
+
+  <path d="M 304 186 H 344 V 208 H 306" class="msg"/>
+  <text x="352" y="201" class="txt">파일 전체의 체크섬 계산</text>
+
+  <line x1="304" y1="240" x2="554" y2="240" class="msg"/>
+  <text x="430" y="234" class="txt" text-anchor="middle">flyway_schema_history 조회</text>
+
+  <line x1="554" y1="264" x2="306" y2="264" class="rtn"/>
+  <text x="430" y="258" class="txt" text-anchor="middle">적용 이력 (version, checksum)</text>
+
+  <!-- alt frame -->
+  <rect x="56" y="286" width="824" height="352" class="frame"/>
+  <path d="M 56 286 L 116 286 L 116 302 L 104 314 L 56 314 z" class="tab"/>
+  <text x="72" y="305" font-size="12" font-weight="600" fill="#0f172a">alt</text>
+
+  <!-- operand 1: first startup -->
+  <text x="132" y="306" class="guard">[장부에 V1 없음 — 첫 기동]</text>
+  <rect x="556" y="324" width="8" height="84" class="act"/>
+
+  <line x1="304" y1="336" x2="554" y2="336" class="msg"/>
+  <text x="430" y="330" class="txt" text-anchor="middle">장부 테이블 생성</text>
+
+  <line x1="304" y1="366" x2="554" y2="366" class="msg"/>
+  <text x="430" y="360" class="code" text-anchor="middle">CREATE TABLE reservation</text>
+
+  <line x1="304" y1="396" x2="554" y2="396" class="msg"/>
+  <text x="430" y="390" class="txt" text-anchor="middle">이력 기록: V1, success = TRUE</text>
+
+  <line x1="294" y1="424" x2="121" y2="424" class="rtn"/>
+  <text x="207" y="418" class="code" text-anchor="middle">version "1 - init"</text>
+
+  <!-- divider 1 -->
+  <line x1="56" y1="444" x2="880" y2="444" class="div"/>
+  <text x="132" y="466" class="guard">[파일 체크섬 = 장부 체크섬]</text>
+
+  <path d="M 304 484 H 344 V 506 H 306" class="msg"/>
+  <text x="352" y="499" class="txt">V1 건너뜀</text>
+
+  <line x1="294" y1="530" x2="121" y2="530" class="rtn"/>
+  <text x="207" y="524" class="code" text-anchor="middle">No migration necessary</text>
+
+  <!-- divider 2 -->
+  <line x1="56" y1="550" x2="880" y2="550" class="div"/>
+  <text x="132" y="572" class="eguard">[파일 체크섬 ≠ 장부 체크섬]</text>
+
+  <line x1="294" y1="600" x2="121" y2="600" class="emsg"/>
+  <text x="207" y="594" class="ecode" text-anchor="middle">FlywayValidateException</text>
+
+  <rect x="115" y="608" width="8" height="26" class="eact"/>
+  <path d="M 123 612 H 150 V 628 H 125" class="emsg"/>
+  <text x="156" y="625" class="etxt">기동 실패</text>
+
+  <text x="30" y="690" font-size="12" fill="#475569">Flyway는 SQL의 의미를 해석하지 않고 파일 전체의 체크섬 값만 장부와 비교한다.</text>
+</svg>

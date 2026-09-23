@@ -52,7 +52,7 @@
   <text x="472" y="222" font-size="11" fill="#0f172a" text-anchor="middle" font-family="ui-monospace, Consolas, monospace">hello()</text>
 
   <line x1="658" y1="260" x2="292" y2="260" stroke="#334155" stroke-width="1.1" stroke-dasharray="6 4" marker-end="url(#ret)"/>
-  <text x="472" y="254" font-size="11" fill="#0f172a" text-anchor="middle" font-family="ui-monospace, Consolas, monospace">"Hello, StudyRoom!"</text>
+  <text x="472" y="254" font-size="11" fill="#0f172a" text-anchor="middle" font-family="ui-monospace, Consolas, monospace">"Hello,StudyRoom!"</text>
 
   <line x1="268" y1="292" x2="91" y2="292" stroke="#334155" stroke-width="1.1" stroke-dasharray="6 4" marker-end="url(#ret)"/>
   <text x="180" y="286" font-size="11" fill="#0f172a" text-anchor="middle">200 OK + 본문</text>

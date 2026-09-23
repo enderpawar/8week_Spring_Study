@@ -1,0 +1,132 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 880" width="900" height="880" font-family="system-ui, -apple-system, 'Segoe UI', 'Malgun Gothic', 'Apple SD Gothic Neo', sans-serif">
+  <rect x="0" y="0" width="900" height="880" fill="#ffffff"/>
+  <defs>
+    <marker id="call" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#334155"/>
+    </marker>
+    <marker id="ret" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10" fill="none" stroke="#334155" stroke-width="1.2"/>
+    </marker>
+    <marker id="reterr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10" fill="none" stroke="#b91c1c" stroke-width="1.2"/>
+    </marker>
+    <style>
+      .msg { stroke: #334155; stroke-width: 1.3; fill: none; marker-end: url(#call); }
+      .rtn { stroke: #334155; stroke-width: 1.2; stroke-dasharray: 5 4; fill: none; marker-end: url(#ret); }
+      .err { stroke: #b91c1c; stroke-width: 1.3; stroke-dasharray: 5 4; fill: none; marker-end: url(#reterr); }
+      .act { fill: #ffffff; stroke: #334155; stroke-width: 1.1; }
+      .life { stroke: #334155; stroke-width: 1; stroke-dasharray: 4 4; }
+      .frame { fill: none; stroke: #334155; stroke-width: 1.2; }
+      .tab { fill: #ffffff; stroke: #334155; stroke-width: 1.2; }
+      .head { fill: #ffffff; stroke: #334155; stroke-width: 1.3; }
+      .name { font-size: 13px; font-weight: 600; fill: #0f172a; }
+      .code { font-size: 11.5px; fill: #334155; font-family: ui-monospace, 'Cascadia Code', Consolas, monospace; }
+      .txt { font-size: 11.5px; fill: #475569; }
+      .errtxt { font-size: 11.5px; fill: #b91c1c; font-family: ui-monospace, 'Cascadia Code', Consolas, monospace; }
+      .ftitle { font-size: 12px; font-weight: 600; fill: #0f172a; }
+    </style>
+  </defs>
+
+  <text x="20" y="28" font-size="12" fill="#475569">시퀀스 다이어그램 — Flyway 체크섬 검증과 Hibernate 변경 감지의 비교 대상과 시점</text>
+
+  <!-- ===== sd 1: Flyway checksum ===== -->
+  <rect x="20" y="44" width="860" height="372" class="frame"/>
+  <path d="M 20 44 L 250 44 L 250 60 L 238 72 L 20 72 z" class="tab"/>
+  <text x="30" y="63" class="ftitle">sd 체크섬 검증 — 애플리케이션 기동</text>
+
+  <rect x="50" y="84" width="120" height="36" class="head"/>
+  <text x="110" y="107" class="name" text-anchor="middle">Spring Boot</text>
+  <rect x="380" y="84" width="140" height="36" class="head"/>
+  <text x="450" y="107" class="name" text-anchor="middle">Flyway</text>
+  <rect x="660" y="84" width="200" height="36" class="head"/>
+  <text x="760" y="100" class="name" text-anchor="middle">H2</text>
+  <text x="760" y="114" class="code" text-anchor="middle">flyway_schema_history</text>
+
+  <line x1="110" y1="120" x2="110" y2="404" class="life"/>
+  <line x1="450" y1="120" x2="450" y2="404" class="life"/>
+  <line x1="760" y1="120" x2="760" y2="404" class="life"/>
+
+  <rect x="446" y="146" width="8" height="244" class="act"/>
+  <rect x="756" y="216" width="8" height="34" class="act"/>
+
+  <line x1="110" y1="150" x2="444" y2="150" class="msg"/>
+  <text x="280" y="144" class="txt" text-anchor="middle">마이그레이션 요청</text>
+
+  <path d="M 454 168 H 494 V 190 H 456" class="msg"/>
+  <text x="502" y="183" class="txt">파일마다 체크섬 계산</text>
+
+  <line x1="454" y1="220" x2="754" y2="220" class="msg"/>
+  <text x="605" y="214" class="txt" text-anchor="middle">적용 이력 조회</text>
+
+  <line x1="756" y1="246" x2="456" y2="246" class="rtn"/>
+  <text x="605" y="240" class="txt" text-anchor="middle">기록된 체크섬</text>
+
+  <rect x="40" y="266" width="820" height="136" class="frame"/>
+  <path d="M 40 266 L 96 266 L 96 280 L 86 290 L 40 290 z" class="tab"/>
+  <text x="52" y="283" class="ftitle">alt</text>
+
+  <text x="112" y="286" class="ftitle">[파일 체크섬 = 기록값]</text>
+  <line x1="446" y1="314" x2="112" y2="314" class="rtn"/>
+  <text x="280" y="308" class="txt" text-anchor="middle">미적용 버전만 실행 → 기동 계속</text>
+
+  <line x1="40" y1="332" x2="860" y2="332" stroke="#334155" stroke-width="1.1" stroke-dasharray="6 4"/>
+  <text x="112" y="352" class="ftitle">[불일치]</text>
+  <line x1="446" y1="384" x2="112" y2="384" class="err"/>
+  <text x="280" y="378" class="errtxt" text-anchor="middle">FlywayValidateException — 기동 거부</text>
+
+  <!-- ===== sd 2: dirty checking ===== -->
+  <rect x="20" y="440" width="860" height="424" class="frame"/>
+  <path d="M 20 440 L 230 440 L 230 456 L 218 468 L 20 468 z" class="tab"/>
+  <text x="30" y="459" class="ftitle">sd 변경 감지 — flush 시점</text>
+
+  <rect x="40" y="480" width="120" height="36" class="head"/>
+  <text x="100" y="503" class="name" text-anchor="middle">테스트</text>
+  <rect x="240" y="480" width="180" height="36" class="head"/>
+  <text x="330" y="503" class="name" text-anchor="middle">managed : Reservation</text>
+  <rect x="480" y="480" width="160" height="36" class="head"/>
+  <text x="560" y="503" class="name" text-anchor="middle">영속성 컨텍스트</text>
+  <rect x="700" y="480" width="160" height="36" class="head"/>
+  <text x="780" y="496" class="name" text-anchor="middle">H2</text>
+  <text x="780" y="510" class="code" text-anchor="middle">reservation</text>
+
+  <line x1="100" y1="516" x2="100" y2="852" class="life"/>
+  <line x1="330" y1="516" x2="330" y2="852" class="life"/>
+  <line x1="560" y1="516" x2="560" y2="852" class="life"/>
+  <line x1="780" y1="516" x2="780" y2="852" class="life"/>
+
+  <rect x="556" y="541" width="8" height="62" class="act"/>
+  <line x1="100" y1="545" x2="554" y2="545" class="msg"/>
+  <text x="445" y="539" class="code" text-anchor="middle">findById(id)</text>
+
+  <path d="M 564 563 H 604 V 585 H 566" class="msg"/>
+  <text x="612" y="578" class="txt">로드 스냅샷 보관</text>
+
+  <line x1="554" y1="600" x2="102" y2="600" class="rtn"/>
+  <text x="215" y="594" class="code" text-anchor="middle">managed</text>
+
+  <rect x="326" y="631" width="8" height="20" class="act"/>
+  <line x1="100" y1="635" x2="324" y2="635" class="msg"/>
+  <text x="215" y="629" class="code" text-anchor="middle">cancel(...)</text>
+  <text x="342" y="648" class="txt">필드만 변경, save() 없음</text>
+
+  <rect x="556" y="671" width="8" height="170" class="act"/>
+  <line x1="100" y1="675" x2="554" y2="675" class="msg"/>
+  <text x="445" y="669" class="code" text-anchor="middle">flush()</text>
+
+  <path d="M 564 693 H 604 V 715 H 566" class="msg"/>
+  <text x="612" y="708" class="txt">스냅샷 ↔ 현재 필드 비교</text>
+
+  <rect x="40" y="733" width="820" height="118" class="frame"/>
+  <path d="M 40 733 L 96 733 L 96 747 L 86 757 L 40 757 z" class="tab"/>
+  <text x="52" y="750" class="ftitle">alt</text>
+
+  <text x="112" y="753" class="ftitle">[값이 다름]</text>
+  <rect x="776" y="776" width="8" height="20" class="act"/>
+  <line x1="564" y1="780" x2="774" y2="780" class="msg"/>
+  <text x="670" y="774" class="code" text-anchor="middle">UPDATE</text>
+
+  <line x1="40" y1="802" x2="860" y2="802" stroke="#334155" stroke-width="1.1" stroke-dasharray="6 4"/>
+  <text x="112" y="822" class="ftitle">[값이 같음]</text>
+  <path d="M 564 814 H 604 V 834 H 566" class="msg"/>
+  <text x="612" y="829" class="txt">UPDATE 없음</text>
+</svg>

@@ -1,65 +1,199 @@
-# [백엔드 기본기 Day4] Service/Repository 책임 분리 — 같은 값으로 만든 새 객체는 왜 그 예약이 아닌가
+# [백엔드 기본기 Day4] Service/Repository Separation of Concerns — Identifier 도입과 Wrapper 값 비교
 
-Day3까지 `ReservationController`가 요청을 받는 일부터 예약 객체를 만드는 일까지 전부 하고 있었다. 오늘은 그 일을 `ReservationService`와 `ReservationRepository`로 나누고, 먼저 끝내둔 `reserve()`에 이어 `cancel()`을 같은 패턴으로 옮기는 독립 변형을 마무리했다. 계층을 나누는 것보다, 옮기고 나서 드러난 "취소할 예약을 어떻게 지목하는가"가 오늘의 중심 질문이 됐다. 저장소는 아직 메모리이고 JPA·DB는 이 글의 범위 밖이다.
+Day3까지 `ReservationController`가 요청을 받는 일부터 `Reservation` 객체를 만들고 확정하는 일까지 전부 맡고 있었다. 이번에는 그 일을 `ReservationService`와 `ReservationRepository`로 나누고, 먼저 옮긴 `reserve()`에 이어 `cancel()`을 같은 패턴으로 옮기는 독립 변형을 마무리했다. 계층을 나눈 뒤 드러난 "취소할 예약의 지목 수단"이 이 글의 중심 질문이다. 저장소는 아직 메모리이고 JPA·DB는 범위 밖이다.
 
-> `cancel()`을 `reserve()`와 똑같은 패턴으로 옮겼더니, 예약이 취소되는 대신 하나 더 생겼다. 원인은 `new Reservation(...)`이 매번 새 인스턴스를 만드는데 저장소에는 그 둘을 구별할 식별자가 없었다는 것이었고, `Reservation`에 `id`를 넣고 `findById()`로 찾아 고치는 흐름으로 바꿔 curl로 reserve→cancel까지 확인했다. 덤으로 `Long`의 `==` 비교 함정과, 컴파일·테스트가 초록불이어도 요청을 실제로 던져야만 드러나는 `@PathVariable` 불일치를 같이 겪었다.
+> `cancel()`을 `reserve()`와 똑같은 패턴으로 옮겼더니 예약이 취소되는 대신 하나 더 생겼다. 원인은 `new Reservation(...)`이 매번 새 인스턴스를 만드는데 저장소에는 둘을 구별할 식별자가 없었다는 것이었고, `Reservation`에 `id`를 넣고 `findById()`로 찾아 고치는 흐름으로 바꿔 curl로 reserve→cancel까지 확인했다. 그 과정에서 `Long`의 `==` 비교 함정과, 컴파일·테스트가 초록불이어도 요청을 실제로 던져야만 드러나는 `@PathVariable` 불일치를 함께 겪었다.
 
 ## 1. 개념 설명
 
-| 용어 | 한줄뜻 | 코드 모습 |
+| 용어 | 한줄뜻 | 현재 프로젝트 적용 지점 |
 |---|---|---|
-| Service 계층 | 비즈니스 로직(상태 변경 규칙)을 수행하며 Controller와 Repository 사이를 조율한다 | `reservationService.cancel(id)` |
-| Repository 인터페이스 | 저장소 접근을 "무엇을 할 수 있는지(What)"만 선언하고 "어떻게(How)"는 구현체에 위임 | `interface ReservationRepository { Reservation findById(Long id); }` |
-| 단일 책임 원칙(SRP) | 클래스는 변경 이유를 하나만 가져야 한다 | Controller는 HTTP 입출력만, Service는 로직만 |
-| 의존성 역전 원칙(DIP) | 상위 모듈이 구체 구현이 아니라 추상화에 의존한다 | `ReservationService(ReservationRepository repository)` |
-| 식별자(PK) | 값이 같아 보여도 서로 다른 레코드를 구별하는 고유 값. 없으면 "찾아서 갱신"이 아니라 "새로 추가"만 가능 | `private Long id;` |
-| Wrapper 타입 값 비교 | `Long`·`Integer` 같은 객체 타입은 `==`이 아니라 `.equals()`로 비교해야 값이 같은지 알 수 있다 | `r.getId().equals(id)` |
-| `@PathVariable` | URL 경로의 일부(`{id}`)를 메서드 파라미터로 매핑 | `@PostMapping("/reservations/cancel/{id}")` |
+| Service 계층 | 비즈니스 로직(상태 변경 규칙)을 수행하며 Controller와 Repository 사이를 조율 | `ReservationService.reserve()`, `.cancel(id)` |
+| Repository 인터페이스 | 저장소 접근의 What만 선언하고 How는 구현체에 위임 | `ReservationRepository` ← `InMemoryReservationRepository` |
+| 단일 책임 원칙(SRP) | 클래스는 변경 이유를 하나만 가져야 한다 | Controller는 HTTP 입출력, Service는 규칙 |
+| 의존성 역전 원칙(DIP) | 상위 모듈이 구체 구현이 아니라 추상화에 의존 | `ReservationService(ReservationRepository ...)` |
+| 식별자(PK) | 값이 같아 보여도 서로 다른 레코드를 구별하는 고유 값 | `Reservation`의 `private Long id` |
+| Wrapper 타입 값 비교 | `Long`·`Integer`는 `==`가 아니라 `.equals()`로 값을 비교 | `r.getId().equals(id)` |
+| `@PathVariable` | URL 경로의 `{id}`를 메서드 파라미터로 매핑 | `@PostMapping("/reservations/cancel/{id}")` |
 
-오늘 만든 취소 요청 하나는 이렇게 흘러간다.
+### 변경 이유에 따른 계층 분리
+
+Day3의 `ReservationController.reserve()`는 요청 본문을 받고, `new Reservation(...)`으로 객체를 만들고, `confirm()`으로 상태를 바꾼 뒤 응답 문자열까지 만들었다. 요청 형식이 바뀌어도, 예약 규칙이 바뀌어도, 저장 방식이 생겨도 모두 이 한 메서드를 고쳐야 하는 구조였다.
+
+계층을 나누는 기준은 **"무엇이 바뀌면 이 파일을 고치게 되는가"**다. 서로 다른 변경 이유가 한 클래스에 모이면 한 가지 변경이 다른 책임의 코드까지 건드린다. 이것이 단일 책임 원칙(SRP) 위반이고, CS 용어로는 응집도가 낮은 상태다.
+
+| 계층 | 책임 | 바뀌는 계기 |
+|---|---|---|
+| `ReservationController` | HTTP 입출력(경로·본문 → 인자, 결과 → 응답) | 요청·응답 형식 변경 |
+| `ReservationService` | 상태 변경 규칙(확정, 취소) | 예약 규칙 변경 |
+| `ReservationRepository` | 저장소 접근(저장, 조회) | 저장 방식 변경(메모리 → DB) |
+
+취소 요청 하나가 세 계층을 지나는 순서는 다음과 같다.
 
 ```text
 POST /reservations/cancel/1
-  → ReservationController            HTTP 입출력 (경로에서 id를 꺼낸다)
-  → ReservationService               규칙 (찾아서 상태를 바꾼다)
-  → ReservationRepository            저장소 접근 — What만 선언
-      └ InMemoryReservationRepository  How를 구현 (지금은 ArrayList)
+→ ReservationController.cancel(@PathVariable Long id)   경로에서 id=1을 꺼낸다
+→ ReservationService.cancel(1)                          규칙: 찾아서 상태를 바꾼다
+→ ReservationRepository.findById(1)                     What만 선언된 계약
+   └ InMemoryReservationRepository.findById(1)          How: ArrayList를 순회
+→ reservation.cancel()                                  confirmed: true → false
+→ ReservationRepository.save(reservation)
+→ Controller가 결과 객체로 응답 문자열 생성
 ```
 
-**세 계층을 가르는 기준은 "무엇이 바뀌면 이 파일을 고치게 되는가"다.** 요청 형식이 바뀌면 Controller, 예약 규칙이 바뀌면 Service, 저장 방식이 바뀌면 Repository. 셋을 한 클래스에 두면 서로 다른 세 이유가 같은 파일을 건드리게 되고, 그게 SRP 위반이다.
+Controller는 경로 변수와 응답 문자열만 다룬다. "찾아서 바꾼다"는 판단은 Service에 있고, ArrayList를 순회한다는 사실은 구현체만 안다.
 
-Repository를 인터페이스로 둔 이유는 그 다음 층이다. 소스 주석에 이렇게 적어뒀다.
+분리의 실무적 이득은 테스트에서 먼저 체감된다. 규칙이 Controller 안에 있으면 테스트마다 가짜 HTTP 요청을 만들어야 하지만, Service로 분리하면 HTTP 없이 규칙만 호출할 수 있다.
+
+계층 분리가 보장하는 것은 변경의 파급 범위다. 동작의 정확성은 보장하지 않는다. 이번에 `cancel()`을 올바른 계층으로 옮겼는데도 예약이 하나 더 생긴 것이 그 증거다.
+
+> **정리.** 계층은 코드의 종류가 아니라 변경 이유로 나눈다. 분리는 파급 범위를 줄일 뿐, 옮긴 로직이 맞는지는 따로 확인해야 한다.
+
+### Repository 인터페이스와 의존 방향
+
+Service가 `InMemoryReservationRepository`를 직접 알면, 저장 방식을 DB로 바꾸는 순간 Service 코드도 함께 고쳐야 한다. 이 전파를 끊으려고 Repository를 인터페이스로 두었다. 소스 주석에는 이렇게 적었다.
 
 > 인터페이스 = "What to do(무엇을 할 수 있는지)"만 약속. "How"는 구현체가 정한다.
 
-`@Override`가 붙은 자리가 그 How를 채우는 자리다. 그래서 `ReservationService` 코드 어디에도 `InMemoryReservationRepository`라는 이름이 나오지 않고, 생성자 파라미터 타입은 인터페이스인 `ReservationRepository`다. 실제 구현체를 넣어주는 건 Spring의 생성자 주입인데, 그게 어떻게 동작하는지는 Day5 주제로 미뤄뒀다.
+구현체의 `@Override` 자리에는 "메서드를 여기서 override로 재정의해주는거지. 즉 How를 정의해준다!"라고 적었다. `ReservationService` 코드 어디에도 `InMemoryReservationRepository`라는 이름은 나오지 않고, 생성자 파라미터 타입도 인터페이스다.
 
-식별자는 그 아래에서 나왔다. `Reservation`은 record가 아니라 class인데, 주석에 이유를 적어놨다 — **"Domain = 상태 + 규칙(business rule)을 함께 가진다. record 형태가 아님. 상태가 바뀔 수 있어야하니까."** `confirmed`를 바꾸는 통로도 필드 직접 접근이 아니라 `confirm()`·`cancel()` 메서드로 캡슐화했다.
+```text
+ReservationService ──의존──▶ «interface» ReservationRepository
+                                      ▲
+                           InMemoryReservationRepository (implements)
+```
 
-그런데 "상태를 바꾼다"가 성립하려면 **바꿀 대상을 지목할 수 있어야 한다.** 그 지목 수단이 식별자다.
+상위 정책(Service)과 하위 구현(메모리 저장소)이 모두 인터페이스를 향한다. 의존 화살표가 구현체에서 멈추지 않고 추상화로 모인다는 점이 의존성 역전 원칙(DIP)이고, 결과적으로 느슨한 결합이 된다.
 
-- `id`는 `final`이 아니다 — "저장되기 전에는 아직 값이 없음"이기 때문이다
-- 그래서 `save()`는 `getId() == null`일 때만 번호를 부여한다
-- 식별자가 없으면 저장소는 "이미 있는 것"과 "새 것"을 구별할 근거가 없다
+여기서 혼동한 짝이 있다. "Repository의 책임"을 처음에 **"인터페이스 역할 수행"**이라고 답했다.
 
-DB로 치면 기본키(PK)가 하는 일과 같은 자리다. JPA에서는 `@GeneratedValue`가 이 역할을 맡는다고 한다(Week B 예정).
+| 구분 | 내용 | 이 프로젝트에서 |
+|---|---|---|
+| 책임 | 이 계층이 맡은 일 | 저장소 접근(저장·조회) |
+| 구현 방식 | 그 책임을 표현한 형태 | 인터페이스 + 구현체 |
 
-식별자를 넣는 순간 **"id가 같은가"를 판정하는 문제**가 따라온다. 여기서 참조 동일성과 값 동일성이 갈린다. `Long`은 원시타입 `long`이 아니라 객체라서, `==`는 값이 같은지가 아니라 같은 메모리 주소를 가리키는지를 본다. 재미있게도 `InMemoryReservationRepository` 한 파일 안에 두 비교가 나란히 있다 — `getId() == null`(참조 비교가 맞는 자리)과 `getId().equals(id)`(값 비교가 맞는 자리).
+인터페이스라는 것은 책임을 담는 형태일 뿐이다. 메모리가 DB로 바뀌어도 "저장소 접근"이라는 책임은 그대로 남는다.
 
-마지막으로 취소할 대상을 클라이언트가 지목하려면 id를 보낼 통로가 필요했다. 그래서 URL 경로에 실어 `@PathVariable`로 받고, `reserve()` 응답에는 `예약 번호1-...`처럼 부여된 id를 노출해서 다음 요청에 쓸 수 있게 했다.
+보장 범위도 구분해 둔다. 이 설계가 약속하는 것은 "구현체를 바꿔도 Service는 안 바뀐다"인데, 오늘은 구현체가 하나뿐이라 실제 교체는 해보지 않았다. JPA 기반 구현으로 바꾸는 Week B가 이 주장의 시험대다. 실제 구현체를 Service 생성자에 넣어주는 주체도 아직 열어보지 않았다. 소스에 `//원리는 5일 차에서 배우기..` 주석을 남기고 Day5로 미뤘다.
+
+### Domain Model의 상태와 Encapsulation
+
+`Reservation`은 record가 아니라 class다. 소스 주석에 이유를 적어두었다.
+
+> Domain = 상태 + 규칙(business rule)을 함께 가진다. record 형태가 아님. 상태가 바뀔 수 있어야하니까.
+
+`roomName`, `requesterName`은 `final`이지만 `confirmed`는 바뀌어야 한다. 그 변경 통로를 필드 직접 접근이 아니라 `confirm()`·`cancel()` 메서드로 캡슐화했다. 생성 직후 `confirmed`는 `false`이고, Service가 `confirm()`을 호출해야 `true`가 된다.
+
+그런데 "상태를 바꾼다"가 성립하려면 **바꿀 대상을 지목할 수 있어야 한다.** 다음 절의 식별자가 그 지목 수단이다.
+
+### Identifier와 객체 동일성
+
+`cancel()`을 처음 옮길 때는 `roomName`과 `requesterName`으로 예약을 가리키려 했다. 코드는 `new Reservation(roomName, requesterName)`을 만들어 `cancel()`한 뒤 저장했다.
+
+```text
+이름 기반 cancel("301호", ...)
+→ new Reservation("301호", ...)       새 인스턴스 r2 (confirmed=false)
+→ r2.cancel()                          r2만 false
+→ save(r2) → store.add(r2)             store = [r1(true), r2(false)]
+→ 기존 예약 r1은 confirmed=true 그대로
+```
+
+값이 같아도 자바에서 `new`는 매번 다른 객체를 만든다. 저장소에도 "이미 있으면 갱신"이라는 분기가 없었다. **`Reservation`에는 "이게 바로 그 예약이다"라고 지칭할 수단이 없었다.** 기본키가 없는 테이블과 같은 상태였다.
+
+식별자를 넣은 뒤의 흐름은 다음과 같다.
+
+```text
+reserve() → new Reservation(...) → confirm()
+→ save(): getId() == null 이므로 assignId(nextId++) → id=1
+→ store.add(r1), 응답에 "예약 번호1-..." 노출
+
+cancel(1) → findById(1): store를 돌며 getId().equals(1)인 r1 반환
+→ r1.cancel(): 저장돼 있던 그 객체의 confirmed가 false
+→ save(r1)
+```
+
+`id`는 `final`이 아니다. 소스 주석대로 "저장되기 전에는 아직 값이 없음"이기 때문이다. 그래서 `save()`는 `getId() == null`일 때만 번호를 부여한다. DB의 기본키(PK)가 하는 일과 같은 자리이고, JPA에서는 `@GeneratedValue`가 이 역할을 맡는다(Week B 예정).
+
+| 구분 | 판단 기준 | 오늘 코드에서 |
+|---|---|---|
+| 값이 같은 객체 | 필드 값 비교 | 이름 기반 `cancel()`의 r1, r2 |
+| 같은 대상 | 식별자 비교 | `findById(1)`이 돌려준 r1 |
 
 ![객체 다이어그램 두 장. 위는 이름으로 취소했을 때로, store의 [0]과 [1]이 각각 r1과 r2라는 서로 다른 Reservation 인스턴스를 가리킨다. 둘 다 roomName이 "301호"로 값은 같지만 r1은 confirmed=true, r2는 false다. 취소한 건 r2뿐이라 기존 예약 r1은 그대로다. 아래는 id로 취소한 뒤로, 인스턴스는 id=1인 r1 하나인데 store의 [0]과 [1] 두 링크가 모두 그 하나를 가리킨다. save()가 ID 유무와 무관하게 store.add()를 실행하기 때문인데, 원소 수를 세는 테스트도 findAll() 엔드포인트도 없어 실제로 그런지는 확인하지 않았다.](../../../assets/day04-identity-store.png)
+<!-- velog 업로드: 이 줄 위 이미지 자리에 app/study_docs/assets/day04-identity-store.png 파일을 드래그해 교체 -->
+
+식별자 도입이 보장하는 것은 "지목한 그 객체의 상태를 바꾼다"까지다. 오늘 코드에는 두 가지 빈틈이 남았다.
+
+- `save()`가 id 유무와 관계없이 `store.add()`를 호출한다. 찾아온 r1을 다시 저장하면 같은 참조가 두 번 들어갈 수 있다. 원소 수를 셀 수단이 없어 **미검증**이다.
+- `findById()`는 없는 id에 `null`을 반환하고, `ReservationService.cancel()`은 확인 없이 `reservation.cancel()`을 호출한다.
+
+두 빈틈은 이후 Day07에서 "기존 id는 교체"와 `Optional`·`ReservationNotFoundException`으로 바뀌었다.
+
+> **정리.** 값이 같다는 것과 같은 대상이라는 것은 다르다. 상태를 바꾸려면 먼저 식별자로 대상을 지목해야 하고, 지목 수단이 없으면 "갱신"은 "추가"가 된다.
+
+### Reference Equality와 Value Equality
+
+식별자를 넣는 순간 "id가 같은가"를 판정하는 문제가 따라왔다. `findById()`를 처음 쓸 때는 `if(r.getId() == id)`로 비교했다.
+
+`Long`은 원시타입 `long`이 아니라 객체(Wrapper)다. 객체끼리의 `==`는 값이 같은지가 아니라 **같은 인스턴스를 가리키는지**(참조 동일성)를 본다. 값이 같은지(값 동일성)는 `.equals()`가 판정한다.
+
+```text
+r.getId() == id       → 두 Long 참조가 같은 인스턴스인가
+r.getId().equals(id)  → 두 Long이 담은 long 값이 같은가
+```
+
+`InMemoryReservationRepository` 한 파일 안에 두 비교가 나란히 있다.
+
+| 코드 | 묻는 것 | 맞는 비교 |
+|---|---|---|
+| `reservation.getId() == null` | 참조가 비어 있는가 | 참조 비교 `==` |
+| `r.getId().equals(id)` | 담은 값이 같은가 | 값 비교 `.equals()` |
+
+`==`가 위험한 이유는 틀린 결과가 항상 드러나지는 않는다는 데 있다. `Long.valueOf(long)`은 `-128`~`127` 범위의 값을 항상 캐시한다. `nextId++`로 만든 `long`이 `Long`으로 박싱될 때 이 캐시를 타면, id가 1, 2, 3인 동안에는 같은 값의 `Long`이 같은 인스턴스가 되어 `==`가 우연히 통과한다.
+
+작은 데이터로 테스트하면 숨어 있다가 값이 커지면 터지는 종류의 버그다. id 128 이상에서 `==`가 실제로 `false`가 되는 반례는 이번에 실행하지 않았으므로 **미검증**이다.
+
+`String`을 `==`로 비교하면 안 되는 것과 같은 함정이지만 이유가 완전히 같지는 않다. `String`은 컴파일타임 상수 인터닝 때문에, `Long`은 `valueOf`의 캐시 때문에 `==`가 우연히 맞을 수 있다.
+
+> **정리.** Wrapper의 `==`는 참조를 비교한다. 작은 값에서 통과하는 것은 캐시 덕분이고, 값 비교는 `.equals()`로 한다.
+
+### URI Template Variable과 검사 단계의 경계
+
+취소할 대상을 클라이언트가 지목하려면 id를 보낼 통로가 필요했다. URL 경로에 id를 싣고 `@PathVariable`로 받도록 했다. 경로가 자원을 식별한다는 REST의 URI 설계와 연결되는 지점이다. `reserve()` 응답에는 `예약 번호1-...`처럼 부여된 id를 노출해 다음 요청에 쓸 수 있게 했다.
+
+바인딩은 요청이 들어온 뒤에 일어난다.
+
+```text
+요청 POST /reservations/cancel/1 도착
+→ Spring MVC가 매핑 경로 "/reservations/cancel/{id}"와 대조
+→ URI 템플릿 변수 id = "1" 추출
+→ @PathVariable Long id 파라미터에 "1"을 Long으로 변환해 전달
+→ ReservationController.cancel(1) 실행
+```
+
+매핑 경로에 `{id}`가 없으면 셋째 단계에서 꺼낼 변수가 없다. 이 불일치는 자바 문법으로는 아무 문제가 없다. 애노테이션의 문자열 값과 파라미터 이름을 대조하는 일은 컴파일러가 아니라 요청을 처리하는 Spring이 한다.
+
+| 검사 단계 | 잡은 것 | 못 잡은 것 |
+|---|---|---|
+| `compileJava` | 괄호 짝, 모든 경로의 return | `{id}` 누락, `null` 반환의 의미 |
+| `test` (`contextLoads()`뿐) | 컨텍스트 기동 | 경로 바인딩, 응답 본문 |
+| 실제 요청(curl) | `{id}` 누락 → 500 | 저장소 원소 수 |
+
+컴파일러는 "모든 경로가 리턴하는가"는 물었지만 "못 찾았을 때 무엇을 리턴해야 하는가"는 묻지 않았다. 테스트 역시 등록된 테스트가 묻는 것에만 답했다.
+
+> **정리.** 빌드 성공은 문법과 등록된 테스트가 묻는 범위의 답이다. API가 계약대로 동작하는지는 그 경로로 요청이 실제로 들어와야 드러난다.
 
 > **더 볼 것**
 > - [Mapping Requests — Spring Framework Reference](https://docs.spring.io/spring-framework/reference/web/webmvc/mvc-controller/ann-requestmapping.html): URI 템플릿 변수와 `@PathVariable`의 관계
-> - [JLS 5.1.7 Boxing Conversion](https://docs.oracle.com/javase/specs/jls/se17/html/jls-5.html#jls-5.1.7): `-128`~`127` 박싱 결과가 `==`로 같아지는 근거
+> - [JLS 5.1.7 Boxing Conversion](https://docs.oracle.com/javase/specs/jls/se17/html/jls-5.html#jls-5.1.7): 박싱 결과의 `==` 동일성 규칙
+> - [`Long.valueOf(long)` — Java SE 17 API](https://docs.oracle.com/en/java/javase/17/docs/api/java.base/java/lang/Long.html#valueOf(long)): `-128`~`127` 범위를 항상 캐시한다는 명세
 > - 아직 안 본 것 — 생성자 주입이 동작하는 원리(Day5), REST에서의 자원 식별 규칙, 구현체를 JPA로 교체하기(Week B)
 
 ## 2. 코드 구현
 
-### `cancel()`을 `reserve()`와 같은 패턴으로 옮기기
+### `reserve()` 경로의 계층 분리
 
-`reserve()` 경로는 이미 이 모양으로 분리해둔 상태였다.
+먼저 끝낸 `reserve()` 경로다. Controller가 직접 하던 `new Reservation(...)`과 `confirm()`이 Service로 옮겨졌고, 이어서 `cancel()`을 옮긴 뒤 응답에 id를 넣었다.
 
 ```java
 @PostMapping("/reservations")
@@ -72,9 +206,9 @@ public String reserve(@RequestBody @Valid ReservationRequest request) {
 
 `cancel()`도 같은 모양으로 옮기면 될 줄 알았다.
 
-### 예측이 틀렸던 지점 — 취소했는데 예약이 하나 더 생김
+### 이름 기반 `cancel()`의 중복 생성
 
-방을 하나 확정한 다음 같은 `roomName`/`requesterName`으로 취소를 호출하면, 기존 예약을 찾아서 `confirmed`만 `false`로 바뀔 거라고 예측했다. 실제로는 새 예약이 하나 더 생겼고, 원래 예약은 `confirmed: true` 그대로 남았다.
+방을 하나 확정한 다음 같은 `roomName`/`requesterName`으로 취소를 호출하면, 기존 예약을 찾아 `confirmed`만 `false`로 바뀔 것이라고 예측했다. 실제로는 새 예약이 하나 더 생겼고, 원래 예약은 `confirmed: true` 그대로 남았다.
 
 ```java
 public Reservation cancel(String roomName, String requesterName){
@@ -84,11 +218,14 @@ public Reservation cancel(String roomName, String requesterName){
 }
 ```
 
-원인은 `new Reservation(...)`이 매번 완전히 새 인스턴스를 만든다는 것이다. 값이 같아도 자바 입장에선 다른 객체고, `save()`에도 "이미 있으면 갱신"이라는 분기 없이 `store.add(...)`만 있다. 즉 **`Reservation`에는 "이게 바로 그 예약이다"라고 지칭할 수단이 없었다.** 기본키가 없는 테이블과 같은 상태였던 셈이다.
+`findById` 없이 새 인스턴스를 만들어 저장했기 때문이다. `save()`에는 `store.add(...)`만 있었다. 1절의 "식별자와 객체 동일성"이 이 실패에서 출발했다.
 
-### 식별자를 넣자 컴파일러가 먼저 막았다
+### Identifier 도입 과정의 컴파일 오류
 
-`Reservation`에 `id`와 `assignId()`/`getId()`를 추가하고 `findById()`를 쓰는데, 컴파일이 안 됐다.
+`Reservation`에 `id`와 `assignId()`/`getId()`를 추가하고 `findById()`를 작성하자 컴파일 오류가 두 단계로 났다.
+
+1. `if(r.getId() == id)){`의 괄호 개수 불일치 → `illegal start of expression`. 괄호 짝이 맞지 않으면 컴파일러는 그 지점부터 문법을 파싱하지 못한다.
+2. 루프가 끝까지 돌고도 못 찾은 경우의 리턴 누락 → `missing return statement`. 메서드의 모든 실행 경로가 값을 리턴해야 한다는 규칙이다.
 
 ```java
 public Reservation findById(Long id) {
@@ -97,30 +234,32 @@ public Reservation findById(Long id) {
             return r;
         }
     }
-    // 루프가 끝까지 돌고 못 찾은 경우 → missing return statement
+    return null;
 }
 ```
 
-"모든 실행 경로가 값을 리턴해야 한다"는 규칙에 걸렸다. 여기서 `return null`을 넣으면 문법 조건은 채워지지만, **예약이 없을 때 무엇을 할지는 여전히 안 정한 것이다.** 지금 코드는 `return null`로 두고 넘어갔고, 이건 아래 한계에 적었다.
+비교는 `==`에서 `.equals()`로 바꿨다. `return null`로 문법 조건은 채웠지만, **예약이 없을 때 무엇을 할지는 여전히 정하지 않은 것**이다. 이 빈틈은 4절에 적었다.
 
-### 컴파일·테스트가 초록불이어도 안심할 수 없는 버그
+### `@PathVariable` 경로 불일치의 런타임 500
 
-`@PathVariable Long id`를 컨트롤러 파라미터에 추가했는데, `@PostMapping` 경로에는 `{id}`를 안 넣은 채로 커밋 직전까지 갔다. `./gradlew compileJava`와 `./gradlew test`는 둘 다 성공이었다. 그런데 앱을 띄워 요청을 보내니 이랬다.
+`@PathVariable Long id`를 컨트롤러 파라미터에 추가했는데, `@PostMapping` 경로에는 `{id}`를 넣지 않은 채 커밋 직전까지 갔다. 컴파일이 통과했으니 정상 동작할 것이라고 예측했다. `./gradlew compileJava`와 `./gradlew test`는 둘 다 성공이었다. 앱을 띄워 요청을 보내자 결과가 달랐다.
 
-```
+```text
 POST /reservations/cancel → 500
 {"error":"Required URI template variable 'id' for method parameter type Long is not present"}
 ```
 
-`@PathVariable`과 URL 템플릿의 불일치는 자바 문법 오류가 아니라, Spring이 요청을 처리하면서 URI에서 값을 채우려 할 때 나는 런타임 오류다. 그래서 문법 검사와 테스트를 다 통과해도 **그 경로로 요청이 실제로 들어와야만** 드러났다. `@PostMapping("/reservations/cancel/{id}")`로 고치고 나서야 정상 동작했다.
+요청이 들어와 Spring이 URI에서 값을 채우려 할 때 나는 런타임 오류다. `@PostMapping("/reservations/cancel/{id}")`로 고친 뒤 정상 동작했다.
 
-### 오늘 확인한 것
+### 자동 검증 결과
 
-**자동 테스트** — `./gradlew compileJava`, `./gradlew test` 모두 성공. 다만 지금 테스트는 `contextLoads()` 하나여서 경로 바인딩이나 응답 본문이 깨져도 초록불이 나온다. 위 `@PathVariable` 버그를 실제로 못 잡았다.
+| 구분 | 방법 | 결과 |
+|---|---|---|
+| 자동 테스트 | `./gradlew compileJava`, `./gradlew test` | 성공. 단, 테스트는 `contextLoads()` 하나라 `@PathVariable` 불일치를 잡지 못함 |
+| 수동 확인 | `bootRun` 후 curl로 reserve → cancel | 아래 응답 확인 |
+| 미검증 | 취소 뒤 저장소 원소 수, 빈 문자열 요청의 `@Valid` 400 | 실행하지 않음 |
 
-**수동 확인** — `bootRun`으로 앱을 띄우고 curl로 흐름을 확인했다.
-
-```
+```text
 POST /reservations {"roomName":"A101","requesterName":"tester"}
 → 예약 번호1-tester님이 A101 예약 완료 (확정: true)
 
@@ -128,38 +267,40 @@ POST /reservations/cancel/1
 → tester님이A101 예약을 취소하셨습니다 (확정 : false)
 ```
 
-**미검증** — 취소 뒤 **저장소 리스트의 원소 수는 검증하지 않았다.** `findAll()`을 노출하는 엔드포인트가 없어서, `save()`가 같은 참조를 한 번 더 넣었는지 확인할 방법이 지금 없다. 컨트롤러에는 빈 문자열을 보내면 `@Valid`가 400을 낼 것 같다는 추측 주석이 아직 남아 있는데, 그 요청은 보내보지 않았다. 응답 본문은 추측하지 않는다.
+`findAll()`을 노출하는 엔드포인트가 없어서 `save()`가 같은 참조를 한 번 더 넣었는지는 확인할 방법이 없었다. 컨트롤러에는 빈 문자열을 보내면 `@Valid`가 400을 낼 것 같다는 추측 주석이 남아 있지만, 그 요청은 보내지 않았으므로 응답 본문은 추측하지 않는다.
 
 오늘 코드는 [`e22bb34` 커밋](https://github.com/enderpawar/8week_Spring_Study/commit/e22bb34)에 있다. 앞선 `reserve()` 경로 분리는 [`d6320e2`](https://github.com/enderpawar/8week_Spring_Study/commit/d6320e2)다.
 
 ## 3. 스스로 답한 질문
 
-### Q. Repository의 책임은 무엇인가?
+### Q1. Repository의 책임과 구현 방식의 구분
 
-처음엔 **"인터페이스 역할 수행"** 이라고 답했다. 인터페이스인 것은 구현 방식이지 책임 자체가 아니다. 진짜 책임은 **저장소 접근을 담당하는 것**이고, 지금은 메모리에 두지만 나중에 DB로 바뀌어도 이 책임 자체는 그대로다.
+**질문.** Controller가 하던 일을 Service와 Repository로 나눴다. Repository의 책임은 무엇인가?
 
-Controller에 셋을 다 몰아넣으면 안 되는 이유도 여기서 나온다. SRP 위반이라는 원칙 이야기 말고 실무적으로 체감되는 건 테스트다. 비즈니스 로직이 Controller 안에 있으면 테스트할 때마다 가짜 HTTP 요청을 만들어야 하지만, Service로 분리하면 HTTP 없이 순수 로직만 테스트할 수 있다.
+**A1.** 처음엔 **"인터페이스 역할 수행"**이라고 답했다. 인터페이스인 것은 구현 방식이지 책임 자체가 아니다.
 
-### Q. Service가 `InMemoryReservationRepository`라는 이름을 전혀 모르는 채로 동작하는 이유는?
+진짜 책임은 **저장소 접근을 담당하는 것**이다. 지금은 메모리에 두지만 나중에 DB로 바뀌어도 이 책임은 그대로다. 이후로는 "이 계층이 무엇을 하는가"와 "그것을 어떤 형태로 표현했는가"를 나눠서 답한다.
 
-의존성 역전 원칙(DIP)이다. Service가 구체 구현이 아니라 추상화에 의존하니, 구현체를 JPA 기반으로 바꿔도 Service 코드는 안 건드려도 된다. Week B에서 실제로 이 교체를 해볼 예정이라, 그때 "정말 한 줄도 안 바뀌는지"가 이 주장의 시험대가 된다.
+### Q2. `findById`의 `.equals()` 비교 근거
 
-### Q. `findById`에서 `==` 대신 `.equals()`를 쓴 이유는?
+**질문.** `findById`에서 `r.getId() == id` 대신 `r.getId().equals(id)`로 고친 이유는 무엇인가?
 
-처음엔 **"null값 탐지"** 를 위해서라고 답했다. 틀렸다. `.equals()`를 쓰는 이유는 null 탐지가 아니라 참조 동일성과 값 동일성의 차이 때문이다.
+**A2.** 처음엔 **"null값 탐지"**를 위해서라고 답했다. 틀렸다. `.equals()`를 쓰는 이유는 null 탐지가 아니라 참조 동일성과 값 동일성의 차이다.
 
-`Long`은 원시타입이 아니라 객체라서 `==`는 "값이 같다"가 아니라 "같은 주소를 가리킨다"를 검사한다. `String`을 `==`로 비교하면 안 되는 것과 **같은 함정이다**(다만 이유가 완전히 같지는 않다 — `String`은 컴파일타임 상수 인터닝이고, `Long`은 `valueOf`의 캐시다).
+`Long`은 객체라서 `==`는 "같은 주소를 가리킨다"를 검사한다. 게다가 `-128`~`127`은 캐시되어 지금처럼 id가 작을 때는 `==`가 우연히 통과한다. 같은 파일의 `getId() == null`처럼 참조가 비었는지 묻는 자리에서만 `==`가 맞다. 이 항목은 오답이라 복습큐에 재시험으로 등록했다.
 
-더 골치아픈 건 자바가 `-128`~`127` 범위를 캐싱해서 재사용한다는 것이다. 지금처럼 id가 1, 2, 3일 때는 `==`가 우연히 통과해버린다. **작은 데이터로 테스트하면 숨어있다가 값이 커지면 터지는 종류의 버그**라 오히려 더 위험하다. 이 항목은 오답이었어서 복습큐에 +1일 재시험으로 등록해뒀다.
+## 4. 학습 정리와 다음 범위
 
-## 4. 정리하며
+"Service/Repository로 나눈다"를 규칙으로 외우던 상태에서, **나눈 뒤에 무엇이 필요해지는지**를 보게 됐다. Service가 "찾아서 바꾼다"를 하려면 대상을 지목할 식별자가 있어야 한다. 식별자가 생기면 "같은 id인가"를 판정해야 하고, 거기서 참조 동일성과 값 동일성이 갈린다. 계층 분리 → 식별자 → 동일성은 따로 배우는 세 개가 아니라 한 줄로 이어져 있었다.
 
-오늘 바뀐 건 "Service/Repository로 나눈다"를 규칙으로 외우던 상태에서, **나눈 뒤에 무엇이 필요해지는지**를 본 것이다. 계층을 나누면 Service는 "찾아서 바꾼다"를 해야 하는데, 그러려면 찾을 대상을 지목할 식별자가 있어야 한다. 식별자가 생기면 곧바로 "같은 id인가"를 판정해야 하고, 거기서 참조 동일성과 값 동일성이 갈린다. 계층 분리 → 식별자 → 동일성이 따로 배우는 세 개가 아니라 한 줄로 이어져 있었다.
+두 번째로 바뀐 것은 초록불의 범위다. 컴파일러는 리턴 누락은 잡았지만 "없음"의 의미는 묻지 않았고, 테스트는 `@PathVariable`과 URL이 어긋난 것을 통과시켰다.
 
-두 번째로 남은 건 초록불의 범위다. 컴파일러는 "모든 경로가 리턴하는가"까지는 잡아줬지만 "못 찾았을 때 무엇을 리턴해야 하는가"는 묻지 않았고, 테스트는 `@PathVariable`과 URL이 어긋난 걸 통과시켰다. 빌드 성공은 문법과 지금 등록된 테스트가 묻는 것에만 답한 결과였고, API가 계약대로 동작한다는 답까지는 아니었다.
+**아직 남은 것**은 둘 다 오늘 코드에 있는 결함이다. 첫째, `save()`가 id 유무와 관계없이 `store.add()`를 호출해 같은 참조가 중복으로 들어갈 수 있다(미검증). 둘째, 없는 id로 취소를 부르면 `findById()`의 `null`을 확인 없이 역참조해 그 자리에서 실패한다. 둘 다 저장 계약과 "없음"의 표현을 정하는 문제라 **바로 고칠 것(Week A D7)**으로 분류했다.
 
-아직 남은 것 두 가지는 둘 다 오늘 코드에 있는 결함이다. 첫째, `InMemoryReservationRepository.save()`가 id 유무와 관계없이 `store.add()`를 호출해서, `cancel()`이 찾아온 기존 객체를 다시 저장할 때 같은 참조가 중복으로 들어갈 수 있다. 위에 적었듯 지금은 원소 수를 확인할 수단이 없어 재현도 못 한 상태다. 둘째, `findById()`가 없는 id에 `null`을 반환하는데 `ReservationService.cancel()`이 확인 없이 `reservation.cancel()`을 호출한다. 존재하지 않는 id로 취소를 부르면 그 자리에서 터진다. 둘 다 저장 계약과 "없음"의 표현을 정하는 문제라 **바로 고칠 것(Week A D7)** 으로 분류했다.
+면접에서 다시 답해볼 질문을 남긴다.
 
-면접에서 물어보면 답이 궁금한 질문 하나 — 메모리 저장소에서는 찾아온 객체를 고치기만 해도 `store` 안의 값이 바뀌는데, JPA로 바꾸면 `save()`를 다시 부르는 이 코드는 무엇이 달라지는가.
+- 메모리 저장소에서는 찾아온 객체를 고치기만 해도 `store` 안의 값이 바뀐다. JPA로 바꾸면 `save()`를 다시 부르는 이 코드는 무엇이 달라지는가.
 
-오늘 공부한 소스코드: [8week_Spring_Study/app](https://github.com/enderpawar/8week_Spring_Study/tree/master/app)
+---
+
+오늘 공부한 소스코드: `app/src/main/java/com/example/studyroom/controller/ReservationController.java`, `service/ReservationService.java`, `repository/ReservationRepository.java`, `repository/InMemoryReservationRepository.java`, `domain/Reservation.java`

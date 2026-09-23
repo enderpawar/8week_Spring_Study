@@ -1,0 +1,102 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 730" width="900" height="730" font-family="system-ui, -apple-system, 'Segoe UI', 'Malgun Gothic', 'Apple SD Gothic Neo', sans-serif">
+  <rect x="0" y="0" width="900" height="730" fill="#ffffff"/>
+  <defs>
+    <marker id="dep" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10" fill="none" stroke="#334155" stroke-width="1.2"/>
+    </marker>
+    <style>
+      .box { fill: #ffffff; stroke: #334155; stroke-width: 1.3; }
+      .sep { stroke: #334155; stroke-width: 1.1; }
+      .dep { stroke: #334155; stroke-width: 1.2; stroke-dasharray: 5 4; fill: none; marker-end: url(#dep); }
+      .name { font-size: 13px; font-weight: 600; fill: #0f172a; }
+      .stereo { font-size: 11.5px; fill: #475569; }
+      .code { font-size: 11.5px; fill: #334155; font-family: ui-monospace, 'Cascadia Code', Consolas, monospace; }
+      .txt { font-size: 11.5px; fill: #475569; }
+    </style>
+  </defs>
+
+  <text x="24" y="28" font-size="12" fill="#475569">클래스 다이어그램 — cancelReason 추가와 cancel(String) 시그니처 변경이 지나간 계층 (2f870cf)</text>
+
+  <!-- ===== right column: production ===== -->
+  <!-- Controller -->
+  <rect x="500" y="56" width="380" height="118" class="box"/>
+  <text x="690" y="74" class="stereo" text-anchor="middle">«@RestController»</text>
+  <text x="690" y="92" class="name" text-anchor="middle">ReservationController</text>
+  <line x1="500" y1="102" x2="880" y2="102" class="sep"/>
+  <line x1="500" y1="116" x2="880" y2="116" class="sep"/>
+  <text x="512" y="136" class="code">+ cancel(id: Long, cancelReason: String): String</text>
+  <text x="512" y="158" class="code">  {cancelReason: @RequestParam @NotBlank}</text>
+
+  <!-- Service -->
+  <rect x="500" y="236" width="380" height="88" class="box"/>
+  <text x="690" y="254" class="stereo" text-anchor="middle">«@Service»</text>
+  <text x="690" y="272" class="name" text-anchor="middle">ReservationService</text>
+  <line x1="500" y1="282" x2="880" y2="282" class="sep"/>
+  <line x1="500" y1="296" x2="880" y2="296" class="sep"/>
+  <text x="512" y="315" class="code">+ cancel(id: Long, cancelReason: String): Reservation</text>
+
+  <!-- Reservation -->
+  <rect x="500" y="386" width="380" height="140" class="box"/>
+  <text x="690" y="404" class="stereo" text-anchor="middle">«@Entity»</text>
+  <text x="690" y="422" class="name" text-anchor="middle">Reservation</text>
+  <line x1="500" y1="432" x2="880" y2="432" class="sep"/>
+  <text x="512" y="450" class="code">- confirmed: boolean</text>
+  <text x="512" y="470" class="code">- cancelReason: String</text>
+  <line x1="500" y1="480" x2="880" y2="480" class="sep"/>
+  <text x="512" y="498" class="code">+ cancel(cancelReason: String): void</text>
+  <text x="512" y="518" class="code">+ getCancelReason(): String</text>
+
+  <!-- table -->
+  <rect x="500" y="590" width="380" height="118" class="box"/>
+  <text x="690" y="608" class="stereo" text-anchor="middle">«table»</text>
+  <text x="690" y="626" class="name" text-anchor="middle">reservation</text>
+  <line x1="500" y1="636" x2="880" y2="636" class="sep"/>
+  <text x="512" y="654" class="code">room_name: VARCHAR(100) {room_name &lt;&gt; ''}</text>
+  <text x="512" y="674" class="code">requester_name: VARCHAR(50) {… &lt;&gt; ''}</text>
+  <text x="512" y="694" class="code">cancel_reason: VARCHAR(100) [0..1]</text>
+
+  <!-- vertical dependencies -->
+  <line x1="690" y1="174" x2="690" y2="234" class="dep"/>
+  <text x="700" y="208" class="txt">«call»</text>
+  <line x1="690" y1="324" x2="690" y2="384" class="dep"/>
+  <text x="700" y="358" class="txt">«call»</text>
+  <line x1="690" y1="526" x2="690" y2="588" class="dep"/>
+  <text x="700" y="561" class="txt">«map»</text>
+
+  <!-- ===== left column: tests ===== -->
+  <rect x="20" y="66" width="340" height="98" class="box"/>
+  <text x="190" y="88" class="name" text-anchor="middle">ReservationControllerHttpTest</text>
+  <line x1="20" y1="98" x2="360" y2="98" class="sep"/>
+  <line x1="20" y1="110" x2="360" y2="110" class="sep"/>
+  <text x="30" y="130" class="code">cancelReturns404When…()</text>
+  <text x="30" y="150" class="code">cancelReturns400WhenIdIsNotPositive()</text>
+
+  <rect x="20" y="236" width="340" height="88" class="box"/>
+  <text x="190" y="258" class="name" text-anchor="middle">ReservationServiceTest</text>
+  <line x1="20" y1="268" x2="360" y2="268" class="sep"/>
+  <line x1="20" y1="280" x2="360" y2="280" class="sep"/>
+  <text x="30" y="298" class="code">cancelUpdatesExisting…()</text>
+  <text x="30" y="316" class="code">cancelThrowsDomainException…()</text>
+
+  <rect x="20" y="386" width="340" height="118" class="box"/>
+  <text x="190" y="408" class="name" text-anchor="middle">JpaReservationRepositoryTest</text>
+  <line x1="20" y1="418" x2="360" y2="418" class="sep"/>
+  <line x1="20" y1="430" x2="360" y2="430" class="sep"/>
+  <text x="30" y="450" class="code">savingExistingReservation…()</text>
+  <text x="30" y="470" class="code">modifyingManagedEntity…()</text>
+  <text x="30" y="490" class="code">checkCancelReason()</text>
+
+  <!-- horizontal dependencies -->
+  <line x1="360" y1="130" x2="498" y2="130" class="dep"/>
+  <text x="429" y="123" class="txt" text-anchor="middle">«call»</text>
+  <line x1="360" y1="300" x2="498" y2="300" class="dep"/>
+  <text x="429" y="293" class="txt" text-anchor="middle">«call»</text>
+  <line x1="360" y1="460" x2="498" y2="460" class="dep"/>
+  <text x="429" y="453" class="txt" text-anchor="middle">«call»</text>
+
+  <!-- note -->
+  <path d="M 20 610 L 346 610 L 360 624 L 360 650 L 20 650 z" fill="#ffffff" stroke="#334155" stroke-width="1.1"/>
+  <path d="M 346 610 L 346 624 L 360 624" fill="none" stroke="#334155" stroke-width="1.1"/>
+  <text x="32" y="635" class="code">ddl-auto: validate — 기동 시 필드 ↔ 컬럼 대조</text>
+  <line x1="360" y1="630" x2="500" y2="650" stroke="#334155" stroke-width="1" stroke-dasharray="3 3"/>
+</svg>

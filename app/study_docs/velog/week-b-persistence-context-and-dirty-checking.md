@@ -49,6 +49,7 @@ select r1_0.id, r1_0.confirmed, r1_0.requester_name, r1_0.room_name from reserva
 ```
 
 ![시퀀스 다이어그램. 테스트가 save(reservation)를 호출하면 Repository가 영속성 컨텍스트에 영속 상태로 등록하고, flush() 시점에 컨텍스트가 H2로 INSERT를 보낸다. 이후 alt 프레임이 두 갈래로 갈린다. clear()를 호출하지 않은 갈래에서는 findById(id) 두 번이 모두 캐시 조회에서 끝나고 인스턴스 r을 돌려주며, H2 생명선에는 화살표가 하나도 닿지 않는다. clear()를 호출한 갈래에서는 첫 findById(id)만 컨텍스트가 H2로 SELECT를 보내 행 1건을 받아오고, 두 번째 findById(id)는 다시 캐시 조회에서 끝나 같은 인스턴스 r을 돌려준다.](../assets/day11-first-level-cache.png)
+<!-- velog 업로드: 이 줄 위 이미지 자리에 app/study_docs/assets/day11-first-level-cache.png 파일을 드래그해 교체 -->
 
 `clear()`는 조회를 막는 장치가 아니라 **"처음 조회하는 상태"로 되돌리는** 장치였다. 그리고 두 경우 모두 두 조회가 같은 객체를 돌려줬다. 1차 캐시가 보장하는 건 값이 같다는 게 아니라 같은 트랜잭션·같은 `id`면 **객체가 하나**라는 것이다.
 
