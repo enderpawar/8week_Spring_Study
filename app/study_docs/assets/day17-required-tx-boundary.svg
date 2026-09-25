@@ -1,0 +1,51 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 840 320" width="840" height="320" font-family="system-ui, -apple-system, 'Segoe UI', 'Malgun Gothic', 'Apple SD Gothic Neo', sans-serif">
+  <rect x="0" y="0" width="840" height="320" fill="#ffffff"/>
+  <defs>
+    <marker id="call" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#334155"/>
+    </marker>
+    <marker id="callErr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#b91c1c"/>
+    </marker>
+    <style>
+      .msg { stroke: #334155; stroke-width: 1.3; fill: none; marker-end: url(#call); }
+      .boundary { fill: none; stroke: #334155; stroke-width: 1.6; }
+      .box { fill: #ffffff; stroke: #334155; stroke-width: 1.2; }
+      .tab { fill: #ffffff; stroke: #334155; stroke-width: 1.2; }
+      .code { font-size: 12.5px; fill: #334155; font-family: ui-monospace, 'Cascadia Code', Consolas, monospace; }
+      .txt { font-size: 12px; fill: #475569; }
+      .ftitle { font-size: 13px; font-weight: 600; fill: #0f172a; }
+      .result { font-size: 12.5px; font-weight: 700; fill: #b91c1c; font-family: ui-monospace, 'Cascadia Code', Consolas, monospace; }
+      .conn { font-size: 12px; fill: #475569; text-anchor: middle; }
+    </style>
+  </defs>
+
+  <text x="30" y="26" font-size="12" fill="#475569">구조 다이어그램 — REQUIRED는 진행 중인 트랜잭션 경계 안에 합류한다</text>
+
+  <!-- outer boundary: Tx A -->
+  <rect x="40" y="50" width="760" height="150" rx="6" class="boundary"/>
+  <path d="M 40 50 L 260 50 L 260 66 L 248 78 L 40 78 z" class="tab"/>
+  <text x="52" y="69" class="ftitle">트랜잭션 A — REQUIRED (단일 경계)</text>
+
+  <!-- box 1 -->
+  <rect x="70" y="100" width="280" height="70" rx="4" class="box"/>
+  <text x="210" y="130" class="code" text-anchor="middle">reserveThenFail()</text>
+  <text x="210" y="150" class="txt" text-anchor="middle">@Transactional — Tx A 시작</text>
+
+  <!-- arrow -->
+  <line x1="350" y1="135" x2="470" y2="135" class="msg"/>
+  <text x="410" y="127" class="txt" text-anchor="middle">호출</text>
+
+  <!-- box 2 -->
+  <rect x="470" y="100" width="300" height="70" rx="4" class="box"/>
+  <text x="620" y="130" class="code" text-anchor="middle">reserve()</text>
+  <text x="620" y="150" class="txt" text-anchor="middle">REQUIRED — 새로 만들지 않고 A에 합류</text>
+
+  <!-- connection label under boundary -->
+  <text x="420" y="222" class="conn">Connection #1 — 시작부터 끝까지 한 개로 유지</text>
+
+  <!-- error result -->
+  <text x="420" y="262" class="result" text-anchor="middle">예외 발생 → Tx A 전체 rollback (reserve()의 INSERT 포함)</text>
+
+  <text x="420" y="296" class="txt" text-anchor="middle">판단 기준: 이미 진행 중인 트랜잭션이 있는가 — 있으면 새로 만들지 않는다</text>
+</svg>

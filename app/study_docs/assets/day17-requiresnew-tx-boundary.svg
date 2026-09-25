@@ -1,0 +1,52 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 840 340" width="840" height="340" font-family="system-ui, -apple-system, 'Segoe UI', 'Malgun Gothic', 'Apple SD Gothic Neo', sans-serif">
+  <rect x="0" y="0" width="840" height="340" fill="#ffffff"/>
+  <defs>
+    <marker id="call" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#334155"/>
+    </marker>
+    <marker id="callBoth" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#b91c1c"/>
+    </marker>
+    <style>
+      .boundarySuspend { fill: none; stroke: #334155; stroke-width: 1.4; stroke-dasharray: 6 4; }
+      .boundaryNew { fill: none; stroke: #334155; stroke-width: 1.6; }
+      .box { fill: #ffffff; stroke: #334155; stroke-width: 1.2; }
+      .tab { fill: #ffffff; stroke: #334155; stroke-width: 1.2; }
+      .code { font-size: 12.5px; fill: #334155; font-family: ui-monospace, 'Cascadia Code', Consolas, monospace; }
+      .txt { font-size: 12px; fill: #475569; }
+      .ftitle { font-size: 13px; font-weight: 600; fill: #0f172a; }
+      .result { font-size: 12.5px; font-weight: 700; fill: #b91c1c; font-family: ui-monospace, 'Cascadia Code', Consolas, monospace; }
+      .conn { font-size: 12px; fill: #475569; text-anchor: middle; }
+      .dual { stroke: #b91c1c; stroke-width: 1.3; fill: none; marker-end: url(#callBoth); marker-start: url(#callBoth); }
+    </style>
+  </defs>
+
+  <text x="30" y="26" font-size="12" fill="#475569">구조 다이어그램 — REQUIRES_NEW는 기존 경계를 보류하고 독립된 경계를 새로 연다</text>
+
+  <!-- left: suspended Tx A -->
+  <rect x="40" y="54" width="320" height="130" rx="6" class="boundarySuspend"/>
+  <path d="M 40 54 L 260 54 L 260 70 L 248 82 L 40 82 z" class="tab"/>
+  <text x="52" y="73" class="ftitle">트랜잭션 A — 보류(suspended)</text>
+  <rect x="70" y="104" width="260" height="60" rx="4" class="box"/>
+  <text x="200" y="130" class="code" text-anchor="middle">reserveThenFail()</text>
+  <text x="200" y="148" class="txt" text-anchor="middle">B가 끝날 때까지 대기</text>
+  <text x="200" y="210" class="conn">Connection #1 — 보류 중에도 계속 점유</text>
+
+  <!-- right: new Tx B -->
+  <rect x="480" y="54" width="320" height="130" rx="6" class="boundaryNew"/>
+  <path d="M 480 54 L 700 54 L 700 70 L 688 82 L 480 82 z" class="tab"/>
+  <text x="492" y="73" class="ftitle">트랜잭션 B — REQUIRES_NEW(신규)</text>
+  <rect x="510" y="104" width="260" height="60" rx="4" class="box"/>
+  <text x="640" y="130" class="code" text-anchor="middle">reserve()</text>
+  <text x="640" y="148" class="txt" text-anchor="middle">INSERT + commit이 B 안에서 완결</text>
+  <text x="640" y="210" class="conn">Connection #2 — B 전용으로 신규 확보</text>
+
+  <!-- double arrow between: concurrent -->
+  <line x1="360" y1="119" x2="480" y2="119" class="dual"/>
+  <text x="420" y="106" class="txt" text-anchor="middle">동시</text>
+
+  <text x="420" y="248" class="result">보류 + 신규 구간 동안 커넥션 2개가 동시에 필요</text>
+
+  <text x="420" y="278" class="txt" text-anchor="middle">B 커밋 완료 → A 재개 → outer 예외로 A만 rollback, 이미 커밋된 B는 영향받지 않음</text>
+  <text x="420" y="300" class="txt" text-anchor="middle">동시 요청이 몰리면 이 2커넥션 구간이 쌓여 풀을 고갈시킬 수 있다</text>
+</svg>
