@@ -76,7 +76,7 @@ findById() → reservation 테이블 SELECT (member_id 컬럼값만 확보)
 
 ### 4) AOP Proxy와의 구분
 
-> Day16의 Spring AOP Proxy와 오늘의 Hibernate Proxy는 이름만 같지 다른 장치다
+> **AOP Proxy** = Bean의 메서드 호출을 가로채 부가 기능을 적용하는 대리 객체(Day16). **Hibernate Proxy**(3절) = Entity의 필드 접근을 가로채 SELECT를 지연시키는, 이름만 같은 별개의 장치
 
 | 구분 | AOP Proxy | Hibernate Proxy |
 |---|---|---|
