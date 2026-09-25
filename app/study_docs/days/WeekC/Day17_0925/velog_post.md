@@ -39,9 +39,7 @@ reserveThenFail() 호출 → 트랜잭션 A 시작
 → reserve()의 INSERT도 함께 취소
 ```
 
-처음엔 "같은 트랜잭션 범위에 포함되서"라고만 답했다가, "있으면 롤백, 없으면 저장"으로 판단 기준을 잘못 짚었다. 실제로는 롤백 여부가 아니라 **새 트랜잭션을 만드는가**가 REQUIRED의 판단 기준이다.
-
-> **확인 범위** — 이 동작은 이후 `reserve()`를 `REQUIRES_NEW`로 바꾸며 코드에서 대체됐다(2절 참고). REQUIRED 상태에서 `assertTrue(noneMatch(...))`로 롤백을 확인한 실행 로그는 남아 있지만, 현재 커밋의 소스에는 REQUIRED 버전의 테스트가 남아 있지 않다.
+처음엔 "같은 트랜잭션 범위에 포함되서"라고만 답했다가, "있으면 롤백, 없으면 저장"으로 판단 기준을 잘못 짚었다. 실제로는 롤백 여부가 아니라 **새 트랜잭션을 만드는가**가 REQUIRED의 판단 기준이다. 이 REQUIRED 동작은 이후 `reserve()`를 `REQUIRES_NEW`로 바꾸며 코드에서 대체됐다 — `noneMatch`로 롤백을 확인한 실행 로그는 남아 있지만, 현재 커밋의 소스에는 REQUIRED 버전의 테스트가 남아 있지 않다(2절 참고).
 
 ### 2) REQUIRES_NEW — 독립된 트랜잭션 분리
 
@@ -69,9 +67,7 @@ reserveThenFail() 호출 → 트랜잭션 A 시작
 → 이미 commit된 B는 영향받지 않음
 ```
 
-`REQUIRES_NEW`로 바꾸기 전 "예약이 남아있을 것"이라고 예측했고, `reservationRepository.findAll().stream().anyMatch(r -> r.getRoomName().equals("D-101"))`가 `true`로 확인돼 예측과 일치했다. 두 경로의 시퀀스 비교는 서두 그림 참고.
-
-> **확인 범위** — `requiresNewSurviesOuterFailure()`의 `assertThrows`와 `anyMatch` 두 assertion으로 "예외가 발생했다"와 "예약이 남았다"까지만 확인했다. 트랜잭션 B가 커밋되는 정확한 시점(메서드 반환 시인지, 다른 시점인지)은 Spring 소스코드까지 따라가 검증하지 않았다.
+`REQUIRES_NEW`로 바꾸기 전 "예약이 남아있을 것"이라고 예측했고, `reservationRepository.findAll().stream().anyMatch(r -> r.getRoomName().equals("D-101"))`가 `true`로 확인돼 예측과 일치했다. 두 경로의 시퀀스 비교는 서두 그림 참고. 다만 `assertThrows`와 `anyMatch` 두 assertion으로 "예외가 발생했다"와 "예약이 남았다"까지만 확인했고, 트랜잭션 B가 정확히 언제 커밋되는지(메서드 반환 시인지, 다른 시점인지)는 Spring 소스코드까지 따라가 검증하지 않았다.
 
 ### 3) 커넥션 풀 고갈 위험
 
@@ -84,7 +80,7 @@ reserveThenFail() 호출 → 트랜잭션 A 시작
 | REQUIRED | 1개(합류) | 없음 |
 | REQUIRES_NEW | 2개(보류 + 신규) | 풀 고갈 시 병목, 최악의 경우 대기 요청끼리 교착 |
 
-> **확인 범위** — 이 위험은 REQUIRES_NEW의 동작 원리(트랜잭션 보류 + 신규 시작)로부터 도출한 설명이다. 실제로 커넥션 풀을 고갈시키는 동시 요청 테스트는 이번 Day에서 실행하지 않았다(미검증).
+이 위험은 REQUIRES_NEW의 동작 원리(트랜잭션 보류 + 신규 시작)로부터 도출한 설명이며, 실제로 커넥션 풀을 고갈시키는 동시 요청 테스트는 이번 Day에서 실행하지 않았다(미검증, 4절 참고).
 
 ### 4) 용어 한줄뜻
 
