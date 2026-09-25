@@ -9,6 +9,10 @@ Day16에서는 애노테이션과 실행 주체(Spring AOP 프록시)가 분리�
 > 이전 Day: Spring AOP 프록시와 self-invocation (Day16)
 > 다음 Day: 연관관계 + Hibernate LAZY 프록시 (Week C D4)
 
+REQUIRED와 REQUIRES_NEW의 차이는 결국 "outer가 실패했을 때 inner의 커밋이 몇 개의 트랜잭션에 속해 있었는가"로 갈린다.
+
+![REQUIRED에서는 reserveThenFail의 예외가 트랜잭션 A 전체를 롤백해 inner가 저장한 예약까지 사라지지만, REQUIRES_NEW에서는 inner가 트랜잭션 A를 보류하고 별도 트랜잭션 B를 열어 커밋하므로 A만 롤백되고 예약은 남는 시퀀스 비교](https://raw.githubusercontent.com/enderpawar/8week_Spring_Study/master/app/study_docs/assets/day17-transaction-propagation.png)
+
 ## 1. 개념 설명
 
 ### 1) REQUIRED — 진행 중인 트랜잭션에 합류
@@ -65,9 +69,7 @@ reserveThenFail() 호출 → 트랜잭션 A 시작
 → 이미 commit된 B는 영향받지 않음
 ```
 
-`REQUIRES_NEW`로 바꾸기 전 "예약이 남아있을 것"이라고 예측했고, `reservationRepository.findAll().stream().anyMatch(r -> r.getRoomName().equals("D-101"))`가 `true`로 확인돼 예측과 일치했다.
-
-![REQUIRED에서는 reserveThenFail의 예외가 트랜잭션 A 전체를 롤백해 inner가 저장한 예약까지 사라지지만, REQUIRES_NEW에서는 inner가 트랜잭션 A를 보류하고 별도 트랜잭션 B를 열어 커밋하므로 A만 롤백되고 예약은 남는 시퀀스 비교](https://raw.githubusercontent.com/enderpawar/8week_Spring_Study/master/app/study_docs/assets/day17-transaction-propagation.png)
+`REQUIRES_NEW`로 바꾸기 전 "예약이 남아있을 것"이라고 예측했고, `reservationRepository.findAll().stream().anyMatch(r -> r.getRoomName().equals("D-101"))`가 `true`로 확인돼 예측과 일치했다. 두 경로의 시퀀스 비교는 서두 그림 참고.
 
 > **확인 범위** — `requiresNewSurviesOuterFailure()`의 `assertThrows`와 `anyMatch` 두 assertion으로 "예외가 발생했다"와 "예약이 남았다"까지만 확인했다. 트랜잭션 B가 커밋되는 정확한 시점(메서드 반환 시인지, 다른 시점인지)은 Spring 소스코드까지 따라가 검증하지 않았다.
 
@@ -146,13 +148,7 @@ void requiresNewSurviesOuterFailure() {
 
 ## 4. 학습 정리와 다음 범위
 
-### 1) 전체 흐름 다시 보기
-
-REQUIRED와 REQUIRES_NEW의 차이는 결국 "outer가 실패했을 때 inner의 커밋이 몇 개의 트랜잭션에 속해 있었는가"로 갈린다.
-
-![REQUIRED는 inner가 outer의 트랜잭션 A에 합류해 outer 실패 시 함께 롤백되지만, REQUIRES_NEW는 inner가 별도 트랜잭션 B를 열어 커밋을 끝내므로 outer 실패가 B에 영향을 주지 못하는 두 경로 비교](https://raw.githubusercontent.com/enderpawar/8week_Spring_Study/master/app/study_docs/assets/day17-transaction-propagation.png)
-
-### 2) 이해의 변화와 남은 것
+### 1) 이해의 변화와 남은 것
 
 Day16까지는 "트랜잭션 경계를 어디에 두는가"만 다뤘다. Day17에서는 그 경계 두 개가 겹칠 때 어떤 관계를 맺는지가 추가됐다. REQUIRED는 기본값이라 별생각 없이 써도 되는 것처럼 보이지만, "함께 롤백된다"는 성질 자체가 REQUIRES_NEW를 써야 할 이유이기도 하다는 걸 이번에 연결했다.
 
