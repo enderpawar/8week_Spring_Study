@@ -54,7 +54,7 @@ Reservation 조회 → member 필드는 프록시로만 채움
 
 > **Proxy(Hibernate)** = 실제 Entity 대신 들어가는 빈 껍데기 대리 객체. 식별자만 가진 채 시작해 실제 접근 시점에 초기화된다
 
-우리 코드에서는 재조회한 `Reservation`의 `member` 필드가 `Member`가 아니라 `Member$HibernateProxy`였다.
+Hibernate는 이 프록시를 매번 새로 발명하지 않는다. 대상 Entity 클래스를 상속한 서브클래스를 바이트코드로 만들고, 그 서브클래스가 `HibernateProxy` 인터페이스를 구현하게 한다. 우리 코드에서는 재조회한 `Reservation`의 `member` 필드가 `Member`가 아니라 그 서브클래스인 `Member$HibernateProxy`였다.
 
 ```java
 Reservation found = reservationRepository.findById(id).orElseThrow();
@@ -97,8 +97,9 @@ AOP Proxy는 `service.inner()`처럼 메서드를 호출하는 순간 가로챈�
 | First-Level Cache | 같은 트랜잭션 안에서 같은 id 재조회를 캐시로 대체하는 영속성 컨텍스트의 저장소 |
 
 > **더 볼 것**
-> - [Hibernate ORM User Guide — Association Mappings](https://docs.jboss.org/hibernate/orm/6.6/userguide/html_single/Hibernate_User_Guide.html#associations): `@ManyToOne`/`@OneToMany` 기본 Fetch Type 표
+> - [Hibernate ORM User Guide — Association Mappings](https://docs.hibernate.org/orm/6.6/userguide/html_single/Hibernate_User_Guide.html): `@ManyToOne`/`@OneToMany`를 포함한 연관관계 매핑 전체 챕터
 > - [Jakarta Persistence Specification — FetchType](https://jakarta.ee/specifications/persistence/3.1/jakarta-persistence-spec-3.1.html): Fetch Type이 힌트이지 강제가 아니라는 명세 조항
+> - [How does a JPA Proxy work and how to unproxy it with Hibernate — Vlad Mihalcea](https://vladmihalcea.com/how-does-a-jpa-proxy-work-and-how-to-unproxy-it-with-hibernate/): 프록시가 엔티티 클래스를 상속한 서브클래스이고 `HibernateProxy` 인터페이스를 구현한다는 근거
 
 ## 2. 코드 구현
 
@@ -120,7 +121,17 @@ public class Member {
 - `protected Member()`: JPA가 프록시·Entity를 생성할 때 쓰는 기본 생성자.
 - `@ManyToOne(fetch = FetchType.LAZY) @JoinColumn(name = "member_id")`(`Reservation.java`): FK 컬럼과 지연 로딩 전략을 함께 선언.
 
-새 컬럼(`member_id`)은 `V4__member.sql`로 추가했다. `ddl-auto: validate`라 Hibernate가 스키마를 만들지 않고, Flyway 마이그레이션과 Entity 매핑이 일치하는지만 검사한다(Week B에서 정한 원칙 그대로).
+새 컬럼(`member_id`)은 `V4__member.sql`로 추가했다.
+
+```sql
+ALTER TABLE reservation ADD member_id BIGINT;
+
+ALTER TABLE reservation
+    ADD CONSTRAINT fk_reservation_member
+    FOREIGN KEY (member_id) REFERENCES member(id);
+```
+
+`@JoinColumn(name = "member_id")`은 자바 쪽 참조 이름일 뿐이고, "존재하지 않는 `member_id`를 거부한다"는 실제 보장은 이 `FOREIGN KEY` 제약이 한다. `ddl-auto: validate`라 Hibernate가 스키마를 직접 만들지 않고, Flyway 마이그레이션과 Entity 매핑이 일치하는지만 검사한다(Week B에서 정한 원칙 그대로).
 
 ### 2) LAZY 초기화 시점 테스트
 
