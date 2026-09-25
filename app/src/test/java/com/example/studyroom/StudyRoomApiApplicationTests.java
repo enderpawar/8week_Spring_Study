@@ -32,9 +32,7 @@ class StudyRoomApiApplicationTests {
 
     @Test
     void reservationServiceIsTransactionalProxy(){
-        ReservationService service =
-
-                applicationContext.getBean(ReservationService.class);
+        ReservationService service = applicationContext.getBean(ReservationService.class);
 
         assertTrue(AopUtils.isAopProxy(service));
         assertTrue(AopUtils.isCglibProxy(service));
