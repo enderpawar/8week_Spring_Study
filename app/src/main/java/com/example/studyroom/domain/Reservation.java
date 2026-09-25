@@ -11,15 +11,26 @@ public class Reservation{
     private boolean confirmed;
     private String cancelReason;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "member_id")
+    private Member member;
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id; // DB에 저장될 때, 자동으로 생성되는 PK값을 담기 위한 필드. final 아님. 저장되기 전에는 아직 값이 없음
-
 
     public Reservation(String roomName,String requesterName){
         this.roomName = roomName;
         this.requesterName = requesterName;
         this.confirmed = false; // 아직 확인되면 안되니까 기본값은 false로 둔다.
+    }
+
+    public void assignMember(Member member){
+        this.member = member;
+    }
+
+    public Member getMember(){
+        return member;
     }
     // 상태를 바꾸는 규칙을 객체 안에 캡슐화 - 외부에서 필드를 직접 못 건드리게 하기 위해서.
     public void confirm() {
