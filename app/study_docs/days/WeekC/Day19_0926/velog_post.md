@@ -74,7 +74,17 @@ findAllWithMember() → reservation + member JOIN SQL 1번
 
 fetch join은 매핑을 바꾸지 않는다. `Reservation.member`는 여전히 `FetchType.LAZY`이고, 같은 코드베이스에서 `findAll()`은 계속 N+1을 냈다. 기본은 지연으로 두고, 연관 데이터가 확실히 필요한 조회 경로에서만 쿼리 단위로 당겨오는 구조다.
 
-주의할 점은 로그의 `join`이 **inner join**이라는 것이다. 관계대수의 내부 조인처럼 `member_id`가 `null`인 예약은 결과에서 빠진다. 지금 HTTP로 만든 예약은 member 없이 저장되므로, `findAll()`을 이 메서드로 그대로 바꾸면 그 행들이 목록에서 사라진다. 이건 SQL 형태에서 도출한 결론이고 테스트로는 확인하지 않았다. 해결 수단(`@EntityGraph`, batch fetch size 등)이 fetch join만 있는 것도 아니지만, 오늘 비교한 것은 LAZY 그대로와 fetch join 두 가지다.
+주의할 점은 로그의 `join`이 **inner join**이라는 것이다. 관계대수의 내부 조인처럼 `member_id`가 `null`인 예약은 결과에서 빠진다. 아래 그림에서 A를 `reservation`, B를 `member`로 놓으면, `join fetch`가 돌려주는 범위는 첫 번째 그림의 교집합이다.
+
+![두 원 A와 B의 교집합만 칠해진 벤 다이어그램. A Inner Join B는 양쪽에 짝이 있는 행만 결과에 남긴다.](https://raw.githubusercontent.com/enderpawar/8week_Spring_Study/master/app/study_docs/assets/day19-web-inner-join.png)
+
+*출처: [File:SQL Join - 07 A Inner Join B.svg](https://commons.wikimedia.org/wiki/File:SQL_Join_-_07_A_Inner_Join_B.svg) — GermanX, Wikimedia Commons, CC BY-SA 4.0*
+
+![원 A 전체와 교집합이 칠해진 벤 다이어그램. A Left Join B는 B에 짝이 없는 A의 행도 결과에 남긴다.](https://raw.githubusercontent.com/enderpawar/8week_Spring_Study/master/app/study_docs/assets/day19-web-left-join.png)
+
+*출처: [File:SQL Join - 01 A Left Join B.svg](https://commons.wikimedia.org/wiki/File:SQL_Join_-_01_A_Left_Join_B.svg) — GermanX, Wikimedia Commons, CC BY-SA 4.0*
+
+지금 HTTP로 만든 예약은 member 없이 저장되므로 A에만 속한 영역에 있다. `findAll()`을 이 메서드로 그대로 바꾸면 그 행들이 목록에서 사라지고, 남기려면 두 번째 그림 범위인 `left join fetch`가 필요하다. 이건 SQL 형태에서 도출한 결론이고 테스트로는 확인하지 않았다. 해결 수단(`@EntityGraph`, batch fetch size 등)이 fetch join만 있는 것도 아니지만, 오늘 비교한 것은 LAZY 그대로와 fetch join 두 가지다.
 
 ### 3) 용어 한줄뜻
 
