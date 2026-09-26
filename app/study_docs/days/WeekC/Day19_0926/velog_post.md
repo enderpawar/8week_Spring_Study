@@ -38,6 +38,14 @@ findAll() → select … from reservation (1번)
 
 실제 로그에서 `findAll()` 호출 구간과 순회 구간 사이에 경계 문자열을 찍어 SELECT 위치를 갈랐다. `findAll()` 구간에는 `reservation` SELECT만 있었고, `member` SELECT 3개는 전부 순회 구간에서 `진우`·`철수`·`영희` 출력 직전에 한 번씩 나왔다.
 
+같은 패턴은 방향이 반대인 연관관계에서도 나타난다. 아래는 다른 글의 로그로, `Member` 목록을 순회하며 `@OneToMany` 컬렉션 `orders`의 크기를 출력한 결과다. `where orders0_.member_id=?` SELECT가 회원 수만큼 똑같이 반복된다.
+
+![Hibernate SQL 로그 캡처. select … from orders orders0_ where orders0_.member_id=? 쿼리와 order size: 10 출력이 회원마다 한 번씩 계속 반복된다.](https://raw.githubusercontent.com/enderpawar/8week_Spring_Study/master/app/study_docs/assets/day19-web-nplusone-log.png)
+
+*출처: [JPA N+1 발생원인과 해결 방법](https://www.popit.kr/jpa-n1-%EB%B0%9C%EC%83%9D%EC%9B%90%EC%9D%B8%EA%B3%BC-%ED%95%B4%EA%B2%B0-%EB%B0%A9%EB%B2%95/) — Yun(cheese10yun), Popit*
+
+우리 코드는 `@ManyToOne` 방향이라 연관 필드가 컬렉션이 아니라 단일 프록시지만, "목록 1번 조회 뒤 건마다 같은 모양의 SELECT가 반복된다"는 구조는 같다.
+
 N+1은 SQL 하나하나가 느린 문제가 아니라 **애플리케이션과 DB 사이 왕복(round trip) 횟수**의 문제다. 각 SELECT가 PK 인덱스를 타더라도, 루프 안에서 원격 호출을 반복하는 구조라 왕복의 고정 비용이 건수만큼 쌓인다. 오늘은 3건이라 4번이었고, 건수에 비례해 늘어나는 구조라는 것까지가 관찰 범위다(응답 시간은 측정하지 않았다).
 
 ### 2) Fetch Join의 동작
