@@ -25,8 +25,14 @@ public class JpaReservationRepository implements ReservationRepository{
     public Optional<Reservation> findById(Long id){
         return delegate.findById(id);
     }
+
     @Override
     public List<Reservation> findAll(){
         return delegate.findAll();
+    }
+
+    @Override
+    public List<Reservation> findAllWithMember(){
+        return delegate.findAllWithMember();
     }
 }

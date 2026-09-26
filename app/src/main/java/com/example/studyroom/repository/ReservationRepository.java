@@ -9,5 +9,8 @@ public interface ReservationRepository {
     Reservation save(Reservation reservation); //이렇게
     List<Reservation> findAll();
     Optional<Reservation> findById(Long id);
+    default List<Reservation> findAllWithMember(){
+        throw new UnsupportedOperationException();
+    };
 }
 
